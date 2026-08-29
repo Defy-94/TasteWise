@@ -1,0 +1,48 @@
+<!-- 关于页面 - 纯展示，无API绑定 -->
+<view class="about-container">
+  <!-- Logo区域 -->
+  <view class="logo-section">
+    <view class="logo-icon">🍽️</view>
+    <text class="app-name">{{appName}}</text>
+    <text class="version">v{{version}}</text>
+  </view>
+
+  <!-- 描述区域 -->
+  <view class="desc-section">
+    <text class="section-title">📖 产品简介</text>
+    <text class="desc-text">{{description}}</text>
+  </view>
+
+  <!-- 技术栈区域 -->
+  <view class="tech-section">
+    <text class="section-title">🛠️ 技术栈</text>
+    <view class="tech-item">
+      <text>前端：</text>
+      <text>微信小程序 + TypeScript</text>
+    </view>
+    <view class="tech-item">
+      <text>后端：</text>
+      <text>PHP + MySQL</text>
+    </view>
+    <view class="tech-item">
+      <text>AI引擎：</text>
+      <text>DeepSeek大模型</text>
+    </view>
+    <view class="tech-item">
+      <text>开发工具：</text>
+      <text>phpstudy_pro + 微信开发者工具</text>
+    </view>
+  </view>
+
+  <!-- 开发者信息 -->
+  <view class="dev-section">
+    <text class="section-title">👨‍💻 开发信息</text>
+    <text class="dev-text">开发者：{{developer}}</text>
+    <text class="dev-text">本项目为全栈开发练习项目</text>
+  </view>
+
+  <!-- 版权信息 -->
+  <view class="footer">
+    <text>© 2026 AI点餐 All Rights Reserved</text>
+  </view>
+</view>

@@ -1,0 +1,92 @@
+/* 关于页面样式 */
+.about-container {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #FF6B35 0%, #ff8c6b 30%, #f5f5f5 30%);
+    padding-bottom: 40rpx;
+  }
+  
+  /* Logo区域 */
+  .logo-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 80rpx 0 40rpx;
+  }
+  .logo-icon {
+    font-size: 120rpx;
+    width: 180rpx;
+    height: 180rpx;
+    background: rgba(255,255,255,0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8rpx 30rpx rgba(0,0,0,0.15);
+  }
+  .app-name {
+    font-size: 48rpx;
+    font-weight: bold;
+    color: #fff;
+    margin-top: 30rpx;
+    text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.2);
+  }
+  .version {
+    font-size: 24rpx;
+    color: rgba(255,255,255,0.8);
+    margin-top: 8rpx;
+  }
+  
+  /* 通用区块样式 */
+  .desc-section,
+  .tech-section,
+  .dev-section {
+    background: #fff;
+    margin: 20rpx 30rpx;
+    border-radius: 20rpx;
+    padding: 30rpx;
+    box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.05);
+  }
+  .section-title {
+    font-size: 32rpx;
+    font-weight: bold;
+    color: #333;
+    display: block;
+    margin-bottom: 20rpx;
+  }
+  
+  /* 描述区域 */
+  .desc-text {
+    font-size: 28rpx;
+    color: #666;
+    line-height: 1.8;
+    white-space: pre-line;
+  }
+  
+  /* 技术栈区域 */
+  .tech-item {
+    display: flex;
+    padding: 12rpx 0;
+    font-size: 28rpx;
+    color: #555;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .tech-item text:first-child {
+    width: 160rpx;
+    color: #999;
+  }
+  
+  /* 开发者信息 */
+  .dev-text {
+    display: block;
+    font-size: 26rpx;
+    color: #666;
+    padding: 8rpx 0;
+  }
+  
+  /* 底部版权 */
+  .footer {
+    text-align: center;
+    padding: 40rpx 0;
+    font-size: 22rpx;
+    color: #ccc;
+  }

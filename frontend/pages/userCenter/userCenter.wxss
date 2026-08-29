@@ -1,0 +1,246 @@
+/* 用户中心样式 */
+
+.container {
+    min-height: 100vh;
+    background: #f5f5f5;
+    padding-bottom: 40rpx;
+  }
+  
+  /* 用户头部 */
+  .user-header {
+    background: #FF6B35;
+    padding: 60rpx 30rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .avatar {
+    width: 120rpx;
+    height: 120rpx;
+    border-radius: 50%;
+    background: #fff;
+  }
+  
+  .user-name {
+    color: #fff;
+    font-size: 36rpx;
+    margin-top: 20rpx;
+  }
+  
+  .user-phone {
+    color: rgba(255,255,255,0.8);
+    font-size: 24rpx;
+    margin-top: 8rpx;
+  }
+  
+  /* ========== 订单区域 ========== */
+  .orders-section {
+    margin: 20rpx;
+    background: #fff;
+    border-radius: 15rpx;
+    padding: 30rpx;
+  }
+  
+  .section-title {
+    font-size: 32rpx;
+    font-weight: bold;
+    margin-bottom: 20rpx;
+  }
+  
+  .no-orders {
+    text-align: center;
+    color: #999;
+    font-size: 28rpx;
+    padding: 40rpx 0;
+  }
+  
+  .order-card {
+    border: 1px solid #f0f0f0;
+    border-radius: 15rpx;
+    padding: 25rpx;
+    margin-bottom: 20rpx;
+    background: #fafafa;
+  }
+  
+  .order-status {
+    font-size: 30rpx;
+    font-weight: bold;
+    color: #07C160;
+  }
+  
+  .order-time {
+    font-size: 24rpx;
+    color: #999;
+    margin: 10rpx 0 20rpx;
+  }
+  
+  /* 菜品图片横向滚动 */
+  .dish-scroll {
+    white-space: nowrap;
+    position: relative;
+  }
+  
+  .dish-images {
+    display: inline-flex;
+    gap: 15rpx;
+  }
+  
+  .dish-img-wrap {
+    display: inline-block;
+  }
+  
+  .dish-img {
+    width: 80rpx;
+    height: 80rpx;
+    border-radius: 15rpx;
+    background: #eee;
+  }
+  
+  .dish-count {
+    display: inline-block;
+    margin-left: 15rpx;
+    font-size: 22rpx;
+    color: #fff;
+    background: #FF6B35;
+    border-radius: 20rpx;
+    padding: 5rpx 15rpx;
+    vertical-align: top;
+  }
+  
+  .order-total {
+    text-align: right;
+    font-size: 30rpx;
+    color: #FF6B35;
+    font-weight: bold;
+    margin-top: 15rpx;
+  }
+  
+  /* ========== 未登录提示 ========== */
+  .login-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 120rpx 40rpx;
+    background: #fff;
+    margin: 20rpx;
+    border-radius: 15rpx;
+  }
+  
+  .prompt-icon {
+    font-size: 100rpx;
+  }
+  
+  .prompt-text {
+    font-size: 36rpx;
+    font-weight: bold;
+    color: #333;
+    margin-top: 20rpx;
+  }
+  
+  .prompt-desc {
+    font-size: 26rpx;
+    color: #999;
+    margin-top: 10rpx;
+  }
+  
+  .auth-btns {
+    display: flex;
+    gap: 30rpx;
+    margin-top: 60rpx;
+    width: 100%;
+  }
+  
+  .register-btn,
+  .login-btn {
+    flex: 1;
+    padding: 20rpx 0;
+    border-radius: 40rpx;
+    font-size: 30rpx;
+    text-align: center;
+  }
+  
+  .register-btn {
+    background: #FF6B35;
+    color: #fff;
+  }
+  
+  .login-btn {
+    background: #fff;
+    color: #FF6B35;
+    border: 2rpx solid #FF6B35;
+  }
+  
+  /* ========== 信息编辑区域 ========== */
+  .info-section {
+    margin: 20rpx;
+    background: #fff;
+    border-radius: 15rpx;
+    padding: 30rpx;
+  }
+  
+  .info-row {
+    display: flex;
+    align-items: center;
+    padding: 20rpx 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  .label {
+    width: 120rpx;
+    font-size: 28rpx;
+    color: #666;
+  }
+  
+  .value {
+    flex: 1;
+    font-size: 28rpx;
+  }
+  
+  .info-input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 8rpx;
+    padding: 10rpx 15rpx;
+    font-size: 28rpx;
+  }
+  
+  .btn-group {
+    display: flex;
+    gap: 15rpx;
+    margin-top: 30rpx;
+    flex-wrap: wrap;
+  }
+  
+  .edit-btn,
+  .save-btn,
+  .cancel-btn,
+  .logout-btn {
+    flex: 1;
+    min-width: 140rpx;
+    padding: 15rpx 0;
+    border-radius: 10rpx;
+    font-size: 26rpx;
+  }
+  
+  .edit-btn { background: #FF6B35; color: #fff; }
+  .save-btn { background: #07C160; color: #fff; }
+  .cancel-btn { background: #999; color: #fff; }
+  .logout-btn { background: #f5f5f5; color: #666; }
+  
+  /* 菜单 */
+  .menu-section {
+    margin: 20rpx;
+    background: #fff;
+    border-radius: 15rpx;
+  }
+  
+  .menu-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 30rpx;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 30rpx;
+  }
+  
+  .arrow { color: #ccc; }

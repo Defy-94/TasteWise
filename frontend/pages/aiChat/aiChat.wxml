@@ -1,0 +1,69 @@
+<!-- AI助手对话页 -->
+<view class="container">
+  <!-- 对话列表 -->
+  <scroll-view class="chat-list" scroll-y="true" scroll-into-view="{{scrollToView}}">
+    <view
+      wx:for="{{messages}}"
+      wx:key="index"
+      id="msg-{{index}}"
+      class="msg-item {{item.role === 'assistant' ? 'ai-msg' : 'user-msg'}}"
+    >
+      <!-- AI头像（仅AI消息显示） -->
+      <view wx:if="{{item.role === 'assistant'}}" class="ai-avatar">🤖</view>
+      
+      <view class="msg-body">
+        <!-- 文本气泡 -->
+        <view class="msg-bubble">{{item.content}}</view>
+        
+        <!-- 推荐菜品卡片列表 -->
+        <view wx:if="{{item.recommendDishes && item.recommendDishes.length > 0}}" class="recommend-cards">
+          <view 
+            wx:for="{{item.recommendDishes}}" 
+            wx:for-item="dish"
+            wx:key="id" 
+            class="dish-card"
+          >
+            <!-- 菜品图片 -->
+            <image class="dish-img" src="{{dish.image_url || '/images/default_dish.png'}}" mode="aspectFill" />
+            
+            <!-- 菜品信息 -->
+            <view class="dish-info">
+              <text class="dish-name">{{dish.name}}</text>
+              <view class="dish-info-mid">
+                <text class="dish-price">¥{{dish.price}}</text>
+                <button 
+                    class="add-btn" 
+                    data-id="{{dish.id}}" 
+                    data-name="{{dish.name}}"
+                    bindtap="onQuickAddCart"
+                >加入购物车</button>
+              </view>
+              <text wx:if="{{dish.ai_reason}}" class="dish-reason">💡 {{dish.ai_reason}}</text>
+            </view>
+            
+            <!-- 加入购物车按钮 -->
+            <!-- 绑定后端接口：POST /api/cart/add.php -->
+            
+          </view>
+        </view>
+      </view>
+      
+      <!-- 用户头像（仅用户消息显示） -->
+      <view wx:if="{{item.role === 'user'}}" class="user-avatar">👤</view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部输入栏 -->
+  <view class="input-bar">
+    <input
+      class="msg-input"
+      placeholder="输入您的问题..."
+      value="{{inputText}}"
+      bindinput="onInputChange"
+      confirm-type="send"
+      bindconfirm="onSend"
+    />
+    <!-- 按钮：发送，绑定后端接口 POST /api/ai/chat.php -->
+    <button class="send-btn" bindtap="onSend">发送</button>
+  </view>
+</view>

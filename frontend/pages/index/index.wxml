@@ -1,0 +1,60 @@
+<!-- 首页 - 菜品列表 -->
+<view class="container">
+  <!-- AI推荐搜索栏 -->
+  <view class="ai-search-bar">
+    <input 
+      class="ai-input" 
+      placeholder="描述口味偏好，AI为您推荐" 
+      value="{{preferenceInput}}" 
+      bindinput="onPreferenceInput"
+      confirm-type="search"
+      bindconfirm="onAIRecommend"
+    />
+    <!-- 按钮：AI推荐，绑定后端接口 /api/dish/recommend.php -->
+    <button class="ai-btn" bindtap="onAIRecommend">AI推荐</button>
+  </view>
+
+  <!-- 分类导航 -->
+  <scroll-view class="category-scroll" scroll-x="true">
+    <view 
+      wx:for="{{categories}}" 
+      wx:key="id" 
+      class="category-item {{activeCategoryId === item.id ? 'active' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onCategoryTap"
+    >
+      {{item.name}}
+    </view>
+  </scroll-view>
+
+  <!-- 菜品列表 -->
+  <view class="dish-list">
+    <view wx:for="{{dishes}}" wx:key="id" class="dish-card">
+      <image class="dish-img" src="{{item.image_url || '/images/default_dish.png'}}" mode="aspectFill" />
+      <view class="dish-info">
+        <view class="dish-name">{{item.name}}</view>
+        <view class="dish-desc">{{item.description}}</view>
+        <view class="dish-bottom">
+          <text class="dish-price">¥{{item.price}}</text>
+          <!-- 按钮：加入购物车，绑定后端接口 POST /api/cart/add.php -->
+          <button class="add-cart-btn" data-id="{{item.id}}" bindtap="onAddToCart">加入购物车</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- AI推荐弹窗 -->
+  <view wx:if="{{showRecommend}}" class="recommend-modal">
+    <view class="modal-content">
+      <view class="modal-header">
+        <text>AI推荐结果</text>
+        <text class="close-btn" bindtap="onCloseRecommend">✕</text>
+      </view>
+      <view wx:for="{{recommendDishes}}" wx:key="id" class="recommend-item">
+        <text class="rec-name">{{item.name}}</text>
+        <text class="rec-price">¥{{item.price}}</text>
+        <text class="rec-reason">{{item.ai_reason}}</text>
+      </view>
+    </view>
+  </view>
+</view>

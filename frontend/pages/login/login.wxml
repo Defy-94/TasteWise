@@ -1,0 +1,34 @@
+<!-- 登录页面 -->
+<view class="login-container">
+  <!-- 顶部返回栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">← 返回</view>
+    <text class="nav-title">登录</text>
+    <view class="nav-placeholder"></view>
+  </view>
+
+  <!-- 表单区域 -->
+  <view class="form-section">
+    <!-- 手机号 -->
+    <view class="form-item">
+      <text class="form-label">手机号</text>
+      <input
+        class="form-input"
+        type="number"
+        placeholder="请输入注册手机号"
+        value="{{phone}}"
+        bindinput="onPhoneInput"
+        maxlength="11"
+      />
+    </view>
+
+    <!-- 登录按钮 -->
+    <!-- 绑定后端接口：POST /api/user/login_phone.php -->
+    <button class="submit-btn" bindtap="onSubmitLogin">登 录</button>
+
+    <!-- 底部提示 -->
+    <view class="form-tip">
+      <text>未注册的手机号验证后将自动创建账号</text>
+    </view>
+  </view>
+</view>

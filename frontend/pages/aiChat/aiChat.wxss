@@ -1,0 +1,182 @@
+/* AI助手对话页样式 */
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f5f5f5;
+  }
+  
+  /* 对话列表 */
+  .chat-list {
+    flex: 1;
+    padding: 20rpx;
+  }
+  
+  .msg-item {
+    margin-bottom: 30rpx;
+    display: flex;
+    align-items: flex-start;
+    gap: 12rpx;
+  }
+  
+  .user-msg {
+    justify-content: flex-end;
+  }
+  
+  .ai-msg {
+    justify-content: flex-start;
+  }
+  
+  /* 头像 */
+  .ai-avatar,
+  .user-avatar {
+    width: 60rpx;
+    height: 60rpx;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32rpx;
+    flex-shrink: 0;
+    box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.08);
+  }
+  
+  .user-avatar {
+    background: #FF6B35;
+  }
+  
+  /* 消息主体 */
+  .msg-body {
+    max-width: 75%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .msg-bubble {
+    padding: 20rpx 25rpx;
+    border-radius: 20rpx;
+    font-size: 28rpx;
+    line-height: 1.6;
+    word-break: break-all;
+  }
+  
+  .user-msg .msg-bubble {
+    background: #FF6B35;
+    color: #fff;
+    border-bottom-right-radius: 5rpx;
+  }
+  
+  .ai-msg .msg-bubble {
+    background: #fff;
+    color: #333;
+    border-bottom-left-radius: 5rpx;
+  }
+  
+  /* ============================================
+     推荐菜品卡片列表
+     ============================================ */
+  .recommend-cards {
+    margin-top: 15rpx;
+    display: flex;
+    flex-direction: column;
+    gap: 15rpx;
+  }
+  
+  .dish-card {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 15rpx;
+    padding: 15rpx;
+    gap: 15rpx;
+    box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.06);
+  }
+  
+  .dish-img {
+    width: 100rpx;
+    height: 100rpx;
+    border-radius: 12rpx;
+    background: #eee;
+    flex-shrink: 0;
+  }
+  
+  .dish-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5rpx;
+    min-width: 0;
+  }
+
+  .dish-info-mid {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    padding: 15rpx;
+    gap: 15rpx;
+  }
+  
+  .dish-name {
+    font-size: 28rpx;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .dish-price {
+    font-size: 28rpx;
+    color: #FF6B35;
+    font-weight: bold;
+  }
+  
+  .dish-reason {
+    font-size: 20rpx;
+    color: #999;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .add-btn {
+    background: #FF6B35;
+    color: #fff;
+    font-size: 24rpx;
+    padding: 12rpx 25rpx;
+    border-radius: 25rpx;
+    flex-shrink: 0;
+    flex: 0 0 60%;
+  }
+  
+  .add-btn:active {
+    background: #e55a2b;
+    transform: scale(0.95);
+  }
+  
+  /* 底部输入栏 */
+  .input-bar {
+    display: flex;
+    padding: 15rpx 20rpx;
+    background: #fff;
+    border-top: 1px solid #eee;
+    align-items: center;
+    gap: 10rpx;
+  }
+  
+  .msg-input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 40rpx;
+    padding: 15rpx 25rpx;
+    font-size: 28rpx;
+    background: #f9f9f9;
+  }
+  
+  .send-btn {
+    background: #FF6B35;
+    color: #fff;
+    font-size: 28rpx;
+    padding: 15rpx 30rpx;
+    border-radius: 40rpx;
+    flex-shrink: 0;
+  }

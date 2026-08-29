@@ -1,0 +1,63 @@
+<!-- 注册页面 -->
+<view class="register-container">
+  <!-- 顶部返回栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">← 返回</view>
+    <text class="nav-title">注册</text>
+    <view class="nav-placeholder"></view>
+  </view>
+
+  <!-- 表单区域 -->
+  <view class="form-section">
+    <!-- 用户名 -->
+    <view class="form-item">
+      <text class="form-label">用户名</text>
+      <input
+        class="form-input"
+        placeholder="请输入用户名（2-20字符）"
+        value="{{username}}"
+        bindinput="onUsernameInput"
+        maxlength="20"
+      />
+    </view>
+
+    <!-- 手机号 -->
+    <view class="form-item">
+      <text class="form-label">手机号</text>
+      <input
+        class="form-input"
+        type="number"
+        placeholder="请输入手机号"
+        value="{{phone}}"
+        bindinput="onPhoneInput"
+        maxlength="11"
+      />
+    </view>
+
+    <!-- 验证码（预留） -->
+    <view class="form-item">
+      <text class="form-label">验证码</text>
+      <input
+        class="form-input code-input"
+        type="number"
+        placeholder="短信验证码"
+        value="{{smsCode}}"
+        bindinput="onCodeInput"
+        maxlength="6"
+      />
+      <!-- 获取验证码按钮 - 绑定 sendSmsCode 函数 -->
+      <button class="code-btn" bindtap="onSendSmsCode">
+        {{countdown > 0 ? countdown + 's' : '获取验证码'}}
+      </button>
+    </view>
+
+    <!-- 注册按钮 -->
+    <!-- 绑定后端接口：POST /api/user/register.php -->
+    <button class="submit-btn" bindtap="onSubmitRegister">注 册</button>
+
+    <!-- 底部提示 -->
+    <view class="form-tip">
+      <text>注册即表示同意用户协议和隐私政策</text>
+    </view>
+  </view>
+</view>

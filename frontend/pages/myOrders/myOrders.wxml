@@ -1,0 +1,25 @@
+<!-- 我的订单页面 -->
+<view class="container">
+  <view wx:if="{{isEmpty}}" class="empty">
+    <text>暂无订单记录</text>
+  </view>
+
+  <view wx:else class="order-list">
+    <view wx:for="{{orders}}" wx:key="id" class="order-card">
+      <view class="order-header">
+        <text>订单号：{{item.order_no}}</text>
+        <text class="order-status">{{item.status_text}}</text>
+      </view>
+      <view wx:for="{{item.items}}" wx:for-item="dish" wx:key="dish_name" class="order-dish">
+        <text>{{dish.dish_name}}</text>
+        <text>x{{dish.quantity}}</text>
+        <text>¥{{dish.dish_price}}</text>
+      </view>
+      <view class="order-footer">
+        <text>合计：</text>
+        <text class="total-price">¥{{item.total_price}}</text>
+      </view>
+      <view class="order-time">{{item.created_at}}</view>
+    </view>
+  </view>
+</view>

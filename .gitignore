@@ -1,0 +1,40 @@
+# ============================================
+# TasteWise 项目 .gitignore
+# ============================================
+
+# ===== 敏感配置文件（涉及安全，严禁上传） =====
+# DeepSeek API Key（真实密钥，见 apikey.example.php 模板）
+backend/config/apikey.php
+# 数据库连接配置（含账号密码，见 database.example.php 模板）
+backend/config/database.php
+
+# ===== 第三方工具（不属于项目代码） =====
+# phpstudy 自带的 phpMyAdmin 数据库管理工具
+backend/phpMyAdmin4.8.5/
+
+# ===== 微信开发者工具 =====
+# 项目私有配置（含本地开发设置，clone 后自动生成）
+frontend/project.private.config.json
+
+# ===== Node / 构建产物 =====
+node_modules/
+miniprogram_npm/
+dist/
+build/
+
+# ===== 系统与编辑器文件 =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# ===== 日志与临时文件 =====
+*.log
+*.tmp
+*.cache
+npm-debug.log*
+yarn-error.log*

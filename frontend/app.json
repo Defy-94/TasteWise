@@ -1,0 +1,32 @@
+{
+    "pages": [
+      "pages/index/index",
+      "pages/cart/cart",
+      "pages/aiChat/aiChat",
+      "pages/userCenter/userCenter",
+      "pages/myOrders/myOrders",
+      "pages/about/about",
+      "pages/register/register",
+      "pages/login/login"
+    ],
+    "window": {
+      "backgroundTextStyle": "light",
+      "navigationBarBackgroundColor": "#FF6B35",
+      "navigationBarTitleText": "AI点餐",
+      "navigationBarTextStyle": "white"
+    },
+    "tabBar": {
+      "color": "#999999",
+      "selectedColor": "#FF6B35",
+      "backgroundColor": "#ffffff",
+      "borderStyle": "black",
+      "list": [
+        { "pagePath": "pages/index/index", "text": "首页","iconPath": "images/home.png","selectedIconPath": "images/home_active.png" },
+        { "pagePath": "pages/cart/cart", "text": "购物车","iconPath": "images/cart.png","selectedIconPath": "images/cart_active.png" },
+        { "pagePath": "pages/aiChat/aiChat", "text": "AI助手" ,"iconPath": "images/ai.png","selectedIconPath": "images/ai_active.png"},
+        { "pagePath": "pages/userCenter/userCenter", "text": "我的" ,"iconPath": "images/user.png","selectedIconPath": "images/user_active.png"}
+      ]
+    },
+    "style": "v2",
+    "sitemapLocation": "sitemap.json"
+  }

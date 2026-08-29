@@ -1,0 +1,34 @@
+<view class="container">
+  <!-- 空购物车提示 -->
+  <view wx:if="{{isEmpty}}" class="empty-cart">
+    <text class="empty-icon">🛒</text>
+    <text class="empty-text">购物车空空如也</text>
+    <text class="empty-hint">快去首页挑选美食吧</text>
+  </view>
+
+  <!-- 购物车列表 -->
+  <view wx:else class="cart-list">
+    <view wx:for="{{cartList}}" wx:key="cart_id" class="cart-item">
+      <image class="item-img" src="{{item.image_url || '/images/default_dish.png'}}" mode="aspectFill" />
+      <view class="item-info">
+        <text class="item-name">{{item.name}}</text>
+        <text class="item-desc">{{item.description}}</text>
+        <text class="item-price">¥{{item.price}}</text>
+      </view>
+      <view class="item-right">
+        <text class="item-qty">x{{item.quantity}}</text>
+        <!-- ⚠️ 重点：data-id 传的是 cart_id，不是 dish_id -->
+        <button class="remove-btn" data-id="{{item.cart_id}}" bindtap="onRemove">删除</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部结算栏 -->
+  <view wx:if="{{!isEmpty}}" class="bottom-bar">
+    <view class="total-info">
+      <text>合计：</text>
+      <text class="total-price">¥{{totalPrice}}</text>
+    </view>
+    <button class="checkout-btn" bindtap="onCheckout">结算</button>
+  </view>
+</view>
