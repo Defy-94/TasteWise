@@ -103,10 +103,23 @@ Page({
       
       wx.showToast({ title: '下单成功', icon: 'success' });
       
-      // 跳转到订单页（可在订单页完成支付）
+      // 跳转到订单页完成支付
+      // ⚠️ myOrders 不是 tabBar 页面，必须用 navigateTo。
+      //    原来用的是 switchTab，它只能跳 tabBar 页面（首页/购物车/AI助手/我的），
+      //    跳非 tab 页会静默失败（无任何提示），表现为"点了结算没反应"。
       setTimeout(() => {
-        wx.switchTab({ url: '/pages/myOrders/myOrders' });
-      }, 1500);
+        wx.navigateTo({
+          url: '/pages/myOrders/myOrders',
+          fail: (err: any) => {
+            console.error('跳转订单页失败：', err);
+            wx.showToast({
+              title: '下单成功，请到「我的 → 我的订单」查看',
+              icon: 'none',
+              duration: 2500,
+            });
+          },
+        });
+      }, 1200);
       
     } catch (err) {
       // ✅ 失败时也要隐藏loading

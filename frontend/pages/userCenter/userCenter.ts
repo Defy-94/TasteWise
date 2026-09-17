@@ -6,13 +6,13 @@
  *            因此不再需要向接口传 user_id，也无法查看他人数据。
  */
 import { get, post, saveAuth, clearAuth } from '../../utils/api';
-import { UserInfo, Order } from '../../utils/types';
+import { UserInfo, Order, OrderStatusMap } from '../../utils/types';
 
 Page({
   data: {
     isLoggedIn: false,        // 是否已登录
     userInfo: null as UserInfo | null,
-    completedOrders: [] as Order[],  // 已完成的订单
+    recentOrders: [] as Order[],   // 最近订单（含待支付，下单后可立即看到）
     isEditing: false,
     editNickname: '',
     editPhone: '',
@@ -35,7 +35,7 @@ Page({
       this.setData({
         isLoggedIn: false,
         userInfo: null,
-        completedOrders: [],
+        recentOrders: [],
       });
       return;
     }
@@ -54,8 +54,8 @@ Page({
         editAddress: user.address,
       });
       
-      // 加载已完成的订单
-      this.loadCompletedOrders();
+      // 加载最近订单
+      this.loadRecentOrders();
       
     } catch (err) {
       // 登录态失效，清除本地登录信息
@@ -63,31 +63,33 @@ Page({
       this.setData({
         isLoggedIn: false,
         userInfo: null,
-        completedOrders: [],
+        recentOrders: [],
       });
     }
   },
 
   /**
-   * 加载已完成的订单
-   * 接口：GET /api/order/list.php?status=2
-   * 说明：status 必须是数字（0待支付 1已支付 2已完成 3已取消），
-   *      旧代码传字符串 'completed'，MySQL 会隐式转成 0，
-   *      导致「已完成订单」实际查出的是待支付订单，此处已修正。
+   * 加载最近订单（只取最近 3 条预览，完整列表在「我的订单」页）
+   * 接口：GET /api/order/list.php（不传 status 即返回全部状态）
+   * 
+   * 【修复记录】原来这里只查"已完成"（status=2），并且传的是字符串 'completed'，
+   *            MySQL 隐式转成 0，导致刚下单的"待支付"订单在用户中心完全看不到。
+   *            现改为展示全部状态的最近订单，并把状态交给后端返回的 status_text。
    */
-  async loadCompletedOrders() {
+  async loadRecentOrders() {
     try {
-      const orders = await get<Order[]>('/api/order/list.php', {
-        status: 2,
-      });
+      const orders = await get<Order[]>('/api/order/list.php');
       
-      // 格式化订单时间
-      orders.forEach(o => {
-        o.status_text = o.status_text || '已完成';
+      // 只展示最近 3 条
+      const recent = orders.slice(0, 3);
+      
+      recent.forEach(o => {
+        o.status = Number(o.status);
+        o.status_text = o.status_text || OrderStatusMap[o.status] || '未知';
         o.created_at = this.formatTime(o.created_at);
       });
       
-      this.setData({ completedOrders: orders });
+      this.setData({ recentOrders: recent });
     } catch (err) {
       console.error('加载订单失败：', err);
     }
@@ -119,6 +121,14 @@ Page({
     wx.navigateTo({ url: '/pages/login/login' });
   },
 
+  /**
+   * 跳转我的订单页
+   * 注意：myOrders 不是 tabBar 页面，必须用 navigateTo（switchTab 会静默失败）
+   */
+  onGoMyOrders() {
+    wx.navigateTo({ url: '/pages/myOrders/myOrders' });
+  },
+
   /** 退出登录 */
   onLogout() {
     wx.showModal({
@@ -131,7 +141,7 @@ Page({
           this.setData({
             isLoggedIn: false,
             userInfo: null,
-            completedOrders: [],
+            recentOrders: [],
           });
           wx.showToast({ title: '已退出登录', icon: 'success' });
         }

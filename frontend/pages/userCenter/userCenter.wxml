@@ -9,17 +9,20 @@
       <view class="user-phone">{{userInfo.phone || ''}}</view>
     </view>
 
-    <!-- 订单展示区域 -->
+    <!-- 订单展示区域：展示最近订单（含待支付），可进入完整列表 -->
     <view class="orders-section">
-      <view class="section-title">📋 历史订单（已完成）</view>
-      
-      <view wx:if="{{completedOrders.length === 0}}" class="no-orders">
-        <text>暂无已完成订单</text>
+      <view class="section-header">
+        <text class="section-title">📋 我的订单</text>
+        <text class="section-more" bindtap="onGoMyOrders">查看全部 ></text>
       </view>
-      
-      <view wx:for="{{completedOrders}}" wx:key="id" class="order-card">
-        <!-- 订单状态：由后端返回的 status_text（旧代码用数字与字符串比较，永远不成立） -->
-        <view class="order-status">{{item.status_text}}</view>
+
+      <view wx:if="{{recentOrders.length === 0}}" class="no-orders">
+        <text>暂无订单</text>
+      </view>
+
+      <view wx:for="{{recentOrders}}" wx:key="id" class="order-card" bindtap="onGoMyOrders">
+        <!-- 订单状态：由后端返回 status_text，按状态区分颜色 -->
+        <view class="order-status status-{{item.status}}">{{item.status_text}}</view>
         <!-- 订单时间 -->
         <view class="order-time">{{item.created_at}}</view>
         <!-- 菜品图片横向滚动 -->
@@ -85,6 +88,10 @@
 
   <!-- 功能入口 -->
   <view class="menu-section">
+    <view class="menu-item" bindtap="onGoMyOrders">
+      <text>📋 我的订单</text>
+      <text class="arrow">></text>
+    </view>
     <view class="menu-item" bindtap="onGoAbout">
       <text>ℹ️ 关于我们</text>
       <text class="arrow">></text>

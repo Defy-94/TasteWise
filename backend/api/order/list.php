@@ -99,7 +99,13 @@ try {
         
         $order['items'] = $items;
         $order['id']     = (int) $order['id'];
-        $order['status'] = (int) $order['status'];
+        // 状态归一化：兼容数字字符串（'0'-'3'）与旧版字符串写法（pending/paid/completed/cancelled）
+        // 说明：orders.status 列类型为 varchar(20)，早期设计使用的是字符串状态名，
+        //      这里统一归一化，避免旧数据（如 'completed'）被 (int) 转成 0 误显示为"待支付"。
+        $rawStatus = (string) $order['status'];
+        $order['status'] = array_key_exists($rawStatus, $statusAlias)
+            ? $statusAlias[$rawStatus]
+            : (int) $rawStatus;
         
         // 顺便返回状态文本，避免前端各自维护一份映射导致不一致
         $order['status_text'] = isset($statusTextMap[$order['status']])

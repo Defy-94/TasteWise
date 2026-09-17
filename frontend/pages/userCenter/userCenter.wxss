@@ -42,10 +42,21 @@
     padding: 30rpx;
   }
   
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20rpx;
+  }
+  
   .section-title {
     font-size: 32rpx;
     font-weight: bold;
-    margin-bottom: 20rpx;
+  }
+  
+  .section-more {
+    font-size: 26rpx;
+    color: #FF6B35;
   }
   
   .no-orders {
@@ -68,6 +79,12 @@
     font-weight: bold;
     color: #07C160;
   }
+  
+  /* 按订单状态区分颜色：0待支付 1已支付 2已完成 3已取消 */
+  .status-0 { color: #FF6B35; }
+  .status-1 { color: #2d8cf0; }
+  .status-2 { color: #07C160; }
+  .status-3 { color: #999; }
   
   .order-time {
     font-size: 24rpx;

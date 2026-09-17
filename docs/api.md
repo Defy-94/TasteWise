@@ -279,8 +279,8 @@ Authorization: Bearer <令牌>
 - **地址**：`POST /api/user/register.php`
 - **入参**：`{"username": "张三", "phone": "13800138000", "code": "123456"}`
 - **返回 data**：新用户信息（含 `token`，注册即登录）
-- **说明**：通过 `user_id_counter` 表生成自增用户 ID；手机号已注册返回 `code 409`。
-- **⚠️ 已知问题**：`init.sql` 中未创建 `user_id_counter` 表且 `users` 表无 `username` 字段，详见 [database.md](database.md)。
+- **说明**：通过 `user_id_counter` 表生成从 10001 起的自增用户 ID；手机号已注册返回 `code 409`。
+- **注意**：`users` 表的 `username` 与 `phone` 都是唯一索引，注册时必须提供未被占用的用户名与手机号。
 
 ### 15. 校验登录态 / 获取当前用户 🔒
 

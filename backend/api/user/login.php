@@ -44,9 +44,15 @@ try {
         $user['avatar_url'] = $avatarUrl;
     } else {
         // 不存在则创建
+        // ⚠️ 注意：users 表的 username / phone 上都建了唯一索引，且列默认值为空字符串，
+        //    若 INSERT 时不给这两列赋值，第二个新用户就会因
+        //    「Duplicate entry '' for key 'idx_phone'」而插入失败（接口返回 500）。
+        //    因此这里：username 由 openid 派生（openid 唯一，故派生值不重复），
+        //    phone 显式写 NULL（MySQL 唯一索引允许多个 NULL，不会互相冲突）。
+        $username = 'wx_' . substr(md5($openid), 0, 8);
         $userId = $db->insert(
-            'INSERT INTO users (openid, nickname, avatar_url) VALUES (?, ?, ?)',
-            [$openid, $nickname, $avatarUrl]
+            'INSERT INTO users (openid, nickname, avatar_url, username, phone) VALUES (?, ?, ?, ?, NULL)',
+            [$openid, $nickname, $avatarUrl, $username]
         );
         $user = $db->selectOne('SELECT * FROM users WHERE id = ?', [$userId]);
     }

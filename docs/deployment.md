@@ -97,4 +97,4 @@ cp backend/config/security.example.php backend/config/security.php
 | 接口返回 401 | 未登录或令牌过期：重新登录；确认请求头带了 `token`；刚改过 `security.php` 密钥时需重新登录 |
 | AI 回复报错 | 检查 `config/apikey.php` 的 Key 是否有效、是否欠费 |
 | 小程序请求失败 | 确认 `BASE_URL` 可达；真机调试需关闭域名校验或配置合法域名 |
-| 注册报错「表不存在」 | 数据库未创建 `user_id_counter` 表，见 [database.md](database.md) 已知问题 |
+| 注册报错「表不存在」 | 未执行过 `backend/sql/init.sql`（该脚本已包含 `user_id_counter` 表），请检查库结构 |
