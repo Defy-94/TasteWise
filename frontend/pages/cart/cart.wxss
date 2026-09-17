@@ -29,6 +29,16 @@
     margin-top: 10rpx;
   }
   
+  /* 未登录时的去登录按钮 */
+  .login-btn {
+    margin-top: 40rpx;
+    background: #FF6B35;
+    color: #fff;
+    font-size: 30rpx;
+    padding: 15rpx 60rpx;
+    border-radius: 10rpx;
+  }
+  
   /* 购物车列表项 */
   .cart-item {
     display: flex;

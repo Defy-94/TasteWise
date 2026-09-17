@@ -2,11 +2,21 @@
 /**
  * 接口：创建订单（下单结算）
  * 请求地址：POST /api/order/create.php
- * 入参JSON：{"user_id":1,"remark":"少放辣"}
+ * 请求头：token: <登录令牌>
+ * 入参JSON：{"remark":"少放辣"}
+ * 返回：{"order_id":10,"order_no":"...","total_price":"56.00","status":0}
  * 对应前端：购物车页面"结算"按钮
+ * 
+ * 【鉴权说明】下单用户取自令牌，客户端传入的 user_id 一律忽略，
+ *            因此无法替他人下单或清空他人购物车。
+ * 
+ * 【订单状态】新建订单状态为 0（待支付），
+ *            后续通过 order/pay.php（支付）、order/cancel.php（取消）、
+ *            order/complete.php（完成）流转。
  */
 require_once __DIR__ . '/../../core/DB.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/Auth.php';
 
 Response::handleOptions();
 
@@ -14,13 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('仅支持POST请求');
 }
 
-$input  = json_decode(file_get_contents('php://input'), true);
-$userId = isset($input['user_id']) ? intval($input['user_id']) : 0;
-$remark = isset($input['remark']) ? trim($input['remark']) : '';
+// 校验令牌并取得当前登录用户ID（未登录直接返回401）
+$userId = Auth::requireLogin();
 
-if ($userId <= 0) {
-    Response::error('参数错误：user_id必填');
-}
+$input  = json_decode(file_get_contents('php://input'), true);
+$remark = isset($input['remark']) ? trim($input['remark']) : '';
 
 try {
     $db = DB::getInstance();
@@ -54,7 +62,7 @@ try {
     $db->beginTransaction();
     
     try {
-        // 4.1 插入订单主表
+        // 4.1 插入订单主表（状态 0 = 待支付）
         $orderId = $db->insert(
             'INSERT INTO orders (order_no, user_id, total_price, status, remark) VALUES (?, ?, ?, 0, ?)',
             [$orderNo, $userId, $totalPrice, $remark]
@@ -84,6 +92,7 @@ try {
             'order_id'    => $orderId,
             'order_no'    => $orderNo,
             'total_price' => $totalPrice,
+            'status'      => 0,          // 0 = 待支付
         ], '下单成功');
         
     } catch (Exception $e) {

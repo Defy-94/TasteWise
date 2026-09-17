@@ -7,6 +7,8 @@
 backend/config/apikey.php
 # 数据库连接配置（含账号密码，见 database.example.php 模板）
 backend/config/database.php
+# 登录令牌签名密钥（见 security.example.php 模板）
+backend/config/security.php
 
 # ===== 第三方工具（不属于项目代码） =====
 # phpstudy 自带的 phpMyAdmin 数据库管理工具

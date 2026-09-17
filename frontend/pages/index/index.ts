@@ -5,9 +5,6 @@
 import { get, post } from '../../utils/api';
 import { Category, Dish, AIRecommendResult } from '../../utils/types';
 
-// 获取全局app实例
-const app = getApp<IAppOption>();
-
 Page({
   data: {
     categories: [] as Category[],      // 分类列表
@@ -73,7 +70,6 @@ Page({
     const dishId = e.currentTarget.dataset.id;
     try {
       await post('/api/cart/add.php', {
-        user_id: app.globalData.userId,
         dish_id: dishId,
         quantity: 1,
       });

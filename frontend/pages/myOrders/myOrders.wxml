@@ -1,25 +1,49 @@
 <!-- 我的订单页面 -->
 <view class="container">
-  <view wx:if="{{isEmpty}}" class="empty">
-    <text>暂无订单记录</text>
+  <!-- 未登录提示 -->
+  <view wx:if="{{needLogin}}" class="empty">
+    <text class="empty-icon">🔒</text>
+    <text class="empty-text">请先登录</text>
+    <text class="empty-hint">登录后即可查看您的订单</text>
+    <button class="login-btn" bindtap="onGoLogin">去登录</button>
   </view>
 
+  <!-- 空订单提示 -->
+  <view wx:elif="{{isEmpty}}" class="empty">
+    <text class="empty-icon">📋</text>
+    <text class="empty-text">暂无订单记录</text>
+    <text class="empty-hint">快去首页点餐吧</text>
+  </view>
+
+  <!-- 订单列表 -->
   <view wx:else class="order-list">
     <view wx:for="{{orders}}" wx:key="id" class="order-card">
       <view class="order-header">
-        <text>订单号：{{item.order_no}}</text>
-        <text class="order-status">{{item.status_text}}</text>
+        <text class="order-no">订单号：{{item.order_no}}</text>
+        <text class="order-status status-{{item.status}}">{{item.status_text}}</text>
       </view>
+
       <view wx:for="{{item.items}}" wx:for-item="dish" wx:key="dish_name" class="order-dish">
-        <text>{{dish.dish_name}}</text>
-        <text>x{{dish.quantity}}</text>
-        <text>¥{{dish.dish_price}}</text>
+        <text class="dish-name">{{dish.dish_name}}</text>
+        <text class="dish-qty">x{{dish.quantity}}</text>
+        <text class="dish-price">¥{{dish.dish_price}}</text>
       </view>
+
+      <view wx:if="{{item.remark}}" class="order-remark">备注：{{item.remark}}</view>
+
       <view class="order-footer">
-        <text>合计：</text>
+        <text class="total-label">合计：</text>
         <text class="total-price">¥{{item.total_price}}</text>
       </view>
+
       <view class="order-time">{{item.created_at}}</view>
+
+      <!-- 订单操作按钮：按状态显示（可执行操作由页面逻辑计算） -->
+      <view wx:if="{{item.can_pay || item.can_cancel || item.can_complete}}" class="order-actions">
+        <button wx:if="{{item.can_cancel}}" class="btn btn-plain" data-id="{{item.id}}" bindtap="onCancel">取消订单</button>
+        <button wx:if="{{item.can_pay}}" class="btn btn-primary" data-id="{{item.id}}" bindtap="onPay">去支付</button>
+        <button wx:if="{{item.can_complete}}" class="btn btn-primary" data-id="{{item.id}}" bindtap="onComplete">确认完成</button>
+      </view>
     </view>
   </view>
 </view>

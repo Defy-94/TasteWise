@@ -41,7 +41,7 @@ class Response
         header('Content-Type: application/json; charset=utf-8');
         header('Access-Control-Allow-Origin: *');           // 允许跨域
         header('Access-Control-Allow-Methods: GET,POST,OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type,token');
+        header('Access-Control-Allow-Headers: Content-Type,token,Authorization');
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -54,7 +54,7 @@ class Response
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             header('Access-Control-Allow-Origin: *');
             header('Access-Control-Allow-Methods: GET,POST,OPTIONS');
-            header('Access-Control-Allow-Headers: Content-Type,token');
+            header('Access-Control-Allow-Headers: Content-Type,token,Authorization');
             exit;
         }
     }

@@ -1,12 +1,17 @@
 <?php
 /**
- * 接口：修改个人信息
+ * 接口：修改个人信息（仅能修改自己的信息）
  * 请求地址：POST /api/user/update.php
- * 入参JSON：{"user_id":1,"nickname":"新昵称","phone":"138xxxx","address":"收货地址"}
+ * 请求头：token: <登录令牌>
+ * 入参JSON：{"nickname":"新昵称","phone":"138xxxx","address":"收货地址"}
  * 对应前端：用户中心页面"保存"按钮
+ * 
+ * 【鉴权说明】修改目标用户取自令牌，客户端传入的 user_id 一律忽略，
+ *            因此无法通过修改参数篡改他人资料（防越权）。
  */
 require_once __DIR__ . '/../../core/DB.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/Auth.php';
 
 Response::handleOptions();
 
@@ -14,15 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('仅支持POST请求');
 }
 
-$input   = json_decode(file_get_contents('php://input'), true);
-$userId  = isset($input['user_id']) ? intval($input['user_id']) : 0;
-$nickname = isset($input['nickname']) ? trim($input['nickname']) : '';
-$phone   = isset($input['phone']) ? trim($input['phone']) : '';
-$address = isset($input['address']) ? trim($input['address']) : '';
+// 校验令牌并取得当前登录用户ID（未登录直接返回401）
+$userId = Auth::requireLogin();
 
-if ($userId <= 0) {
-    Response::error('参数错误：user_id必填');
-}
+$input    = json_decode(file_get_contents('php://input'), true);
+$nickname = isset($input['nickname']) ? trim($input['nickname']) : '';
+$phone    = isset($input['phone']) ? trim($input['phone']) : '';
+$address  = isset($input['address']) ? trim($input['address']) : '';
 
 try {
     $db = DB::getInstance();
@@ -35,6 +38,18 @@ try {
         $params[] = $nickname;
     }
     if ($phone !== '') {
+        // 手机号格式校验（与注册/登录保持一致）
+        if (!preg_match('/^1[3-9]\d{9}$/', $phone)) {
+            Response::error('手机号格式不正确');
+        }
+        // 手机号唯一性校验，避免与他人冲突
+        $exists = $db->selectOne(
+            'SELECT id FROM users WHERE phone = ? AND id <> ?',
+            [$phone, $userId]
+        );
+        if ($exists) {
+            Response::error('该手机号已被其他账号使用', 409);
+        }
         $fields[] = 'phone = ?';
         $params[] = $phone;
     }

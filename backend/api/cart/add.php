@@ -2,11 +2,16 @@
 /**
  * 接口：加入购物车
  * 请求地址：POST /api/cart/add.php
- * 入参JSON：{"user_id":1,"dish_id":3,"quantity":2}
+ * 请求头：token: <登录令牌>
+ * 入参JSON：{"dish_id":3,"quantity":2}
  * 对应前端：菜品卡片上"加入购物车"按钮
+ * 
+ * 【鉴权说明】购物车归属用户取自令牌，客户端传入的 user_id 一律忽略，
+ *            因此无法往他人购物车里加东西。
  */
 require_once __DIR__ . '/../../core/DB.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/Auth.php';
 
 Response::handleOptions();
 
@@ -14,13 +19,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('仅支持POST请求');
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
-$userId   = isset($input['user_id']) ? intval($input['user_id']) : 0;
+// 校验令牌并取得当前登录用户ID（未登录直接返回401）
+$userId = Auth::requireLogin();
+
+$input    = json_decode(file_get_contents('php://input'), true);
 $dishId   = isset($input['dish_id']) ? intval($input['dish_id']) : 0;
 $quantity = isset($input['quantity']) ? intval($input['quantity']) : 1;
 
-if ($userId <= 0 || $dishId <= 0) {
-    Response::error('参数错误：user_id和dish_id必填');
+if ($dishId <= 0) {
+    Response::error('参数错误：dish_id必填');
 }
 
 if ($quantity < 1) {

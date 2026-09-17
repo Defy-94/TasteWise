@@ -1,11 +1,12 @@
 /**
  * 用户中心页面
  * 功能：显示/修改个人信息、跳转订单、关于页面、登录态判断、订单展示
+ * 
+ * 【鉴权说明】用户身份完全由登录令牌决定（见 utils/api.ts），
+ *            因此不再需要向接口传 user_id，也无法查看他人数据。
  */
-import { get, post } from '../../utils/api';
+import { get, post, saveAuth, clearAuth } from '../../utils/api';
 import { UserInfo, Order } from '../../utils/types';
-
-const app = getApp<IAppOption>();
 
 Page({
   data: {
@@ -24,7 +25,7 @@ Page({
 
   /**
    * 检查登录状态
-   * 先检查本地缓存，再调用接口校验用户有效性
+   * 先检查本地缓存，再调用接口校验登录态是否仍有效
    */
   async checkLoginStatus() {
     const cachedUser = wx.getStorageSync('userInfo');
@@ -40,13 +41,11 @@ Page({
     }
 
     try {
-      // 校验用户是否仍存在于数据库
-      const user = await get<UserInfo>('/api/user/check.php', {
-        user_id: cachedUser.id,
-      });
+      // 校验登录态（令牌有效时返回当前用户信息；无效则返回401并自动跳转登录页）
+      const user = await get<UserInfo>('/api/user/check.php');
       
       // 用户有效，更新缓存
-      wx.setStorageSync('userInfo', user);
+      saveAuth(user);
       this.setData({
         isLoggedIn: true,
         userInfo: user,
@@ -56,11 +55,11 @@ Page({
       });
       
       // 加载已完成的订单
-      this.loadCompletedOrders(user.id);
+      this.loadCompletedOrders();
       
     } catch (err) {
-      // 用户不存在，清除缓存
-      wx.removeStorageSync('userInfo');
+      // 登录态失效，清除本地登录信息
+      clearAuth();
       this.setData({
         isLoggedIn: false,
         userInfo: null,
@@ -71,17 +70,20 @@ Page({
 
   /**
    * 加载已完成的订单
-   * 接口：GET /api/order/list.php?user_id=xx&status=completed
+   * 接口：GET /api/order/list.php?status=2
+   * 说明：status 必须是数字（0待支付 1已支付 2已完成 3已取消），
+   *      旧代码传字符串 'completed'，MySQL 会隐式转成 0，
+   *      导致「已完成订单」实际查出的是待支付订单，此处已修正。
    */
-  async loadCompletedOrders(userId: number) {
+  async loadCompletedOrders() {
     try {
       const orders = await get<Order[]>('/api/order/list.php', {
-        user_id: userId,
-        status: 'completed',
+        status: 2,
       });
       
       // 格式化订单时间
       orders.forEach(o => {
+        o.status_text = o.status_text || '已完成';
         o.created_at = this.formatTime(o.created_at);
       });
       
@@ -124,7 +126,8 @@ Page({
       content: '确定要退出登录吗？',
       success: (res) => {
         if (res.confirm) {
-          wx.removeStorageSync('userInfo');
+          // 清除令牌与用户信息
+          clearAuth();
           this.setData({
             isLoggedIn: false,
             userInfo: null,
@@ -149,7 +152,7 @@ Page({
 
   /**
    * 保存修改
-   * 接口：POST /api/user/update.php
+   * 接口：POST /api/user/update.php（只能修改当前登录用户自己的信息）
    */
   async onSave() {
     if (!this.data.userInfo) return;
@@ -157,13 +160,13 @@ Page({
     wx.showLoading({ title: '保存中...' });
     try {
       const user = await post<UserInfo>('/api/user/update.php', {
-        user_id: this.data.userInfo.id,
         nickname: this.data.editNickname,
         phone: this.data.editPhone,
         address: this.data.editAddress,
       });
       
-      wx.setStorageSync('userInfo', user);
+      // 保留登录令牌，仅更新用户信息
+      saveAuth(user);
       this.setData({
         userInfo: user,
         isEditing: false,

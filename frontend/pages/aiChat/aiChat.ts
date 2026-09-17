@@ -6,8 +6,6 @@
 import { post } from '../../utils/api';
 import { ChatMessageExtended, RecommendDish, AIChatResult } from '../../utils/types';
 
-const app = getApp<IAppOption>();
-
 Page({
   data: {
     messages: [] as ChatMessageExtended[],
@@ -93,7 +91,6 @@ Page({
 
     try {
       await post('/api/cart/add.php', {
-        user_id: app.globalData.userId,
         dish_id: dishId,
         quantity: 1,
       });

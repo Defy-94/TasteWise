@@ -1,11 +1,15 @@
 <?php
 /**
  * 接口：获取购物车列表
- * 请求地址：GET /api/cart/list.php?user_id=1
+ * 请求地址：GET /api/cart/list.php
+ * 请求头：token: <登录令牌>
  * 对应前端：购物车页面
+ * 
+ * 【鉴权说明】只能查询自己的购物车，客户端传入的 user_id 一律忽略。
  */
 require_once __DIR__ . '/../../core/DB.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/Auth.php';
 
 Response::handleOptions();
 
@@ -13,11 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     Response::error('仅支持GET请求');
 }
 
-$userId = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
-
-if ($userId <= 0) {
-    Response::error('参数错误：user_id必填');
-}
+// 校验令牌并取得当前登录用户ID（未登录直接返回401）
+$userId = Auth::requireLogin();
 
 try {
     $db = DB::getInstance();

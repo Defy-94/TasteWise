@@ -1,6 +1,14 @@
 <view class="container">
+  <!-- 未登录提示 -->
+  <view wx:if="{{needLogin}}" class="empty-cart">
+    <text class="empty-icon">🔒</text>
+    <text class="empty-text">请先登录</text>
+    <text class="empty-hint">登录后即可使用购物车</text>
+    <button class="login-btn" bindtap="onGoLogin">去登录</button>
+  </view>
+
   <!-- 空购物车提示 -->
-  <view wx:if="{{isEmpty}}" class="empty-cart">
+  <view wx:elif="{{isEmpty}}" class="empty-cart">
     <text class="empty-icon">🛒</text>
     <text class="empty-text">购物车空空如也</text>
     <text class="empty-hint">快去首页挑选美食吧</text>
@@ -24,7 +32,7 @@
   </view>
 
   <!-- 底部结算栏 -->
-  <view wx:if="{{!isEmpty}}" class="bottom-bar">
+  <view wx:if="{{!isEmpty && !needLogin}}" class="bottom-bar">
     <view class="total-info">
       <text>合计：</text>
       <text class="total-price">¥{{totalPrice}}</text>

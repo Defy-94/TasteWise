@@ -3,11 +3,14 @@
  * 接口：手机号登录
  * 请求地址：POST /api/user/login_phone.php
  * 入参JSON：{"phone":"13800138000"}
+ * 返回：用户信息 + token（后续接口需在请求头携带 token 表明身份）
  * 对应前端：登录页面"登录"按钮
-
+ * 
+ * 【鉴权说明】本接口为登录入口，无需携带 token。
  */
 require_once __DIR__ . '/../../core/DB.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/Auth.php';
 
 Response::handleOptions();
 
@@ -41,6 +44,9 @@ try {
         // 未注册，返回特殊错误码
         Response::error('该手机号未注册，请前往注册', 404);
     }
+    
+    // 签发登录令牌
+    $user['token'] = Auth::issue($user['id'], $user['openid']);
     
     // 登录成功，返回用户信息
     Response::success($user, '登录成功');

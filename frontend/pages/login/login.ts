@@ -1,8 +1,8 @@
 /**
  * 登录页面
  */
-import { post } from '../../utils/api';
-import { UserInfo } from '../../utils/types';
+import { post, saveAuth } from '../../utils/api';
+import { AuthUser } from '../../utils/types';
 
 const app = getApp<IAppOption>();
 
@@ -48,14 +48,14 @@ Page({
     wx.showLoading({ title: '登录中...' });
     
     try {
-      const user = await post<UserInfo>('/api/user/login_phone.php', {
+      const user = await post<AuthUser>('/api/user/login_phone.php', {
         phone: phone,
       });
       
       wx.hideLoading();
       
-      // 登录成功，缓存用户信息
-      wx.setStorageSync('userInfo', user);
+      // 登录成功：保存登录令牌与用户信息（后续请求自动携带令牌）
+      saveAuth(user);
       app.globalData.userId = user.id;
       app.globalData.openid = user.openid;
       

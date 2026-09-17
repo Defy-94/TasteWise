@@ -3,10 +3,15 @@
  * 接口：用户登录/注册（通过微信code换取openid，此处简化演示）
  * 请求地址：POST /api/user/login.php
  * 入参JSON：{"openid":"模拟的openid","nickname":"用户昵称","avatar_url":"头像URL"}
+ * 返回：用户信息 + token（后续接口需在请求头携带 token 表明身份）
  * 对应前端：用户中心页面初始化、全局登录态
+ * 
+ * 【鉴权说明】本接口为登录入口，无需携带 token；
+ *            登录成功后返回 token，前端需保存并在后续请求中携带。
  */
 require_once __DIR__ . '/../../core/DB.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/Auth.php';
 
 Response::handleOptions();
 
@@ -45,6 +50,9 @@ try {
         );
         $user = $db->selectOne('SELECT * FROM users WHERE id = ?', [$userId]);
     }
+    
+    // 签发登录令牌：后续接口凭此令牌识别用户身份，不再信任客户端传入的 user_id
+    $user['token'] = Auth::issue($user['id'], $user['openid']);
     
     Response::success($user, '登录成功');
 } catch (Exception $e) {

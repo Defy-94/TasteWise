@@ -7,6 +7,7 @@
  */
 require_once __DIR__ . '/../../core/DB.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/Auth.php';
 
 Response::handleOptions();
 
@@ -112,6 +113,9 @@ try {
             'address'  => '',
             'created_at' => date('Y-m-d H:i:s'),
         ];
+        
+        // 签发登录令牌：注册成功后即为登录状态
+        $userInfo['token'] = Auth::issue($newUserId, $openid);
         
         Response::success($userInfo, '注册成功');
         

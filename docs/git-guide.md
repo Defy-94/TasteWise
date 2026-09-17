@@ -10,11 +10,13 @@
 | --- | --- |
 | `backend/config/apikey.php` | ⚠️ 包含 DeepSeek API Key（真实密钥） |
 | `backend/config/database.php` | ⚠️ 包含数据库账号密码 |
+| `backend/config/security.php` | ⚠️ 包含登录令牌签名密钥 |
 | `backend/phpMyAdmin4.8.5/` | 第三方数据库管理工具（phpstudy 自带），不属于项目代码 |
 | `frontend/project.private.config.json` | 微信开发者工具私有配置 |
 | `node_modules/`、IDE 配置、系统文件等 | 常规忽略 |
 
-仓库中提供 `backend/config/apikey.example.php` 与 `backend/config/database.example.php` 模板，克隆后复制为真实配置文件即可运行。
+仓库中提供 `backend/config/` 下三个 `.example.php` 模板（`apikey` / `database` / `security`），
+克隆后复制为对应真实配置文件并填写即可运行。
 
 ## 二、上传前需要准备的信息（清单）
 

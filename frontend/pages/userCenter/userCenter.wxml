@@ -18,8 +18,8 @@
       </view>
       
       <view wx:for="{{completedOrders}}" wx:key="id" class="order-card">
-        <!-- 订单状态 -->
-        <view class="order-status">{{item.status === 'completed' ? '已完成' : item.status}}</view>
+        <!-- 订单状态：由后端返回的 status_text（旧代码用数字与字符串比较，永远不成立） -->
+        <view class="order-status">{{item.status_text}}</view>
         <!-- 订单时间 -->
         <view class="order-time">{{item.created_at}}</view>
         <!-- 菜品图片横向滚动 -->

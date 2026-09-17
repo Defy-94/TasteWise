@@ -1,8 +1,8 @@
 /**
  * 注册页面
  */
-import { post } from '../../utils/api';
-import { UserInfo } from '../../utils/types';
+import { post, saveAuth } from '../../utils/api';
+import { AuthUser } from '../../utils/types';
 
 const app = getApp<IAppOption>();
 
@@ -110,7 +110,7 @@ Page({
     wx.showLoading({ title: '注册中...' });
     
     try {
-      const user = await post<UserInfo>('/api/user/register.php', {
+      const user = await post<AuthUser>('/api/user/register.php', {
         username: username.trim(),
         phone: phone.trim(),
         code: smsCode,  // 验证码（接入短信后生效）
@@ -118,8 +118,8 @@ Page({
       
       wx.hideLoading();
       
-      // 注册成功，自动登录
-      wx.setStorageSync('userInfo', user);
+      // 注册成功，自动登录：保存登录令牌与用户信息
+      saveAuth(user);
       app.globalData.userId = user.id;
       app.globalData.openid = user.openid;
       

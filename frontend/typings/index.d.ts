@@ -172,6 +172,13 @@ declare namespace WechatMiniprogram {
   
   declare function getApp<T = Record<string, any>>(): T;
   
+  // 小程序全局函数（原 typings 缺失，补充声明，避免误报 Cannot find name）
+  declare function getCurrentPages(): Array<{ route?: string; [key: string]: any }>;
+  declare function setTimeout(callback: (...args: any[]) => void, delay?: number, ...args: any[]): number;
+  declare function clearTimeout(timeoutId: number): void;
+  declare function setInterval(callback: (...args: any[]) => void, delay?: number, ...args: any[]): number;
+  declare function clearInterval(intervalId: number): void;
+  
   // 全局接口
   declare interface IAppOption {
     globalData: {

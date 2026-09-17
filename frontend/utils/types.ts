@@ -50,7 +50,7 @@ export interface Category {
     order_no: string;
     total_price: number;
     status: number;          // 0待支付 1已支付 2已完成 3已取消
-    status_text?: string;    // 状态文本（前端计算）
+    status_text?: string;    // 状态文本（由后端 order/list.php 返回）
     remark: string;
     created_at: string;
     items: OrderItem[];
@@ -65,6 +65,11 @@ export interface Category {
     phone: string;
     address: string;
     created_at: string;
+  }
+  
+  /** 登录/注册成功返回的用户信息（带登录令牌） */
+  export interface AuthUser extends UserInfo {
+    token?: string;          // 登录令牌，由后端签发，用于后续接口鉴权
   }
   
   /** AI对话消息 */
@@ -98,15 +103,22 @@ export interface RegisterInfo {
     phone: string;
   }
   
-  /** 订单状态枚举 */
-  export type OrderStatus = 'pending' | 'paid' | 'completed' | 'cancelled';
+  /**
+   * 订单状态枚举（数字，与数据库 orders.status 一致）
+   * 0待支付 1已支付 2已完成 3已取消
+   */
+  export type OrderStatus = 0 | 1 | 2 | 3;
   
-  /** 订单状态映射 */
-  export const OrderStatusMap: Record<OrderStatus, string> = {
-    pending: '待支付',
-    paid: '已支付',
-    completed: '已完成',
-    cancelled: '已取消',
+  /**
+   * 订单状态文本映射
+   * 注意：后端 order/list.php 已直接返回 status_text，
+   *      此处保留映射供本地判断/兜底使用，键必须为数字。
+   */
+  export const OrderStatusMap: Record<number, string> = {
+    0: '待支付',
+    1: '已支付',
+    2: '已完成',
+    3: '已取消',
   };
 
   /** AI回复中的推荐菜品 */
