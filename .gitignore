@@ -9,6 +9,8 @@ backend/config/apikey.php
 backend/config/database.php
 # 登录令牌签名密钥（见 security.example.php 模板）
 backend/config/security.php
+# 微信小程序 AppSecret（见 wechat.example.php 模板）
+backend/config/wechat.php
 
 # ===== 第三方工具（不属于项目代码） =====
 # phpstudy 自带的 phpMyAdmin 数据库管理工具

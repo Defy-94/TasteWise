@@ -41,7 +41,7 @@
 | AI 助手 | `pages/aiChat/` | 对话界面、AI 推荐菜品卡片、快捷加购 |
 | 用户中心 | `pages/userCenter/` | 用户信息展示与编辑、订单入口 |
 | 我的订单 | `pages/myOrders/` | 订单列表、支付/取消/完成（状态流转）、状态色区分 |
-| 登录/注册 | `pages/login/` `pages/register/` | 手机号登录、注册（登录成功保存令牌） |
+| 登录 | `pages/login/` | 微信一键登录（登录即注册，已无独立注册页） |
 | 关于 | `pages/about/` | 项目介绍 |
 | 工具层 | `utils/api.ts` `utils/types.ts` | 请求封装（令牌注入 + 401 跳登录）、TS 类型定义 |
 
@@ -99,17 +99,33 @@
   再逐项恢复库存，避免并发取消导致库存被重复加回。
 - **归属校验**：所有操作都带 `user_id = 令牌中的用户ID`，无法操作他人订单。
 
-## 6. 鉴权设计（Auth.php）
+## 6. 鉴权设计（WeChat.php + Auth.php）
 
+**登录流程（微信一键登录，登录即注册）**：
+
+```
+小程序 wx.login() ──code──► POST /api/user/login.php
+                              │
+                              ├─ core/WeChat.php 调 code2Session 换 openid
+                              ├─ 按 openid 查用户，不存在则自动创建
+                              └─ core/Auth.php 签发令牌 ──token──► 后续请求头携带
+```
+
+- **openid 只信微信**：`core/WeChat.php` 封装 `code2Session`，openid 由微信服务器签发，客户端无法伪造。
+  若直接信任客户端传来的 openid，等于「任何人知道别人的 openid 就能登录成对方账号」。
+- **登录即注册**：首次登录自动建号，因此不再需要单独的注册流程
+  （原 `register.php`、`login_phone.php` 已停用，原因见 [api.md](api.md)）。
 - **令牌格式**：`base64url(payload) . base64url(HMAC-SHA256(payload, secret))`，
   payload 含 `uid / openid / iat / exp`，有效期 7 天。
 - **无状态**：服务端不存储会话，校验只需重算签名；修改 `config/security.php` 的
   `token_secret` 即可让所有令牌立即失效。
 - **防篡改**：使用 `hash_equals` 做恒定时间比较，签名不符或 payload 被改（如把 uid 改成别人）都会校验失败。
 - **身份唯一来源**：所有业务接口通过 `Auth::requireLogin()` 取用户ID，
-  **完全忽略客户端传入的 `user_id`**，这是本次修复越权漏洞（IDOR）的核心。
+  **完全忽略客户端传入的 `user_id`**，这是修复越权漏洞（IDOR）的核心。
 - **资源归属二次校验**：对具体资源（购物车记录、订单）的操作，
   SQL 的 WHERE 同时限定资源ID与用户ID，删除/修改他人数据会返回 404。
+- **本地调试通道**：未配置 AppSecret 时，可同时满足「`allow_dev_openid_login = true`」+
+  「请求来自本机回环地址」两个条件，用调试账号登录（默认关闭，线上必须为 false）。
 
 ## 7. 安全设计
 

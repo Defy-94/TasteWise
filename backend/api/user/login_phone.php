@@ -1,56 +1,21 @@
 <?php
 /**
- * 接口：手机号登录
+ * 接口：手机号登录 —— 【已停用】
  * 请求地址：POST /api/user/login_phone.php
- * 入参JSON：{"phone":"13800138000"}
- * 返回：用户信息 + token（后续接口需在请求头携带 token 表明身份）
- * 对应前端：登录页面"登录"按钮
  * 
- * 【鉴权说明】本接口为登录入口，无需携带 token。
+ * 【停用原因（安全问题）】
+ *   原实现没有密码、也没有短信验证码，仅凭手机号即可登录。
+ *   这意味着任何人只要知道别人的手机号，就能直接登录成对方账号（账号接管漏洞）。
+ *   而「短信验证码」需要企业资质才能申请短信签名，个人开发者无法正规接入。
+ * 
+ * 【替代方案】
+ *   改用微信一键登录：POST /api/user/login.php（入参 {"code":"..."}），
+ *   openid 由微信服务器通过 code2Session 签发，客户端无法伪造。
+ * 
+ * 【原始实现】保留在 Git 历史中（提交 6d99470 及之前），如需回退可用 git 恢复。
  */
-require_once __DIR__ . '/../../core/DB.php';
 require_once __DIR__ . '/../../core/Response.php';
-require_once __DIR__ . '/../../core/Auth.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    Response::error('仅支持POST请求');
-}
-
-$input = json_decode(file_get_contents('php://input'), true);
-$phone = isset($input['phone']) ? trim($input['phone']) : '';
-
-if (empty($phone)) {
-    Response::error('手机号不能为空');
-}
-
-if (!preg_match('/^1[3-9]\d{9}$/', $phone)) {
-    Response::error('手机号格式不正确');
-}
-
-try {
-    $db = DB::getInstance();
-    
-    // 查询该手机号是否已注册
-    $user = $db->selectOne(
-        'SELECT id, openid, username, phone, nickname, avatar_url, address, created_at 
-         FROM users 
-         WHERE phone = ?',
-        [$phone]
-    );
-    
-    if (!$user) {
-        // 未注册，返回特殊错误码
-        Response::error('该手机号未注册，请前往注册', 404);
-    }
-    
-    // 签发登录令牌
-    $user['token'] = Auth::issue($user['id'], $user['openid']);
-    
-    // 登录成功，返回用户信息
-    Response::success($user, '登录成功');
-    
-} catch (Exception $e) {
-    Response::error('登录失败：' . $e->getMessage(), 500);
-}
+Response::error('手机号登录已停用：未接入短信验证时仅凭手机号登录存在账号接管风险，请使用微信一键登录', 410);

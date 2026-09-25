@@ -78,10 +78,8 @@
       <text class="prompt-desc">登录后查看订单和更多功能</text>
       
       <view class="auth-btns">
-        <!-- 跳转注册页 -->
-        <button class="register-btn" bindtap="onGoRegister">注册</button>
-        <!-- 跳转登录页 -->
-        <button class="login-btn" bindtap="onGoLogin">登录</button>
+        <!-- 微信一键登录（首次登录自动创建账号，无需单独注册） -->
+        <button class="wx-login-btn" bindtap="onGoLogin">微信一键登录</button>
       </view>
     </view>
   </block>

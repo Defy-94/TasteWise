@@ -1,21 +1,27 @@
 /**
- * 登录页面
+ * 登录页面 —— 微信一键登录
+ * 
+ * 【登录原理】
+ *   wx.login() 取临时 code → 后端用 code 调微信 code2Session 换 openid
+ *   → 按 openid 查/建用户 → 签发登录令牌
+ *   openid 由微信服务器签发，客户端无法伪造；首次登录自动创建账号（无需注册）
+ * 
+ * 【本地调试兜底】
+ *   若后端尚未配置微信 AppSecret（返回 503），且后端允许本地调试通道
+ *   （config/security.php 开关 + 请求来自本机），则自动改用调试账号登录，
+ *   并给出明确提示，方便本地开发。
  */
 import { post, saveAuth } from '../../utils/api';
 import { AuthUser } from '../../utils/types';
 
-const app = getApp<IAppOption>();
+// 本地调试用的 openid
+// 仅当后端 config/security.php 中 allow_dev_openid_login = true
+// 且请求来自本机回环地址（127.0.0.1 / ::1）时才会被后端接受
+const DEV_OPENID = 'dev_local_openid';
 
 Page({
   data: {
-    phone: '',
-  },
-
-  onLoad(options: any) {
-    // 如果从注册页跳转过来的手机号，预填
-    if (options.phone) {
-      this.setData({ phone: decodeURIComponent(options.phone) });
-    }
+    logging: false,   // 防重复点击
   },
 
   /** 返回上一页 */
@@ -23,72 +29,102 @@ Page({
     wx.navigateBack();
   },
 
-  /** 手机号输入 */
-  onPhoneInput(e: any) {
-    this.setData({ phone: e.detail.value });
+  /**
+   * 微信一键登录
+   * 对应按钮：「微信一键登录」
+   * 接口：POST /api/user/login.php（入参 code）
+   */
+  async onWxLogin() {
+    if (this.data.logging) return;
+    this.setData({ logging: true });
+
+    wx.showLoading({ title: '登录中...', mask: true });
+
+    try {
+      const user = await this.doLogin();
+      wx.hideLoading();
+      this.onLoginSuccess(user);
+    } catch (err: any) {
+      wx.hideLoading();
+      console.error('登录失败：', err);
+      wx.showToast({
+        title: (err && err.msg) || '登录失败，请重试',
+        icon: 'none',
+        duration: 2500,
+      });
+    } finally {
+      this.setData({ logging: false });
+    }
   },
 
   /**
-   * 提交登录
-   * 接口：POST /api/user/login_phone.php
+   * 执行登录
+   * 优先走正式的微信登录；仅当后端「未配置 AppSecret」时才退回本地调试通道
    */
-  async onSubmitLogin() {
-    const phone = this.data.phone.trim();
-    
-    if (!phone) {
-      wx.showToast({ title: '请输入手机号', icon: 'none' });
-      return;
-    }
-
-    if (!/^1[3-9]\d{9}$/.test(phone)) {
-      wx.showToast({ title: '手机号格式不正确', icon: 'none' });
-      return;
-    }
-
-    wx.showLoading({ title: '登录中...' });
-    
+  async doLogin(): Promise<AuthUser> {
+    // 1) wx.login 获取临时 code
+    let code = '';
     try {
-      const user = await post<AuthUser>('/api/user/login_phone.php', {
-        phone: phone,
-      });
-      
-      wx.hideLoading();
-      
-      // 登录成功：保存登录令牌与用户信息（后续请求自动携带令牌）
-      saveAuth(user);
-      app.globalData.userId = user.id;
-      app.globalData.openid = user.openid;
-      
-      wx.showToast({ title: '登录成功', icon: 'success' });
-      
-      // 跳转回用户主页
-      setTimeout(() => {
-        wx.switchTab({ url: '/pages/userCenter/userCenter' });
-      }, 1500);
-      
-    } catch (err: any) {
-      wx.hideLoading();
-      
-      const errorMsg = err.msg || '';
-      
-      if (errorMsg.includes('未注册') || err.code === 404) {
-        // 未注册，弹窗询问是否跳转注册
-        wx.showModal({
-          title: '提示',
-          content: '该手机号未注册，请前往注册',
-          confirmText: '前往注册',
-          cancelText: '取消',
-          success: (res) => {
-            if (res.confirm) {
-              wx.redirectTo({
-                url: '/pages/register/register?phone=' + encodeURIComponent(phone),
-              });
-            }
-          },
-        });
-      } else {
-        wx.showToast({ title: errorMsg || '登录失败', icon: 'none' });
+      code = await this.getLoginCode();
+    } catch (e) {
+      console.warn('wx.login 未取得 code，尝试本地调试通道：', e);
+    }
+
+    // 2) 正式流程：用 code 换取登录态
+    if (code) {
+      try {
+        return await post<AuthUser>('/api/user/login.php', { code });
+      } catch (err: any) {
+        // 503 = 后端未配置微信 AppSecret；只有这种情况才允许使用调试通道
+        if (!err || err.code !== 503) {
+          throw err;
+        }
+        console.warn('后端未配置微信登录，改用本地调试通道：', err.msg);
       }
     }
+
+    // 3) 本地调试通道（后端会校验开关 + 本机回环地址，线上会被拒绝）
+    const user = await post<AuthUser>('/api/user/login.php', {
+      openid: DEV_OPENID,
+      nickname: '本地调试用户',
+    });
+    wx.showToast({
+      title: '本地调试登录（尚未配置 AppSecret）',
+      icon: 'none',
+      duration: 2500,
+    });
+    return user;
+  },
+
+  /** 把 wx.login 封装成 Promise，返回临时 code */
+  getLoginCode(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      wx.login({
+        success: (res: any) => {
+          if (res && res.code) {
+            resolve(res.code);
+          } else {
+            reject(new Error('wx.login 未返回 code'));
+          }
+        },
+        fail: (err: any) => reject(err),
+      });
+    });
+  },
+
+  /** 登录成功的公共处理：保存登录态并返回「我的」页 */
+  onLoginSuccess(user: AuthUser) {
+    // 保存登录令牌与用户信息（后续请求自动携带令牌）
+    saveAuth(user);
+
+    const app = getApp<IAppOption>();
+    app.globalData.userId = user.id;
+    app.globalData.openid = user.openid;
+
+    wx.showToast({ title: '登录成功', icon: 'success' });
+
+    setTimeout(() => {
+      wx.switchTab({ url: '/pages/userCenter/userCenter' });
+    }, 1200);
   },
 });

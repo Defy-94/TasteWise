@@ -37,9 +37,10 @@ SOURCE /path/to/backend/sql/init.sql;
 cp backend/config/database.example.php backend/config/database.php
 cp backend/config/apikey.example.php   backend/config/apikey.php
 cp backend/config/security.example.php backend/config/security.php
+cp backend/config/wechat.example.php   backend/config/wechat.php
 ```
 
-编辑三个文件，填入真实值：
+编辑四个文件，填入真实值：
 
 - `database.php`：本地 phpstudy 默认 `root/root`，端口 3306
 - `apikey.php`：在 [DeepSeek 开放平台](https://platform.deepseek.com/) 注册并创建 API Key
@@ -48,6 +49,12 @@ cp backend/config/security.example.php backend/config/security.php
   php -r "echo bin2hex(random_bytes(32));"
   ```
   > 该密钥用于签发/校验登录令牌。修改它会让所有用户登录态立即失效（需重新登录）。
+  >
+  > 其中的 `allow_dev_openid_login` 是**本地调试开关**（默认 `false`）：
+  > 未配置微信 AppSecret 时可临时开启，用调试账号登录；**线上必须保持 `false`**。
+- `wechat.php`：微信小程序 `appid` + **`appsecret`**
+  - AppSecret 位置：小程序后台 →「开发管理 → 开发设置 → 开发者ID」
+  - ⚠️ AppSecret 是机密信息，只能放服务端；未填写时微信一键登录会返回 503，前端会提示"微信登录未配置"
 
 ### 5. 验证后端
 

@@ -14,8 +14,8 @@
 | 🛒 购物车 | 购物车列表、加入/移除商品、数量累加、结算下单（含库存校验与扣减） |
 | 📦 订单系统 | 下单（事务保证）、**订单状态流转**（待支付 → 已支付 → 已完成 / 已取消）、取消自动回滚库存、订单列表与状态筛选 |
 | 🤖 AI 助手 | 与 DeepSeek 大模型实时对话，动态注入当日菜单防止编造菜品，推荐结果自动生成可点击菜品卡片 |
-| 👤 用户中心 | 微信登录（openid）、手机号注册/登录、个人信息编辑（昵称/手机/地址）、我的订单 |
-| 🔐 登录鉴权 | 登录签发 HMAC-SHA256 令牌，接口按令牌识别用户身份，**彻底防越权**（改 `user_id` 也拿不到他人数据） |
+| 👤 用户中心 | **微信一键登录**（首次登录自动建号，无需注册）、个人信息编辑（昵称/手机/地址）、我的订单 |
+| 🔐 登录鉴权 | 微信 `code2Session` 换取 openid + HMAC-SHA256 登录令牌，**防越权、防账号伪造** |
 
 ## 🧰 技术栈
 
@@ -31,14 +31,13 @@
 ```
 TasteWise/
 ├── frontend/                  # 微信小程序前端
-│   ├── pages/                 # 页面（8 个）
+│   ├── pages/                 # 页面（7 个）
 │   │   ├── index/             #   首页：分类 + 菜品 + AI推荐
 │   │   ├── cart/              #   购物车
 │   │   ├── aiChat/            #   AI 助手对话
 │   │   ├── userCenter/        #   用户中心
 │   │   ├── myOrders/          #   我的订单（含支付/取消/完成）
-│   │   ├── login/             #   手机号登录
-│   │   ├── register/          #   注册
+│   │   ├── login/             #   微信一键登录
 │   │   └── about/             #   关于
 │   ├── utils/
 │   │   ├── api.ts             #   HTTP 请求封装（BASE_URL 配置 + 令牌注入 + 401 处理）
@@ -47,7 +46,7 @@ TasteWise/
 │   ├── app.ts / app.json / app.wxss
 │   └── project.config.json    #   开发者工具项目配置
 ├── backend/                   # PHP 后端服务
-│   ├── api/                   # RESTful 接口（19 个）
+│   ├── api/                   # RESTful 接口（17 个）
 │   │   ├── category/          #   分类
 │   │   ├── dish/              #   菜品 + AI 推荐
 │   │   ├── cart/              #   购物车
@@ -85,10 +84,12 @@ TasteWise/
    cp backend/config/database.example.php backend/config/database.php
    cp backend/config/apikey.example.php   backend/config/apikey.php
    cp backend/config/security.example.php backend/config/security.php
+   cp backend/config/wechat.example.php   backend/config/wechat.php
    ```
    - `database.php`：数据库连接（phpstudy 默认 `root/root`）
    - `apikey.php`：在 [DeepSeek 开放平台](https://platform.deepseek.com/) 申请 API Key（`sk-` 开头）
    - `security.php`：令牌签名密钥，用 `php -r "echo bin2hex(random_bytes(32));"` 生成一个随机值填进去
+   - `wechat.php`：微信小程序 `appid` + `appsecret`（小程序后台「开发管理 → 开发设置」获取，**AppSecret 属机密，只能放服务端**）
 5. 访问 `http://localhost/api/category/list.php`，返回 `{"code":200,...}` 即部署成功。
 
 ### 2. 前端（微信开发者工具）
@@ -108,7 +109,7 @@ TasteWise/
 | --- | --- |
 | [docs/README.md](docs/README.md) | 文档目录总览 |
 | [docs/architecture.md](docs/architecture.md) | 系统架构、鉴权设计与订单状态机 |
-| [docs/api.md](docs/api.md) | 全部 19 个接口的详细文档（含鉴权说明） |
+| [docs/api.md](docs/api.md) | 全部 17 个接口的详细文档（含鉴权说明） |
 | [docs/database.md](docs/database.md) | 数据库表结构设计 |
 | [docs/deployment.md](docs/deployment.md) | 本地部署与上线指南 |
 | [docs/git-guide.md](docs/git-guide.md) | Git/GitHub 仓库创建与上传指引 |

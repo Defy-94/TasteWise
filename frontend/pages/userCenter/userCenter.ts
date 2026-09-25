@@ -111,12 +111,7 @@ Page({
     return `${year}-${month}-${day} ${hour}:${minute}`;
   },
 
-  /** 跳转注册页（纯页面跳转） */
-  onGoRegister() {
-    wx.navigateTo({ url: '/pages/register/register' });
-  },
-
-  /** 跳转登录页（纯页面跳转） */
+  /** 跳转登录页（微信一键登录，登录即注册，无需单独注册） */
   onGoLogin() {
     wx.navigateTo({ url: '/pages/login/login' });
   },

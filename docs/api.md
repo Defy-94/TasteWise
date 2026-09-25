@@ -18,7 +18,12 @@
 
 ### 1. 获取令牌
 
-调用任一登录接口（`login.php` / `login_phone.php` / `register.php`），
+调用**微信一键登录**接口 `POST /api/user/login.php`，入参是小程序端 `wx.login()` 取得的临时 `code`：
+
+```json
+{ "code": "wx.login 返回的临时 code" }
+```
+
 返回的用户对象中会额外包含 `token` 字段：
 
 ```json
@@ -64,7 +69,7 @@ Authorization: Bearer <令牌>
 
 ---
 
-## 接口总览（19 个）
+## 接口总览（17 个）
 
 | # | 方法 | 接口 | 功能 | 鉴权 |
 | --- | --- | --- | --- | --- |
@@ -79,14 +84,12 @@ Authorization: Bearer <令牌>
 | 9 | POST | `/api/order/pay.php` | **订单支付**（新增） | 🔒 需令牌 |
 | 10 | POST | `/api/order/cancel.php` | **取消订单**（新增） | 🔒 需令牌 |
 | 11 | POST | `/api/order/complete.php` | **确认订单完成**（新增） | 🔒 需令牌 |
-| 12 | POST | `/api/user/login.php` | 微信 openid 登录 | 免登录（入口） |
-| 13 | POST | `/api/user/login_phone.php` | 手机号登录 | 免登录（入口） |
-| 14 | POST | `/api/user/register.php` | 用户注册 | 免登录（入口） |
+| 12 | POST | `/api/user/login.php` | **微信一键登录**（code 换 openid，登录即注册） | 免登录（入口） |
+| 13 | POST | `/api/user/login_phone.php` | ~~手机号登录~~ **已停用**（返回 410） | — |
+| 14 | POST | `/api/user/register.php` | ~~用户注册~~ **已停用**（返回 410） | — |
 | 15 | GET | `/api/user/check.php` | 校验登录态 / 获取当前用户 | 🔒 需令牌 |
 | 16 | POST | `/api/user/update.php` | 修改个人信息 | 🔒 需令牌 |
-| 17 | POST | `/api/user/send_sms.php` | 发送短信验证码（预留） | 免登录 |
-| 18 | POST | `/api/ai/chat.php` | AI 智能问答（含推荐菜品提取） | 免登录 |
-| 19 | POST | `/api/user/ai/chat.php` | AI 智能问答（纯对话） | 免登录 |
+| 17 | POST | `/api/ai/chat.php` | AI 智能问答（含推荐菜品提取） | 免登录 |
 
 ---
 
@@ -261,26 +264,36 @@ Authorization: Bearer <令牌>
 - **状态流转**：`1 已支付` → `2 已完成`
 - **错误**：未支付订单不可直接完成 → `409`
 
-### 12. 微信 openid 登录
+### 12. 微信一键登录（登录即注册）
 
 - **地址**：`POST /api/user/login.php`
-- **入参**：`{"openid": "模拟的openid", "nickname": "微信用户", "avatar_url": "..."}`
+- **入参**：`{"code": "wx.login 返回的临时 code", "nickname": "昵称(可选)", "avatar_url": "头像(可选)"}`
 - **返回 data**：用户完整信息 + `token`
-- **说明**：演示环境直接传 openid；正式环境应使用微信 `code2Session` 换取 openid。用户不存在时自动创建。
+- **说明**：
+  - 后端用 `code` 调微信 `code2Session` 换取 `openid`，再按 openid 查用户，**不存在则自动创建**（因此无需注册流程）。
+  - `code` 由小程序端 `wx.login()` 获取，5 分钟有效且只能用一次。
+  - 未配置 `config/wechat.php` 的 `appsecret` 时返回 `503`（前端提示「微信登录未配置」）。
+  - code 无效或已被使用 → `401`（微信返回 40029 / 40163）。
+  - **不接受客户端直接传 openid**：那会导致「知道 openid 即可登录成他人账号」。
+- **本地调试通道**：同时满足「`config/security.php` 中 `allow_dev_openid_login = true`」与
+  「请求来自本机回环地址」时可传 `{"openid": "..."}` 直接登录，仅供本地开发（线上必须关闭）。
 
-### 13. 手机号登录
+### 13. 手机号登录 —— 已停用
 
 - **地址**：`POST /api/user/login_phone.php`
-- **入参**：`{"phone": "13800138000"}`
-- **返回 data**：用户信息 + `token`；未注册返回 `code 404`（提示前往注册）
+- **返回**：`code 410`，提示改用微信一键登录
+- **停用原因**：原实现既无密码也无短信验证码，仅凭手机号即可登录 ——
+  任何人知道别人的手机号就能登录成对方账号（账号接管漏洞）。
+  而短信验证码需要企业资质申请短信签名，个人开发者无法正规接入。
 
-### 14. 用户注册
+### 14. 用户注册 —— 已停用
 
 - **地址**：`POST /api/user/register.php`
-- **入参**：`{"username": "张三", "phone": "13800138000", "code": "123456"}`
-- **返回 data**：新用户信息（含 `token`，注册即登录）
-- **说明**：通过 `user_id_counter` 表生成从 10001 起的自增用户 ID；手机号已注册返回 `code 409`。
-- **注意**：`users` 表的 `username` 与 `phone` 都是唯一索引，注册时必须提供未被占用的用户名与手机号。
+- **返回**：`code 410`，提示「微信一键登录，首次登录自动创建账号」
+- **停用原因**：
+  1. 原实现中入参 `code`（短信验证码）从未被校验，任何人都能用任意手机号注册；
+  2. 改为微信一键登录后首次登录自动建号，不再需要注册流程；
+  3. 若确实需要手机号，可改用微信「手机号快速验证」组件（付费能力，由微信完成验证）。
 
 ### 15. 校验登录态 / 获取当前用户 🔒
 
@@ -297,13 +310,7 @@ Authorization: Bearer <令牌>
 - **返回 data**：更新后的用户信息
 - **说明**：只能修改自己的信息；手机号会做格式与唯一性校验（与他人冲突返回 `409`）。
 
-### 17. 发送短信验证码（预留）
-
-- **地址**：`POST /api/user/send_sms.php`
-- **入参**：`{"phone": "13800138000"}`
-- **返回**：当前固定返回 `code 501`（「验证码功能暂未开放」），代码中预留了接入腾讯云短信的注释指引。
-
-### 18. AI 智能问答（含推荐菜品提取）
+### 17. AI 智能问答（含推荐菜品提取）
 
 - **地址**：`POST /api/ai/chat.php`
 - **入参**：`{"message": "推荐几道辣菜", "history": [{"role":"user","content":"..."}]}`
@@ -316,10 +323,3 @@ Authorization: Bearer <令牌>
 }
 ```
 - **说明**：先获取 AI 回复，若消息含推荐意图关键词（推荐/建议/吃什么/辣/清淡…），再调用推荐接口并返回可点击的推荐菜品卡片。对应前端「AI 助手」页面。
-
-### 19. AI 智能问答（纯对话）
-
-- **地址**：`POST /api/user/ai/chat.php`
-- **入参**：`{"message": "你好，有什么推荐的菜吗？", "history": []}`
-- **返回 data**：`{"reply": "AI 回复内容"}`
-- **说明**：简化版对话接口，不解析推荐菜品。
