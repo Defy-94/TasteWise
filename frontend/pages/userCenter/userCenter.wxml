@@ -1,98 +1,117 @@
-<!-- 用户中心页面 -->
+<!-- 用户中心页面（「我的」） -->
 <view class="container">
-  <!-- 已登录状态 -->
-  <block wx:if="{{isLoggedIn}}">
-    <!-- 用户头像昵称区域 -->
-    <view class="user-header">
-      <image class="avatar" src="{{userInfo.avatar_url || '/images/default_avatar.png'}}" mode="aspectFill" />
-      <view class="user-name">{{userInfo.nickname || userInfo.username || '微信用户'}}</view>
-      <view class="user-phone">{{userInfo.phone || ''}}</view>
+  <!-- ========== 顶部用户卡（渐变背景） ========== -->
+  <view class="hero">
+    <view class="hero-main">
+      <!-- 有头像就显示头像；没有则显示占位图标
+           （项目内并没有 default_avatar.png 这张兜底图，写死路径会渲染出一个空白圆圈） -->
+      <image wx:if="{{userInfo.avatar_url}}" class="avatar" src="{{userInfo.avatar_url}}" mode="aspectFill" />
+      <view wx:else class="avatar avatar-ph">👤</view>
+
+      <view class="hero-info">
+        <block wx:if="{{isLoggedIn}}">
+          <text class="hero-name">{{userInfo.nickname || userInfo.username || '微信用户'}}</text>
+          <text class="hero-sub">{{userInfo.phone || '未绑定手机号'}}</text>
+        </block>
+        <block wx:else>
+          <text class="hero-name">未登录</text>
+          <text class="hero-sub">登录后可点餐、查看订单</text>
+        </block>
+      </view>
+
+      <!-- 未登录：一键登录按钮；已登录：编辑资料 -->
+      <view wx:if="{{!isLoggedIn}}" class="hero-btn" bindtap="onGoLogin">微信登录</view>
+      <view wx:elif="{{!isEditing}}" class="hero-btn" bindtap="onEdit">编辑资料</view>
+      <view wx:elif="{{isEditing}}" class="hero-btn" bindtap="onCancelEdit">取消编辑</view>
+    </view>
+  </view>
+
+  <!-- ========== 订单概览：各状态数量，点击直达对应筛选 ========== -->
+  <view class="card orders-overview">
+    <view class="card-header">
+      <text class="card-title">我的订单</text>
+      <text class="card-more" bindtap="onGoMyOrders">全部订单 ></text>
     </view>
 
-    <!-- 订单展示区域：展示最近订单（含待支付），可进入完整列表 -->
-    <view class="orders-section">
-      <view class="section-header">
-        <text class="section-title">📋 我的订单</text>
-        <text class="section-more" bindtap="onGoMyOrders">查看全部 ></text>
+    <view class="stat-row">
+      <view class="stat-item" data-status="0" bindtap="onGoMyOrders">
+        <text class="stat-num stat-pending">{{orderCounts.pending}}</text>
+        <text class="stat-label">待支付</text>
       </view>
-
-      <view wx:if="{{recentOrders.length === 0}}" class="no-orders">
-        <text>暂无订单</text>
+      <view class="stat-item" data-status="1" bindtap="onGoMyOrders">
+        <text class="stat-num stat-paid">{{orderCounts.paid}}</text>
+        <text class="stat-label">已支付</text>
       </view>
-
-      <view wx:for="{{recentOrders}}" wx:key="id" class="order-card" bindtap="onGoMyOrders">
-        <!-- 订单状态：由后端返回 status_text，按状态区分颜色 -->
-        <view class="order-status status-{{item.status}}">{{item.status_text}}</view>
-        <!-- 订单时间 -->
-        <view class="order-time">{{item.created_at}}</view>
-        <!-- 菜品图片横向滚动 -->
-        <scroll-view class="dish-scroll" scroll-x="true">
-          <view class="dish-images">
-            <view wx:for="{{item.items}}" wx:for-item="dish" wx:key="dish_name" class="dish-img-wrap">
-              <image class="dish-img" src="{{dish.image_url || '/images/default_dish.png'}}" mode="aspectFill" />
-            </view>
-          </view>
-          <view class="dish-count">共 {{item.items.length}} 件</view>
-        </scroll-view>
-        <view class="order-total">¥{{item.total_price}}</view>
+      <view class="stat-item" data-status="2" bindtap="onGoMyOrders">
+        <text class="stat-num stat-completed">{{orderCounts.completed}}</text>
+        <text class="stat-label">已完成</text>
+      </view>
+      <view class="stat-item" data-status="3" bindtap="onGoMyOrders">
+        <text class="stat-num stat-cancelled">{{orderCounts.cancelled}}</text>
+        <text class="stat-label">已取消</text>
       </view>
     </view>
+  </view>
 
-    <!-- 信息编辑区域 -->
-    <view class="info-section">
-      <view class="section-title">个人信息</view>
-      <view class="info-row">
-        <text class="label">用户名</text>
-        <text class="value">{{userInfo.username}}</text>
-      </view>
-      <view class="info-row">
-        <text class="label">昵称</text>
-        <input wx:if="{{isEditing}}" class="info-input" value="{{editNickname}}" bindinput="onNickInput" />
-        <text wx:else class="value">{{userInfo.nickname}}</text>
-      </view>
-      <view class="info-row">
-        <text class="label">手机号</text>
-        <input wx:if="{{isEditing}}" class="info-input" value="{{editPhone}}" bindinput="onPhoneInput" />
-        <text wx:else class="value">{{userInfo.phone || '未设置'}}</text>
-      </view>
-      <view class="info-row">
-        <text class="label">地址</text>
-        <input wx:if="{{isEditing}}" class="info-input" value="{{editAddress}}" bindinput="onAddrInput" />
-        <text wx:else class="value">{{userInfo.address || '未设置'}}</text>
-      </view>
-
-      <view class="btn-group">
-        <button wx:if="{{!isEditing}}" class="edit-btn" bindtap="onEdit">编辑</button>
-        <button wx:if="{{isEditing}}" class="save-btn" bindtap="onSave">保存</button>
-        <button wx:if="{{isEditing}}" class="cancel-btn" bindtap="onCancelEdit">取消</button>
-        <button class="logout-btn" bindtap="onLogout">退出登录</button>
-      </view>
+  <!-- ========== 最近一笔订单（有订单时显示） ========== -->
+  <view wx:if="{{isLoggedIn && latestOrder}}" class="card latest-order" bindtap="onGoMyOrders">
+    <view class="card-header">
+      <text class="card-title">最近订单</text>
+      <text class="order-status status-{{latestOrder.status}}">{{latestOrder.status_text}}</text>
     </view>
-  </block>
-
-  <!-- 未登录状态 -->
-  <block wx:else>
-    <view class="login-prompt">
-      <view class="prompt-icon">👤</view>
-      <text class="prompt-text">暂未登录</text>
-      <text class="prompt-desc">登录后查看订单和更多功能</text>
-      
-      <view class="auth-btns">
-        <!-- 微信一键登录（首次登录自动创建账号，无需单独注册） -->
-        <button class="wx-login-btn" bindtap="onGoLogin">微信一键登录</button>
-      </view>
+    <view class="latest-row">
+      <text class="latest-no">{{latestOrder.order_no}}</text>
+      <text class="latest-total">¥{{latestOrder.total_price}}</text>
     </view>
-  </block>
+    <text class="latest-time">{{latestOrder.created_at}}</text>
+  </view>
 
-  <!-- 功能入口 -->
-  <view class="menu-section">
+  <!-- ========== 个人信息 ========== -->
+  <view wx:if="{{isLoggedIn}}" class="card">
+    <view class="card-header">
+      <text class="card-title">个人信息</text>
+    </view>
+
+    <view class="info-row">
+      <text class="label">用户名</text>
+      <text class="value">{{userInfo.username || '未设置'}}</text>
+    </view>
+    <view class="info-row">
+      <text class="label">昵称</text>
+      <input wx:if="{{isEditing}}" class="info-input" value="{{editNickname}}" bindinput="onNickInput" />
+      <text wx:else class="value">{{userInfo.nickname || '未设置'}}</text>
+    </view>
+    <view class="info-row">
+      <text class="label">手机号</text>
+      <input wx:if="{{isEditing}}" class="info-input" type="number" maxlength="11" value="{{editPhone}}" bindinput="onPhoneInput" />
+      <text wx:else class="value">{{userInfo.phone || '未设置'}}</text>
+    </view>
+    <view class="info-row info-row-last">
+      <text class="label">地址</text>
+      <input wx:if="{{isEditing}}" class="info-input" value="{{editAddress}}" bindinput="onAddrInput" />
+      <text wx:else class="value">{{userInfo.address || '未设置'}}</text>
+    </view>
+
+    <view wx:if="{{isEditing}}" class="btn-group">
+      <button class="save-btn" bindtap="onSave">保存</button>
+      <button class="cancel-btn" bindtap="onCancelEdit">取消</button>
+    </view>
+  </view>
+
+  <!-- ========== 功能入口 ========== -->
+  <view class="card menu-card">
     <view class="menu-item" bindtap="onGoMyOrders">
-      <text>📋 我的订单</text>
+      <text class="menu-text">📋 我的订单</text>
       <text class="arrow">></text>
     </view>
-    <view class="menu-item" bindtap="onGoAbout">
-      <text>ℹ️ 关于我们</text>
+    <view class="menu-item menu-item-last" bindtap="onGoAbout">
+      <text class="menu-text">ℹ️ 关于我们</text>
       <text class="arrow">></text>
     </view>
+  </view>
+
+  <!-- ========== 退出登录 ========== -->
+  <view wx:if="{{isLoggedIn}}" class="logout-wrap">
+    <button class="logout-btn" bindtap="onLogout">退出登录</button>
   </view>
 </view>

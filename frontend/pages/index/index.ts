@@ -4,6 +4,7 @@
  */
 import { get, post } from '../../utils/api';
 import { Category, Dish, AIRecommendResult } from '../../utils/types';
+import { refreshCartBadge } from '../../utils/cartBadge';
 
 Page({
   data: {
@@ -18,6 +19,12 @@ Page({
   onLoad() {
     this.loadCategories();
     this.loadDishes();
+  },
+
+  onShow() {
+    // 每次回到首页同步一次购物车角标
+    // （内部用 silent401 请求，未登录或令牌失效都不会把用户弹到登录页）
+    refreshCartBadge();
   },
 
   /**
@@ -74,6 +81,8 @@ Page({
         quantity: 1,
       });
       wx.showToast({ title: '已加入购物车', icon: 'success' });
+      // 同步底部购物车角标
+      refreshCartBadge();
     } catch (err) {
       console.error('加入购物车失败：', err);
     }

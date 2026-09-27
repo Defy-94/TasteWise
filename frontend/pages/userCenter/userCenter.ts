@@ -1,18 +1,33 @@
 /**
- * 用户中心页面
- * 功能：显示/修改个人信息、跳转订单、关于页面、登录态判断、订单展示
+ * 用户中心页面（「我的」）
+ * 功能：个人信息展示与编辑、订单概览（各状态数量）、订单入口、退出登录
  * 
  * 【鉴权说明】用户身份完全由登录令牌决定（见 utils/api.ts），
  *            因此不再需要向接口传 user_id，也无法查看他人数据。
  */
 import { get, post, saveAuth, clearAuth } from '../../utils/api';
 import { UserInfo, Order, OrderStatusMap } from '../../utils/types';
+import { clearCartBadge, refreshCartBadge } from '../../utils/cartBadge';
+
+/** 各状态订单数量 */
+interface OrderCounts {
+  pending: number;
+  paid: number;
+  completed: number;
+  cancelled: number;
+}
+
+// 下标即订单状态值：0待支付 1已支付 2已完成 3已取消
+const STATUS_KEYS: (keyof OrderCounts)[] = ['pending', 'paid', 'completed', 'cancelled'];
+
+const EMPTY_COUNTS: OrderCounts = { pending: 0, paid: 0, completed: 0, cancelled: 0 };
 
 Page({
   data: {
-    isLoggedIn: false,        // 是否已登录
+    isLoggedIn: false,                  // 是否已登录
     userInfo: null as UserInfo | null,
-    recentOrders: [] as Order[],   // 最近订单（含待支付，下单后可立即看到）
+    orderCounts: EMPTY_COUNTS,          // 订单概览：各状态数量
+    latestOrder: null as Order | null,  // 最近一笔订单
     isEditing: false,
     editNickname: '',
     editPhone: '',
@@ -25,17 +40,18 @@ Page({
 
   /**
    * 检查登录状态
-   * 先检查本地缓存，再调用接口校验登录态是否仍有效
+   * 先看本地缓存，再调用接口校验登录态是否仍有效
    */
   async checkLoginStatus() {
     const cachedUser = wx.getStorageSync('userInfo');
-    
+
     if (!cachedUser) {
       // 未登录
       this.setData({
         isLoggedIn: false,
         userInfo: null,
-        recentOrders: [],
+        orderCounts: EMPTY_COUNTS,
+        latestOrder: null,
       });
       return;
     }
@@ -43,7 +59,7 @@ Page({
     try {
       // 校验登录态（令牌有效时返回当前用户信息；无效则返回401并自动跳转登录页）
       const user = await get<UserInfo>('/api/user/check.php');
-      
+
       // 用户有效，更新缓存
       saveAuth(user);
       this.setData({
@@ -53,45 +69,58 @@ Page({
         editPhone: user.phone,
         editAddress: user.address,
       });
-      
-      // 加载最近订单
-      this.loadRecentOrders();
-      
+
+      // 加载订单概览
+      this.loadOrderSummary();
+
+      // 同步购物车角标（登录后才知道有几件商品）
+      refreshCartBadge();
+
     } catch (err) {
       // 登录态失效，清除本地登录信息
       clearAuth();
+      clearCartBadge();
       this.setData({
         isLoggedIn: false,
         userInfo: null,
-        recentOrders: [],
+        orderCounts: EMPTY_COUNTS,
+        latestOrder: null,
       });
     }
   },
 
   /**
-   * 加载最近订单（只取最近 3 条预览，完整列表在「我的订单」页）
-   * 接口：GET /api/order/list.php（不传 status 即返回全部状态）
+   * 加载订单概览：各状态数量 + 最近一笔订单
+   * 接口：GET /api/order/list.php（不传 status 即返回全部）
    * 
-   * 【修复记录】原来这里只查"已完成"（status=2），并且传的是字符串 'completed'，
-   *            MySQL 隐式转成 0，导致刚下单的"待支付"订单在用户中心完全看不到。
-   *            现改为展示全部状态的最近订单，并把状态交给后端返回的 status_text。
+   * 说明：接口一次性返回全部订单，因此各状态数量直接在前端统计，
+   *      不必为每个状态各发一次请求（省请求，也不会出现数量不一致）。
    */
-  async loadRecentOrders() {
+  async loadOrderSummary() {
     try {
       const orders = await get<Order[]>('/api/order/list.php');
-      
-      // 只展示最近 3 条
-      const recent = orders.slice(0, 3);
-      
-      recent.forEach(o => {
-        o.status = Number(o.status);
-        o.status_text = o.status_text || OrderStatusMap[o.status] || '未知';
-        o.created_at = this.formatTime(o.created_at);
+
+      const counts: OrderCounts = { pending: 0, paid: 0, completed: 0, cancelled: 0 };
+
+      orders.forEach(o => {
+        const s = Number(o.status);
+        const key = STATUS_KEYS[s];
+        if (key !== undefined) {
+          counts[key] += 1;
+        }
       });
-      
-      this.setData({ recentOrders: recent });
+
+      // 最近一笔（后端已按创建时间倒序）
+      let latest: Order | null = orders.length > 0 ? orders[0] : null;
+      if (latest) {
+        latest.status = Number(latest.status);
+        latest.status_text = latest.status_text || OrderStatusMap[latest.status] || '未知';
+        latest.created_at = this.formatTime(latest.created_at);
+      }
+
+      this.setData({ orderCounts: counts, latestOrder: latest });
     } catch (err) {
-      console.error('加载订单失败：', err);
+      console.error('加载订单概览失败：', err);
     }
   },
 
@@ -117,11 +146,22 @@ Page({
   },
 
   /**
-   * 跳转我的订单页
+   * 跳转「我的订单」页
+   * 
+   * 支持从订单概览的数字直接带状态进入（data-status="0" → 只看待支付）：
+   *   /pages/myOrders/myOrders?status=0
+   * 
    * 注意：myOrders 不是 tabBar 页面，必须用 navigateTo（switchTab 会静默失败）
    */
-  onGoMyOrders() {
-    wx.navigateTo({ url: '/pages/myOrders/myOrders' });
+  onGoMyOrders(e: any) {
+    const raw = e && e.currentTarget ? e.currentTarget.dataset.status : undefined;
+    const status = (raw === undefined || raw === null || raw === '') ? -1 : Number(raw);
+
+    const url = (status >= 0)
+      ? `/pages/myOrders/myOrders?status=${status}`
+      : '/pages/myOrders/myOrders';
+
+    wx.navigateTo({ url });
   },
 
   /** 退出登录 */
@@ -131,12 +171,14 @@ Page({
       content: '确定要退出登录吗？',
       success: (res) => {
         if (res.confirm) {
-          // 清除令牌与用户信息
+          // 清除令牌与用户信息，并清掉购物车角标
           clearAuth();
+          clearCartBadge();
           this.setData({
             isLoggedIn: false,
             userInfo: null,
-            recentOrders: [],
+            orderCounts: EMPTY_COUNTS,
+            latestOrder: null,
           });
           wx.showToast({ title: '已退出登录', icon: 'success' });
         }
@@ -161,7 +203,7 @@ Page({
    */
   async onSave() {
     if (!this.data.userInfo) return;
-    
+
     wx.showLoading({ title: '保存中...' });
     try {
       const user = await post<UserInfo>('/api/user/update.php', {
@@ -169,7 +211,7 @@ Page({
         phone: this.data.editPhone,
         address: this.data.editAddress,
       });
-      
+
       // 保留登录令牌，仅更新用户信息
       saveAuth(user);
       this.setData({

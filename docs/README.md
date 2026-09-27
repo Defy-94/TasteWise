@@ -7,8 +7,8 @@
 | 文档 | 内容 | 适用读者 |
 | --- | --- | --- |
 | [architecture.md](architecture.md) | 系统总体架构、模块划分、请求流程、AI 集成设计 | 架构师 / 新成员入门 |
-| [api.md](api.md) | 全部 17 个后端接口：方法、地址、入参、出参、示例 | 前端开发者 / 联调 |
-| [database.md](database.md) | 数据库表结构、字段说明、ER 关系、已知问题 | 后端开发者 |
+| [api.md](api.md) | 全部 18 个后端接口：方法、地址、入参、出参、示例 | 前端开发者 / 联调 |
+| [database.md](database.md) | 数据库表结构、字段说明、ER 关系、注意事项 | 后端开发者 |
 | [deployment.md](deployment.md) | 本地环境搭建（phpstudy）、数据库导入、上线部署 | 部署 / 运维 |
 | [git-guide.md](git-guide.md) | Git 仓库创建、敏感文件说明、上传 GitHub 全流程 | 所有人 |
 

@@ -17,18 +17,37 @@
   <!-- 购物车列表 -->
   <view wx:else class="cart-list">
     <view wx:for="{{cartList}}" wx:key="cart_id" class="cart-item">
-      <image class="item-img" src="{{item.image_url || '/images/default_dish.png'}}" mode="aspectFill" />
+      <!-- 有图显示图，无图显示占位（项目内没有 default_dish.png，写死该路径会产生无效图片请求） -->
+      <image wx:if="{{item.image_url}}" class="item-img" src="{{item.image_url}}" mode="aspectFill" />
+      <view wx:else class="item-img img-ph">🍽️</view>
       <view class="item-info">
         <text class="item-name">{{item.name}}</text>
         <text class="item-desc">{{item.description}}</text>
         <text class="item-price">¥{{item.price}}</text>
       </view>
       <view class="item-right">
-        <text class="item-qty">x{{item.quantity}}</text>
+        <!-- 数量调整：data-num 直接算好目标数量传给 onChangeQty（减到 0 即移除） -->
         <!-- ⚠️ 重点：data-id 传的是 cart_id，不是 dish_id -->
+        <view class="qty-box">
+          <view class="qty-btn" data-id="{{item.cart_id}}" data-num="{{item.quantity - 1}}" bindtap="onChangeQty">−</view>
+          <text class="qty-num">{{item.quantity}}</text>
+          <view class="qty-btn" data-id="{{item.cart_id}}" data-num="{{item.quantity + 1}}" bindtap="onChangeQty">+</view>
+        </view>
         <button class="remove-btn" data-id="{{item.cart_id}}" bindtap="onRemove">删除</button>
       </view>
     </view>
+  </view>
+
+  <!-- 订单备注（选填，结算时一并提交） -->
+  <view wx:if="{{!isEmpty && !needLogin}}" class="remark-card">
+    <text class="remark-label">备注</text>
+    <input
+      class="remark-input"
+      placeholder="选填，如：少放辣、不要香菜"
+      value="{{remark}}"
+      maxlength="50"
+      bindinput="onRemarkInput"
+    />
   </view>
 
   <!-- 底部结算栏 -->

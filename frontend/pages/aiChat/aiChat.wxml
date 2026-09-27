@@ -1,7 +1,21 @@
 <!-- AI助手对话页 -->
 <view class="container">
+  <!-- 顶部助手信息条 -->
+  <view class="ai-header">
+    <view class="ai-header-avatar">🤖</view>
+    <view class="ai-header-info">
+      <text class="ai-header-name">小味 · AI 点餐助手</text>
+      <text class="ai-header-desc">{{sending ? '正在输入…' : '推荐菜品 · 解答口味问题'}}</text>
+    </view>
+  </view>
+
   <!-- 对话列表 -->
-  <scroll-view class="chat-list" scroll-y="true" scroll-into-view="{{scrollToView}}">
+  <scroll-view
+    class="chat-list"
+    scroll-y="true"
+    scroll-into-view="{{scrollToView}}"
+    scroll-with-animation="true"
+  >
     <view
       wx:for="{{messages}}"
       wx:key="index"
@@ -10,60 +24,82 @@
     >
       <!-- AI头像（仅AI消息显示） -->
       <view wx:if="{{item.role === 'assistant'}}" class="ai-avatar">🤖</view>
-      
+
       <view class="msg-body">
-        <!-- 文本气泡 -->
-        <view class="msg-bubble">{{item.content}}</view>
-        
+        <!-- 文本气泡：用 text 组件以保留换行，user-select 允许长按选中复制 -->
+        <text class="msg-bubble" user-select="true">{{item.content}}</text>
+
         <!-- 推荐菜品卡片列表 -->
         <view wx:if="{{item.recommendDishes && item.recommendDishes.length > 0}}" class="recommend-cards">
-          <view 
-            wx:for="{{item.recommendDishes}}" 
+          <view
+            wx:for="{{item.recommendDishes}}"
             wx:for-item="dish"
-            wx:key="id" 
+            wx:key="id"
             class="dish-card"
           >
             <!-- 菜品图片 -->
-            <image class="dish-img" src="{{dish.image_url || '/images/default_dish.png'}}" mode="aspectFill" />
-            
+            <!-- 有图显示图，无图显示占位（项目内没有 default_dish.png） -->
+            <image wx:if="{{dish.image_url}}" class="dish-img" src="{{dish.image_url}}" mode="aspectFill" />
+            <view wx:else class="dish-img img-ph">🍽️</view>
+
             <!-- 菜品信息 -->
             <view class="dish-info">
               <text class="dish-name">{{dish.name}}</text>
-              <view class="dish-info-mid">
+              <text wx:if="{{dish.ai_reason}}" class="dish-reason">💡 {{dish.ai_reason}}</text>
+              <view class="dish-bottom">
                 <text class="dish-price">¥{{dish.price}}</text>
-                <button 
-                    class="add-btn" 
-                    data-id="{{dish.id}}" 
-                    data-name="{{dish.name}}"
-                    bindtap="onQuickAddCart"
+                <!-- 按钮：加入购物车，绑定接口 POST /api/cart/add.php -->
+                <button
+                  class="add-btn"
+                  data-id="{{dish.id}}"
+                  data-name="{{dish.name}}"
+                  bindtap="onQuickAddCart"
                 >加入购物车</button>
               </view>
-              <text wx:if="{{dish.ai_reason}}" class="dish-reason">💡 {{dish.ai_reason}}</text>
             </view>
-            
-            <!-- 加入购物车按钮 -->
-            <!-- 绑定后端接口：POST /api/cart/add.php -->
-            
           </view>
         </view>
       </view>
-      
+
       <!-- 用户头像（仅用户消息显示） -->
       <view wx:if="{{item.role === 'user'}}" class="user-avatar">👤</view>
     </view>
+
+    <!-- 「正在输入」气泡：替代模态 loading，聊天期间界面不会被遮罩锁住 -->
+    <view wx:if="{{sending}}" id="msg-typing" class="msg-item ai-msg">
+      <view class="ai-avatar">🤖</view>
+      <view class="msg-body">
+        <view class="msg-bubble typing">
+          <view class="dot"></view>
+          <view class="dot"></view>
+          <view class="dot"></view>
+        </view>
+      </view>
+    </view>
   </scroll-view>
+
+  <!-- 快捷提问（仅对话刚开始时显示，点一下即发送） -->
+  <view wx:if="{{messages.length <= 1}}" class="quick-box">
+    <view
+      wx:for="{{quickQuestions}}"
+      wx:key="*this"
+      class="quick-item"
+      data-text="{{item}}"
+      bindtap="onQuickAsk"
+    >{{item}}</view>
+  </view>
 
   <!-- 底部输入栏 -->
   <view class="input-bar">
     <input
       class="msg-input"
-      placeholder="输入您的问题..."
+      placeholder="说说您想吃什么…"
       value="{{inputText}}"
       bindinput="onInputChange"
       confirm-type="send"
       bindconfirm="onSend"
     />
     <!-- 按钮：发送，绑定后端接口 POST /api/ai/chat.php -->
-    <button class="send-btn" bindtap="onSend">发送</button>
+    <button class="send-btn" bindtap="onSend" disabled="{{sending}}">{{sending ? '回复中' : '发送'}}</button>
   </view>
 </view>

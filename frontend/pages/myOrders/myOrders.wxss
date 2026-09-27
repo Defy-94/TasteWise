@@ -3,7 +3,44 @@
 .container {
     min-height: 100vh;
     background: #f5f5f5;
-    padding: 20rpx 0;
+    padding: 0 0 20rpx;
+  }
+  
+  /* 状态筛选栏（吸顶） */
+  .filter-bar {
+    display: flex;
+    background: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  }
+  
+  .filter-item {
+    flex: 1;
+    text-align: center;
+    font-size: 28rpx;
+    color: #666;
+    padding: 24rpx 0;
+    position: relative;
+  }
+  
+  .filter-active {
+    color: #FF6B35;
+    font-weight: bold;
+  }
+  
+  /* 选中态下划线 */
+  .filter-active::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 8rpx;
+    transform: translateX(-50%);
+    width: 44rpx;
+    height: 6rpx;
+    background: #FF6B35;
+    border-radius: 3rpx;
   }
   
   /* 空状态 / 未登录 */
@@ -145,12 +182,26 @@
     padding-top: 20rpx;
   }
   
+  /* 订单操作按钮：同样要重置 button 默认的块级宽度，按内容宽度显示 */
   .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 0;
+    flex: none;
+    margin: 0 0 0 16rpx;
+    height: 58rpx;
+    padding: 0 30rpx;
+    line-height: 58rpx;
     font-size: 26rpx;
-    padding: 10rpx 30rpx;
     border-radius: 30rpx;
-    margin: 0 0 0 15rpx;
-    line-height: 1.6;
+    box-sizing: border-box;
+  }
+  
+  /* 去掉 button 组件自带的 ::after 边框（.btn-plain 自己的 border 不受影响） */
+  .btn::after {
+    border: none;
   }
   
   /* 主要操作（去支付 / 确认完成） */

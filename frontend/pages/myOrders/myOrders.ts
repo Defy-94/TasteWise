@@ -1,11 +1,11 @@
 /**
  * 我的订单页面
- * 功能：查看订单列表、支付/取消/完成订单
+ * 功能：按状态筛选订单、支付/取消/完成订单
  * 
  * 【鉴权说明】请求自动携带登录令牌（见 utils/api.ts），
  *            未登录时页面提示登录，令牌过期会自动跳转登录页。
  * 
- * 【订单状态】0待支付 1已支付 2已完成 3已取消
+ * 【订单状态】0待支付 1已支付 2已完成 3已取消（-1 表示不筛选）
  *            后端已返回 status_text，本页仅根据 status 计算可执行操作。
  */
 import { get, post, getToken } from '../../utils/api';
@@ -16,6 +16,19 @@ const STATUS_PENDING   = 0;   // 待支付
 const STATUS_PAID      = 1;   // 已支付
 const STATUS_COMPLETED = 2;   // 已完成
 const STATUS_CANCELLED = 3;   // 已取消
+
+/**
+ * 筛选标签
+ * 注意：用 -1 表示「全部」而不是 null —— WXML 的 data-* 属性里 null 会被转成空字符串，
+ *      用数字可以避免这种隐式转换带来的歧义。
+ */
+const FILTERS = [
+  { label: '全部',   value: -1 },
+  { label: '待支付', value: STATUS_PENDING },
+  { label: '已支付', value: STATUS_PAID },
+  { label: '已完成', value: STATUS_COMPLETED },
+  { label: '已取消', value: STATUS_CANCELLED },
+];
 
 /** 页面内使用的订单视图类型（在订单基础上附加可执行操作标记） */
 interface OrderView extends Order {
@@ -28,7 +41,23 @@ Page({
   data: {
     orders: [] as OrderView[],
     isEmpty: true,
-    needLogin: false,     // 未登录时显示登录提示
+    needLogin: false,                 // 未登录时显示登录提示
+    loading: false,
+    filters: FILTERS,
+    activeStatus: -1,                 // 当前筛选：-1 全部 / 0-3 具体状态
+  },
+
+  /**
+   * 支持从其他页面带状态进入，如：
+   *   wx.navigateTo({ url: '/pages/myOrders/myOrders?status=0' })
+   */
+  onLoad(options: any) {
+    if (options && options.status !== undefined && options.status !== '') {
+      const s = Number(options.status);
+      if (!isNaN(s) && s >= 0 && s <= 3) {
+        this.setData({ activeStatus: s });
+      }
+    }
   },
 
   onShow() {
@@ -39,16 +68,37 @@ Page({
     }
 
     this.setData({ needLogin: false });
-    this.loadOrders();
+    this.loadOrders(this.data.activeStatus);
   },
 
   /**
-   * 加载我的订单
-   * 接口：GET /api/order/list.php（用户身份由令牌决定，无需传 user_id）
+   * 切换筛选标签
+   * 纯前端筛选：后端接口支持 status 参数，无需重新设计数据
    */
-  async loadOrders() {
+  onFilterTap(e: any) {
+    const status = Number(e.currentTarget.dataset.status);
+    if (isNaN(status) || status === this.data.activeStatus) return;
+
+    this.setData({ activeStatus: status });
+    this.loadOrders(status);
+  },
+
+  /**
+   * 加载订单列表
+   * 接口：GET /api/order/list.php?status=2（不传 status 即返回全部）
+   * 
+   * @param status -1 表示不筛选；0-3 表示按状态筛选
+   */
+  async loadOrders(status: number = -1) {
+    this.setData({ loading: true });
+
     try {
-      const orders = await get<OrderView[]>('/api/order/list.php');
+      const params: any = {};
+      if (status >= 0) {
+        params.status = status;
+      }
+
+      const orders = await get<OrderView[]>('/api/order/list.php', params);
 
       // 整理状态：统一为数字，并计算当前状态可执行哪些操作
       orders.forEach((o) => {
@@ -65,6 +115,8 @@ Page({
       });
     } catch (err) {
       console.error('加载订单失败：', err);
+    } finally {
+      this.setData({ loading: false });
     }
   },
 
@@ -100,7 +152,7 @@ Page({
       console.error('订单操作失败：', err);
     } finally {
       // 无论成功失败都刷新列表，保证状态与后端一致
-      this.loadOrders();
+      this.loadOrders(this.data.activeStatus);
     }
   },
 
@@ -146,6 +198,11 @@ Page({
     if (!ok) return;
 
     await this.doAction('/api/order/complete.php', orderId, '订单已完成');
+  },
+
+  /** 去点餐（空状态时的引导） */
+  onGoIndex() {
+    wx.switchTab({ url: '/pages/index/index' });
   },
 
   /** 跳转登录页 */

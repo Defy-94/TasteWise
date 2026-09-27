@@ -5,12 +5,60 @@
     flex-direction: column;
     height: 100vh;
     background: #f5f5f5;
+    /* 下面两条写出来是为了自包含：默认值就是它们，
+       显式声明可以防止将来全局样式又加入居中/分散布局影响本页 */
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+  
+  /* ============================================
+     顶部助手信息条
+     ============================================ */
+  .ai-header {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    padding: 20rpx 30rpx;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+    flex-shrink: 0;
+  }
+  
+  .ai-header-avatar {
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 50%;
+    background: #FFF1EA;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40rpx;
+    flex-shrink: 0;
+  }
+  
+  .ai-header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4rpx;
+    min-width: 0;
+  }
+  
+  .ai-header-name {
+    font-size: 30rpx;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .ai-header-desc {
+    font-size: 22rpx;
+    color: #999;
   }
   
   /* 对话列表 */
   .chat-list {
     flex: 1;
-    padding: 20rpx;
+    padding: 24rpx;
+    box-sizing: border-box;
   }
   
   .msg-item {
@@ -59,7 +107,11 @@
     border-radius: 20rpx;
     font-size: 28rpx;
     line-height: 1.6;
-    word-break: break-all;
+    /* break-word 而不是 break-all：避免中文/英文混排时把单词切碎 */
+    word-break: break-word;
+    /* 保留 AI 回复中的换行 */
+    white-space: pre-wrap;
+    display: inline-block;
   }
   
   .user-msg .msg-bubble {
@@ -72,6 +124,44 @@
     background: #fff;
     color: #333;
     border-bottom-left-radius: 5rpx;
+    box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  }
+  
+  /* ============================================
+     「正在输入」动画气泡
+     ============================================ */
+  .typing {
+    display: flex;
+    align-items: center;
+    gap: 10rpx;
+    min-height: 40rpx;
+  }
+  
+  .dot {
+    width: 14rpx;
+    height: 14rpx;
+    border-radius: 50%;
+    background: #FFB695;
+    animation: typing-blink 1.2s infinite ease-in-out;
+  }
+  
+  .dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  
+  .dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  
+  @keyframes typing-blink {
+    0%, 60%, 100% {
+      opacity: 0.3;
+      transform: translateY(0);
+    }
+    30% {
+      opacity: 1;
+      transform: translateY(-6rpx);
+    }
   }
   
   /* ============================================
@@ -89,63 +179,97 @@
     align-items: center;
     background: #fff;
     border-radius: 15rpx;
-    padding: 15rpx;
-    gap: 15rpx;
+    padding: 18rpx;
+    gap: 18rpx;
     box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.06);
   }
   
   .dish-img {
-    width: 100rpx;
-    height: 100rpx;
+    width: 110rpx;
+    height: 110rpx;
     border-radius: 12rpx;
     background: #eee;
     flex-shrink: 0;
+  }
+  
+  /* 无菜品图时的占位 */
+  .img-ph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 44rpx;
+    color: #ccc;
   }
   
   .dish-info {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 5rpx;
+    gap: 8rpx;
     min-width: 0;
-  }
-
-  .dish-info-mid {
-    display: flex;
-    align-items: center;
-    background: #fff;
-    padding: 15rpx;
-    gap: 15rpx;
   }
   
   .dish-name {
     font-size: 28rpx;
     font-weight: bold;
     color: #333;
-  }
-  
-  .dish-price {
-    font-size: 28rpx;
-    color: #FF6B35;
-    font-weight: bold;
-  }
-  
-  .dish-reason {
-    font-size: 20rpx;
-    color: #999;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   
+  .dish-reason {
+    font-size: 22rpx;
+    color: #999;
+    line-height: 1.4;
+    /* 推荐理由最多显示两行，超出省略 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* 价格 + 加入按钮同一行，两端对齐 */
+  .dish-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4rpx;
+  }
+  
+  .dish-price {
+    font-size: 30rpx;
+    color: #FF6B35;
+    font-weight: bold;
+  }
+  
+  /* 
+   * ⚠️ 必须重置微信 button 的默认样式：
+   *    button 组件默认是「块级 + 撑满可用宽度」，放在 flex 行里会占满整行，
+   *    又因为设了 flex-shrink:0 无法收缩，最终会溢出卡片边界。
+   *    所以这里显式声明 width:auto + flex:none，让按钮按内容宽度显示。
+   */
   .add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 0;
+    flex: none;
+    margin: 0;
+    height: 52rpx;
+    padding: 0 24rpx;
+    line-height: 52rpx;
+    font-size: 24rpx;
+    border-radius: 26rpx;
     background: #FF6B35;
     color: #fff;
-    font-size: 24rpx;
-    padding: 12rpx 25rpx;
-    border-radius: 25rpx;
-    flex-shrink: 0;
-    flex: 0 0 60%;
+    box-sizing: border-box;
+  }
+  
+  /* 去掉 button 组件自带的 ::after 边框 */
+  .add-btn::after {
+    border: none;
   }
   
   .add-btn:active {
@@ -153,30 +277,71 @@
     transform: scale(0.95);
   }
   
-  /* 底部输入栏 */
+  /* ============================================
+     快捷提问
+     ============================================ */
+  .quick-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16rpx;
+    padding: 20rpx 24rpx 16rpx;
+    background: #fff;
+    flex-shrink: 0;
+  }
+  
+  .quick-item {
+    font-size: 24rpx;
+    color: #FF6B35;
+    background: #FFF1EA;
+    border-radius: 30rpx;
+    padding: 12rpx 26rpx;
+  }
+  
+  .quick-item:active {
+    background: #FFE0D2;
+  }
+  
+  /* ============================================
+     底部输入栏
+     ============================================ */
   .input-bar {
     display: flex;
-    padding: 15rpx 20rpx;
+    padding: 16rpx 24rpx;
     background: #fff;
     border-top: 1px solid #eee;
     align-items: center;
-    gap: 10rpx;
+    gap: 16rpx;
+    flex-shrink: 0;
   }
   
   .msg-input {
     flex: 1;
-    border: 1px solid #ddd;
-    border-radius: 40rpx;
-    padding: 15rpx 25rpx;
+    /* min-width:0 让输入框可以被压缩，避免占位文字把布局撑破 */
+    min-width: 0;
+    height: 72rpx;
+    line-height: 72rpx;
+    border-radius: 36rpx;
+    padding: 0 28rpx;
     font-size: 28rpx;
-    background: #f9f9f9;
+    background: #f5f5f5;
+    box-sizing: border-box;
   }
   
+  /* 与输入框等高、固定宽度的紧凑按钮（不再用 padding 撑宽度） */
   .send-btn {
+    flex-shrink: 0;
+    width: 120rpx;
+    height: 72rpx;
+    line-height: 72rpx;
+    padding: 0;
+    margin: 0;
+    border-radius: 36rpx;
+    font-size: 28rpx;
     background: #FF6B35;
     color: #fff;
-    font-size: 28rpx;
-    padding: 15rpx 30rpx;
-    border-radius: 40rpx;
-    flex-shrink: 0;
+  }
+  
+  .send-btn[disabled] {
+    background: #ffc4ac;
+    color: #fff;
   }

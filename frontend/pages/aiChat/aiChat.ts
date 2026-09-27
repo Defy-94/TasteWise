@@ -1,50 +1,78 @@
 /**
- * AI助手页面 - DeepSeek智能客服对话
- * 功能：发送消息、显示AI回复
- * 支持AI推荐菜品卡片展示 + 快捷加购物车
+ * AI助手页面 - DeepSeek 智能点餐助手对话
+ * 功能：对话、推荐菜品卡片、快捷加入购物车
+ * 
+ * 【接口说明】
+ *   - /api/ai/chat.php 为公开接口（无需登录）
+ *   - 「加入购物车」需要登录，未登录时会由请求层统一跳转登录页
  */
 import { post } from '../../utils/api';
-import { ChatMessageExtended, RecommendDish, AIChatResult } from '../../utils/types';
+import { ChatMessageExtended, AIChatResult } from '../../utils/types';
+import { refreshCartBadge } from '../../utils/cartBadge';
+
+// 开场白
+const WELCOME = '您好！我是 AI 点餐助手「小味」，可以帮您推荐菜品、解答食材口味问题。试试说「推荐几道辣菜」吧~';
+
+// 快捷提问（仅在对话刚开始时显示，点一下即发送）
+const QUICK_QUESTIONS = [
+  '推荐几道辣菜',
+  '有什么清淡的菜',
+  '帮我搭配一荤一素',
+  '有什么汤品推荐',
+];
 
 Page({
   data: {
     messages: [] as ChatMessageExtended[],
     inputText: '',
     scrollToView: '',
+    sending: false,                 // AI 正在回复（显示"正在输入"气泡）
+    quickQuestions: QUICK_QUESTIONS,
   },
 
   onLoad() {
     this.setData({
-      messages: [
-        { 
-          role: 'assistant', 
-          content: '您好！我是AI点餐助手，可以帮您推荐菜品、解答食材口味问题。试试说"推荐几道辣菜"吧~' 
-        }
-      ]
+      messages: [{ role: 'assistant', content: WELCOME }],
     });
   },
 
-  /**
-   * 发送消息
-   * 接口：POST /api/ai/chat.php
-   * 对应按钮：底部"发送"按钮
-   */
+  /** 点击「发送」按钮 / 键盘发送 */
   async onSend() {
     const text = this.data.inputText.trim();
     if (!text) return;
 
-    // 添加用户消息
+    this.setData({ inputText: '' });
+    await this.sendText(text);
+  },
+
+  /** 快捷提问：点击直接发送 */
+  async onQuickAsk(e: any) {
+    const text = e.currentTarget.dataset.text;
+    if (!text) return;
+
+    await this.sendText(text);
+  },
+
+  /**
+   * 发送一条消息并获取 AI 回复
+   * 接口：POST /api/ai/chat.php
+   * 
+   * 说明：不再使用 wx.showLoading 的模态遮罩，而是显示「正在输入」气泡，
+   *      这样等待期间界面不会被锁住、用户也能继续看到历史对话。
+   */
+  async sendText(text: string) {
+    // 上一条还在回复中：忽略这次发送，避免并发请求
+    if (this.data.sending) return;
+
     const userMsg: ChatMessageExtended = { role: 'user', content: text };
     const messages = [...this.data.messages, userMsg];
-    
+
     this.setData({
       messages,
-      inputText: '',
-      scrollToView: 'msg-' + (messages.length - 1),
+      sending: true,
+      scrollToView: 'msg-typing',
     });
 
-    wx.showLoading({ title: '思考中...' });
-    
     try {
       // 构建历史对话（排除第一条欢迎语）
       const history = messages.slice(1).map(m => ({
@@ -57,36 +85,45 @@ Page({
         history: history,
       });
 
-      // 构建AI回复消息（含推荐菜品）
       const aiMsg: ChatMessageExtended = {
         role: 'assistant',
         content: result.reply,
         recommendDishes: result.recommend_dishes || [],
       };
-      
+
       const newMessages = [...this.data.messages, aiMsg];
-      
+
       this.setData({
         messages: newMessages,
+        sending: false,
         scrollToView: 'msg-' + (newMessages.length - 1),
       });
-
-      wx.hideLoading();
     } catch (err) {
-      wx.hideLoading();
+      // 失败也要结束"正在输入"，并给用户一句明确回复，避免界面一直转圈
       console.error('AI回复失败：', err);
+
+      const failMsg: ChatMessageExtended = {
+        role: 'assistant',
+        content: '抱歉，我这边出了点小问题，请稍后再试一次~',
+      };
+      const newMessages = [...this.data.messages, failMsg];
+
+      this.setData({
+        messages: newMessages,
+        sending: false,
+        scrollToView: 'msg-' + (newMessages.length - 1),
+      });
     }
   },
 
   /**
    * 快捷加入购物车（从AI推荐的菜品卡片）
    * 接口：POST /api/cart/add.php
-   * 对应按钮：菜品卡片右下角"加入"按钮
    */
   async onQuickAddCart(e: any) {
     const dishId = e.currentTarget.dataset.id;
     const dishName = e.currentTarget.dataset.name;
-    
+
     if (!dishId) return;
 
     try {
@@ -94,20 +131,13 @@ Page({
         dish_id: dishId,
         quantity: 1,
       });
-      
+
       wx.showToast({ title: `「${dishName}」已加入购物车`, icon: 'success' });
+      // 同步底部购物车角标
+      refreshCartBadge();
     } catch (err) {
       console.error('加入购物车失败：', err);
     }
-  },
-
-  /**
-   * 查看菜品详情（预留，可跳转详情页或显示弹窗）
-   */
-  onDishDetail(e: any) {
-    const dishName = e.currentTarget.dataset.name;
-    wx.showToast({ title: `查看「${dishName}」详情`, icon: 'none' });
-    // 后续可跳转: wx.navigateTo({ url: '/pages/dishDetail/dishDetail?id=' + dishId })
   },
 
   /** 输入框变化 */

@@ -30,7 +30,9 @@
   <!-- 菜品列表 -->
   <view class="dish-list">
     <view wx:for="{{dishes}}" wx:key="id" class="dish-card">
-      <image class="dish-img" src="{{item.image_url || '/images/default_dish.png'}}" mode="aspectFill" />
+      <!-- 有图显示图，无图显示占位（项目内没有 default_dish.png，避免无效图片请求） -->
+      <image wx:if="{{item.image_url}}" class="dish-img" src="{{item.image_url}}" mode="aspectFill" />
+      <view wx:else class="dish-img img-ph">🍽️</view>
       <view class="dish-info">
         <view class="dish-name">{{item.name}}</view>
         <view class="dish-desc">{{item.description}}</view>

@@ -37,7 +37,7 @@ function getToken(): string {
 
 /**
  * 保存登录态（令牌 + 用户信息）
- * 登录/注册接口返回的数据中带有 token 字段
+ * 登录接口返回的数据中带有 token 字段
  */
 function saveAuth(data: any) {
   if (!data) return;
@@ -85,8 +85,11 @@ function handleUnauthorized(msg?: string) {
 /**
  * 统一请求方法
  * 自动携带登录令牌、统一处理 401 与业务错误
+ * 
+ * @param silent401 为 true 时，遇到 401 只静默失败、不跳转登录页
+ *                  （用于购物车角标这类后台辅助请求，避免一进页面就弹登录）
  */
-function request<T>(method: 'GET' | 'POST', url: string, data: any = {}): Promise<T> {
+function request<T>(method: 'GET' | 'POST', url: string, data: any = {}, silent401 = false): Promise<T> {
   return new Promise((resolve, reject) => {
     // 请求头：带上登录令牌（未登录时不带，由后端返回 401）
     const header: any = { 'Content-Type': 'application/json' };
@@ -109,9 +112,11 @@ function request<T>(method: 'GET' | 'POST', url: string, data: any = {}): Promis
           return;
         }
 
-        // 登录态失效：统一跳转登录页
+        // 登录态失效：统一跳转登录页（silent401 时只静默失败）
         if (resp && resp.code === 401) {
-          handleUnauthorized(resp.msg);
+          if (!silent401) {
+            handleUnauthorized(resp.msg);
+          }
           reject(resp);
           return;
         }
@@ -127,12 +132,20 @@ function request<T>(method: 'GET' | 'POST', url: string, data: any = {}): Promis
   });
 }
 
-function get<T = any>(url: string, data: any = {}): Promise<T> {
-  return request<T>('GET', url, data);
+/**
+ * GET 请求
+ * @param silent401 为 true 时不因 401 跳转登录页（见 request 说明）
+ */
+function get<T = any>(url: string, data: any = {}, silent401 = false): Promise<T> {
+  return request<T>('GET', url, data, silent401);
 }
 
-function post<T = any>(url: string, data: any = {}): Promise<T> {
-  return request<T>('POST', url, data);
+/**
+ * POST 请求
+ * @param silent401 为 true 时不因 401 跳转登录页（见 request 说明）
+ */
+function post<T = any>(url: string, data: any = {}, silent401 = false): Promise<T> {
+  return request<T>('POST', url, data, silent401);
 }
 
 export { get, post, BASE_URL, getToken, saveAuth, clearAuth };

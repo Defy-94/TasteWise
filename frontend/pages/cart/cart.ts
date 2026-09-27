@@ -1,12 +1,13 @@
 /**
  * 购物车页面
- * 功能：购物车列表、移除商品、结算下单
+ * 功能：购物车列表、调整数量、移除商品、填写备注、结算下单
  * 
  * 【鉴权说明】请求自动携带登录令牌（见 utils/api.ts），
  *            用户身份由令牌决定，因此不再向接口传 user_id。
  */
 import { get, post, getToken } from '../../utils/api';
 import { CartItem } from '../../utils/types';
+import { setCartBadge } from '../../utils/cartBadge';
 
 Page({
   data: {
@@ -14,6 +15,8 @@ Page({
     totalPrice: 0,
     isEmpty: true,
     needLogin: false,     // 未登录时显示登录提示
+    updating: false,      // 数量调整中：防止快速连点导致并发请求乱序
+    remark: '',           // 订单备注（结算时提交给后端）
   },
 
   onShow() {
@@ -25,6 +28,7 @@ Page({
         isEmpty: true,
         needLogin: true,
       });
+      setCartBadge(0);
       return;
     }
 
@@ -45,6 +49,10 @@ Page({
         totalPrice: total,
         isEmpty: list.length === 0,
       });
+
+      // 顺便刷新 TabBar 角标（列表已经在手，无需额外请求）
+      const count = list.reduce((sum, item) => sum + Number(item.quantity), 0);
+      setCartBadge(count);
     } catch (err) {
       console.error('加载购物车失败：', err);
     }
@@ -81,6 +89,62 @@ Page({
   },
 
   /**
+   * 调整数量（− / + 按钮）
+   * 接口：POST /api/cart/update.php
+   * 
+   * 设计说明：后端采用「绝对设置」语义，目标数量由按钮的 data-num 算好传入；
+   *          num 为 0 时后端会移除该条记录（此处先弹窗确认）。
+   * 
+   * ⚠️ 为什么要 updating 开关：用户快速连点会发出多个请求，
+   *    而响应返回顺序不确定（后发的可能先回），最终数量会和用户预期不一致。
+   */
+  async onChangeQty(e: any) {
+    const cartId = Number(e.currentTarget.dataset.id);
+    const num    = Number(e.currentTarget.dataset.num);
+
+    if (!cartId || isNaN(num)) return;
+
+    // 上一次调整还没结束，先忽略本次点击
+    if (this.data.updating) return;
+
+    // 减到 0：先确认再移除
+    if (num <= 0) {
+      const ok = await this.confirmRemove();
+      if (!ok) return;
+    }
+
+    this.setData({ updating: true });
+    try {
+      await post('/api/cart/update.php', { cart_id: cartId, quantity: num });
+      await this.loadCart();
+      if (num <= 0) {
+        wx.showToast({ title: '已移除', icon: 'success', duration: 1000 });
+      }
+    } catch (err) {
+      console.error('调整数量失败：', err);
+    } finally {
+      this.setData({ updating: false });
+    }
+  },
+
+  /** 减到 0 时的确认弹窗（Promise 化，便于 await） */
+  confirmRemove(): Promise<boolean> {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: '确认移除',
+        content: '数量已减到 0，确定要移除这个商品吗？',
+        success: (res) => resolve(!!res.confirm),
+        fail: () => resolve(false),
+      });
+    });
+  },
+
+  /** 订单备注输入 */
+  onRemarkInput(e: any) {
+    this.setData({ remark: e.detail.value });
+  },
+
+  /**
    * 结算下单
    * 接口：POST /api/order/create.php
    * 说明：下单后订单状态为「待支付」，可在订单页继续支付
@@ -95,11 +159,15 @@ Page({
     
     try {
       const result = await post('/api/order/create.php', {
-        remark: '',
+        remark: this.data.remark.trim(),
       });
       
       // ✅ 成功时隐藏loading
       wx.hideLoading();
+      
+      // 购物车已被清空：同步角标与备注输入
+      setCartBadge(0);
+      this.setData({ remark: '' });
       
       wx.showToast({ title: '下单成功', icon: 'success' });
       
@@ -109,7 +177,7 @@ Page({
       //    跳非 tab 页会静默失败（无任何提示），表现为"点了结算没反应"。
       setTimeout(() => {
         wx.navigateTo({
-          url: '/pages/myOrders/myOrders',
+          url: '/pages/myOrders/myOrders?status=0',   // 直接定位到"待支付"
           fail: (err: any) => {
             console.error('跳转订单页失败：', err);
             wx.showToast({

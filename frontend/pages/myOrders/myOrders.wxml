@@ -1,5 +1,16 @@
 <!-- 我的订单页面 -->
 <view class="container">
+  <!-- 状态筛选栏（未登录时不显示） -->
+  <view wx:if="{{!needLogin}}" class="filter-bar">
+    <view
+      wx:for="{{filters}}"
+      wx:key="value"
+      class="filter-item {{item.value === activeStatus ? 'filter-active' : ''}}"
+      data-status="{{item.value}}"
+      bindtap="onFilterTap"
+    >{{item.label}}</view>
+  </view>
+
   <!-- 未登录提示 -->
   <view wx:if="{{needLogin}}" class="empty">
     <text class="empty-icon">🔒</text>
@@ -8,11 +19,12 @@
     <button class="login-btn" bindtap="onGoLogin">去登录</button>
   </view>
 
-  <!-- 空订单提示 -->
+  <!-- 空订单提示（按当前筛选给出不同文案） -->
   <view wx:elif="{{isEmpty}}" class="empty">
     <text class="empty-icon">📋</text>
-    <text class="empty-text">暂无订单记录</text>
+    <text class="empty-text">{{activeStatus === -1 ? '暂无订单记录' : '该状态下暂无订单'}}</text>
     <text class="empty-hint">快去首页点餐吧</text>
+    <button class="login-btn" bindtap="onGoIndex">去点餐</button>
   </view>
 
   <!-- 订单列表 -->

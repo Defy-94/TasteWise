@@ -103,7 +103,9 @@ declare namespace WechatMiniprogram {
   
     namespace Page {
       interface Options<TData extends Record<string, any>, TCustom extends Record<string, any>> {
-        data?: TData;
+        // ⚠️ 必须是必填项：若声明为可选（data?: TData），
+        //    则页面里所有 this.data.xxx 都会被判为「可能为 undefined」而报 TS2532 假错误
+        data: TData;
         onLoad?: (query: Record<string, string | undefined>) => void;
         onReady?: () => void;
         onShow?: () => void;
@@ -118,7 +120,8 @@ declare namespace WechatMiniprogram {
   
     namespace App {
       interface Options<T extends Record<string, any>> {
-        globalData?: T;
+        // 同上：必填，避免 this.globalData 被判为可能 undefined
+        globalData: T;
         onLaunch?: (options: any) => void;
         onShow?: (options: any) => void;
         onHide?: () => void;

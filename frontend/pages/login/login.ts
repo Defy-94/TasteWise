@@ -13,6 +13,7 @@
  */
 import { post, saveAuth } from '../../utils/api';
 import { AuthUser } from '../../utils/types';
+import { refreshCartBadge } from '../../utils/cartBadge';
 
 // 本地调试用的 openid
 // 仅当后端 config/security.php 中 allow_dev_openid_login = true
@@ -116,6 +117,9 @@ Page({
   onLoginSuccess(user: AuthUser) {
     // 保存登录令牌与用户信息（后续请求自动携带令牌）
     saveAuth(user);
+
+    // 同步购物车角标（用户可能在登录前就已经加过购物车）
+    refreshCartBadge();
 
     const app = getApp<IAppOption>();
     app.globalData.userId = user.id;
