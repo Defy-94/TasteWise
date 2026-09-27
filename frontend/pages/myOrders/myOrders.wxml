@@ -50,11 +50,11 @@
 
       <view class="order-time">{{item.created_at}}</view>
 
-      <!-- 订单操作按钮：按状态显示（可执行操作由页面逻辑计算） -->
+      <!-- 订单操作按钮：用 view 而非 button（button 自带块级默认宽度，在 flex 行里会撑满/溢出） -->
       <view wx:if="{{item.can_pay || item.can_cancel || item.can_complete}}" class="order-actions">
-        <button wx:if="{{item.can_cancel}}" class="btn btn-plain" data-id="{{item.id}}" bindtap="onCancel">取消订单</button>
-        <button wx:if="{{item.can_pay}}" class="btn btn-primary" data-id="{{item.id}}" bindtap="onPay">去支付</button>
-        <button wx:if="{{item.can_complete}}" class="btn btn-primary" data-id="{{item.id}}" bindtap="onComplete">确认完成</button>
+        <view wx:if="{{item.can_cancel}}" class="btn btn-plain" hover-class="btn-hover" data-id="{{item.id}}" bindtap="onCancel">取消订单</view>
+        <view wx:if="{{item.can_pay}}" class="btn btn-primary" hover-class="btn-hover" data-id="{{item.id}}" bindtap="onPay">去支付</view>
+        <view wx:if="{{item.can_complete}}" class="btn btn-primary" hover-class="btn-hover" data-id="{{item.id}}" bindtap="onComplete">确认完成</view>
       </view>
     </view>
   </view>

@@ -39,7 +39,8 @@
         <view class="dish-bottom">
           <text class="dish-price">¥{{item.price}}</text>
           <!-- 按钮：加入购物车，绑定后端接口 POST /api/cart/add.php -->
-          <button class="add-cart-btn" data-id="{{item.id}}" bindtap="onAddToCart">加入购物车</button>
+          <!-- 加入购物车：用 view 而非 button（button 自带块级默认宽度，容易溢出/占满整行） -->
+          <view class="add-cart-btn" hover-class="add-cart-btn-hover" hover-stay-time="80" data-id="{{item.id}}" bindtap="onAddToCart">加入购物车</view>
         </view>
       </view>
     </view>

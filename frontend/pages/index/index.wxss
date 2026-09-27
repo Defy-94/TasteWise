@@ -116,27 +116,25 @@
     font-weight: bold;
   }
   
-  /* 同 AI 助手页：重置 button 默认的块级宽度，按内容宽度显示（原来设 flex:0 0 60% 会占掉大半行） */
+  /* 加入购物车按钮（改用 view 实现，不受 button 组件默认块级宽度影响） */
   .add-cart-btn {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    width: auto;
-    min-width: 0;
-    flex: none;
-    margin: 0;
+    flex-shrink: 0;
     height: 56rpx;
     padding: 0 24rpx;
-    line-height: 56rpx;
     font-size: 24rpx;
+    line-height: 1;
     border-radius: 28rpx;
     background: #FF6B35;
     color: #fff;
     box-sizing: border-box;
   }
   
-  .add-cart-btn::after {
-    border: none;
+  /* 点击反馈（替代 button 的默认按压效果） */
+  .add-cart-btn-hover {
+    background: #e55a2b;
   }
   
   /* AI推荐弹窗 */

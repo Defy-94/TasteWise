@@ -182,6 +182,8 @@
     padding: 18rpx;
     gap: 18rpx;
     box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.06);
+    /* 保险：即使内部元素异常，也不会溢出卡片边界 */
+    overflow: hidden;
   }
   
   .dish-img {
@@ -229,11 +231,14 @@
     overflow: hidden;
   }
   
-  /* 价格 + 加入按钮同一行，两端对齐 */
+  /* 价格 + 加入按钮同一行，两端对齐
+     flex-wrap: wrap 是保险：万一空间不足，按钮换行显示，而不是溢出卡片 */
   .dish-bottom {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10rpx;
     margin-top: 4rpx;
   }
   
@@ -244,37 +249,29 @@
   }
   
   /* 
-   * ⚠️ 必须重置微信 button 的默认样式：
-   *    button 组件默认是「块级 + 撑满可用宽度」，放在 flex 行里会占满整行，
-   *    又因为设了 flex-shrink:0 无法收缩，最终会溢出卡片边界。
-   *    所以这里显式声明 width:auto + flex:none，让按钮按内容宽度显示。
+   * 加入购物车按钮 —— 用 view 实现
+   * ⚠️ 之前用 <button> 时即使覆盖了 width:auto / flex:none，按钮仍会溢出卡片边界；
+   *    button 组件自带的块级样式很难被类选择器完全压住。
+   *    改用 view 后没有任何默认样式，尺寸完全由这里决定，问题从根上消失。
    */
   .add-btn {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    width: auto;
-    min-width: 0;
-    flex: none;
-    margin: 0;
+    flex-shrink: 0;
     height: 52rpx;
     padding: 0 24rpx;
-    line-height: 52rpx;
     font-size: 24rpx;
+    line-height: 1;
     border-radius: 26rpx;
     background: #FF6B35;
     color: #fff;
     box-sizing: border-box;
   }
   
-  /* 去掉 button 组件自带的 ::after 边框 */
-  .add-btn::after {
-    border: none;
-  }
-  
-  .add-btn:active {
+  /* 点击反馈（替代 button 的默认按压效果） */
+  .add-btn-hover {
     background: #e55a2b;
-    transform: scale(0.95);
   }
   
   /* ============================================

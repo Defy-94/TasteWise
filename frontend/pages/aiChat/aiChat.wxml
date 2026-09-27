@@ -48,13 +48,17 @@
               <text wx:if="{{dish.ai_reason}}" class="dish-reason">💡 {{dish.ai_reason}}</text>
               <view class="dish-bottom">
                 <text class="dish-price">¥{{dish.price}}</text>
-                <!-- 按钮：加入购物车，绑定接口 POST /api/cart/add.php -->
-                <button
+                <!-- 加入购物车：用 view 而不是 button
+                     ⚠️ button 组件自带「块级 + 撑满」的默认样式，即便用类选择器覆盖 width
+                        也容易在 flex 行里溢出卡片边界；view 没有默认样式，完全可控 -->
+                <view
                   class="add-btn"
+                  hover-class="add-btn-hover"
+                  hover-stay-time="80"
                   data-id="{{dish.id}}"
                   data-name="{{dish.name}}"
                   bindtap="onQuickAddCart"
-                >加入购物车</button>
+                >加入购物车</view>
               </view>
             </view>
           </view>

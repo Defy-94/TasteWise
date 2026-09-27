@@ -8,7 +8,7 @@ Page({
       version: '1.0.0',
       description: '基于DeepSeek大模型的智能点餐小程序\n支持AI智能推荐、智能客服问答',
       techStack: 'TypeScript + PHP + MySQL + DeepSeek',
-      developer: 'Zxl',
+      developer: 'Defy-94',
     },
   
     onLoad() {
