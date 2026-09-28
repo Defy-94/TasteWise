@@ -71,6 +71,35 @@ declare namespace WechatMiniprogram {
       cancel: boolean;
     }
   
+    interface LoginOption {
+      timeout?: number;
+      success?: (res: LoginSuccessCallbackResult) => void;
+      fail?: (res: GeneralCallbackResult) => void;
+      complete?: (res: GeneralCallbackResult) => void;
+    }
+  
+    interface LoginSuccessCallbackResult extends GeneralCallbackResult {
+      /** 临时登录凭证，5 分钟内有效且只能用一次，交给服务端 code2Session 换 openid */
+      code: string;
+    }
+  
+    interface SetTabBarBadgeOption {
+      /** tabBar 项的下标（从 0 开始：首页0 / 购物车1 / AI助手2 / 我的3） */
+      index: number;
+      /** 显示的文本，超过 4 个字符会显示为 "..." */
+      text: string;
+      success?: (res: GeneralCallbackResult) => void;
+      fail?: (res: GeneralCallbackResult) => void;
+      complete?: (res: GeneralCallbackResult) => void;
+    }
+  
+    interface RemoveTabBarBadgeOption {
+      index: number;
+      success?: (res: GeneralCallbackResult) => void;
+      fail?: (res: GeneralCallbackResult) => void;
+      complete?: (res: GeneralCallbackResult) => void;
+    }
+  
     interface NavigateToOption {
       url: string;
       events?: any;
@@ -116,6 +145,23 @@ declare namespace WechatMiniprogram {
         onShareAppMessage?: () => any;
         [key: string]: any;
       }
+  
+      /**
+       * 页面实例（即页面方法里的 this）
+       * 
+       * 为什么把 data / setData 单独定义在"实例"上，而不是放进 Options：
+       *   Page({...}) 传入的是「配置对象」，框架会自动把 data/setData 挂到 this 上，
+       *   配置对象本身既不需要也不应该写 setData。
+       *   分开定义之后有两个好处：
+       *     1. Page() 的实参不会因为缺少 setData 而报错（这是之前试出来的坑）；
+       *     2. 页面方法里 this.setData({...}) 的 key 会被检查——
+       *        在微信里 setData 写错 key 不会报错、只是静默不生效，很难排查。
+       */
+      interface Instance<TData extends Record<string, any>> {
+        data: TData;
+        setData(data: Partial<TData>, callback?: () => void): void;
+        [key: string]: any;
+      }
     }
   
     namespace App {
@@ -149,16 +195,28 @@ declare namespace WechatMiniprogram {
     navigateTo(option: WechatMiniprogram.NavigateToOption): void;
     switchTab(option: WechatMiniprogram.SwitchTabOption): void;
     navigateBack(option?: { delta?: number }): void;
+    /** 获取临时登录凭证 code（交给服务端 code2Session 换 openid） */
+    login(option: WechatMiniprogram.LoginOption): void;
+    /** 在 tabBar 上显示角标（index 从 0 开始） */
+    setTabBarBadge(option: WechatMiniprogram.SetTabBarBadgeOption): void;
+    /** 移除 tabBar 角标 */
+    removeTabBarBadge(option: WechatMiniprogram.RemoveTabBarBadgeOption): void;
     getSystemInfoSync(): WechatMiniprogram.SystemInfo;
     setStorageSync(key: string, data: any): void;
     getStorageSync(key: string): any;
     removeStorageSync(key: string): void;
-    [key: string]: any;
+  
+    // ⚠️ 这里刻意【不再】写 [key: string]: any;
+    //    留了它的话，任何写错的 API 名字（比如 wx.showTost）都会静默通过类型检查，
+    //    直到运行时才报错。删掉后，未声明的 API 会直接编译报错，提醒你补上声明。
+    //    如果确实要用新的 API，在 WechatMiniprogram 命名空间里补一个 Option 接口，
+    //    再在这里加一行声明即可（照着上面 login / setTabBarBadge 的写法）。
   };
   
   // 全局函数
   declare function Page<TData extends Record<string, any>>(
     options: WechatMiniprogram.Page.Options<TData, Record<string, any>>
+      & ThisType<WechatMiniprogram.Page.Instance<TData>>
   ): void;
   
   declare function App<T extends Record<string, any>>(
