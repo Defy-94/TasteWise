@@ -25,6 +25,21 @@ export interface Category {
     stock: number;           // 库存
     ai_reason?: string;      // AI推荐理由（可选）
   }
+
+  /**
+   * 菜品详情（GET /api/dish/detail.php）
+   *
+   * 比列表多两个字段：
+   *   category_name 所属分类名（列表页按分类分组展示，不需要它）
+   *   sold          累计售出份数（已取消的订单不计入）
+   *
+   * 注意：is_on_sale（是否上架）不在接口返回值里 —— 小程序端只能看到
+   *      上架菜品，下架菜品详情接口直接返回 404，所以前端不需要关心这个字段。
+   */
+  export interface DishDetail extends Dish {
+    category_name: string;
+    sold: number;
+  }
   
   /** 购物车项 */
   export interface CartItem {

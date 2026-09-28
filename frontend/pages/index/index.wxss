@@ -177,6 +177,11 @@
     border-bottom: 1px solid #eee;
   }
   
+  /* 推荐项点击反馈（点一下进菜品详情） */
+  .recommend-item-hover {
+    background: #fafafa;
+  }
+  
   .rec-name {
     font-weight: bold;
     font-size: 28rpx;

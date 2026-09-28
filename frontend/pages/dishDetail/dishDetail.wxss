@@ -1,0 +1,251 @@
+/* 菜品详情页样式 */
+
+/* 底部留出操作栏的高度，避免正文被固定定位的操作栏盖住 */
+.page {
+    min-height: 100vh;
+    background: #f5f5f5;
+    padding-bottom: 160rpx;
+    box-sizing: border-box;
+  }
+  
+  /* ---------- 顶部大图 ---------- */
+  
+  .hero {
+    width: 100%;
+    height: 440rpx;
+    background: #eee;
+  }
+  
+  .hero-img {
+    width: 100%;
+    height: 440rpx;
+    display: block;
+    background: #eee;
+  }
+  
+  .hero-ph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 150rpx;
+    color: #ccc;
+  }
+  
+  /* ---------- 信息卡片 ---------- */
+  
+  .panel {
+    background: #fff;
+    margin: 20rpx;
+    padding: 26rpx;
+    border-radius: 16rpx;
+  }
+  
+  .panel-title {
+    font-size: 26rpx;
+    color: #999;
+    margin-bottom: 14rpx;
+  }
+  
+  .name-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12rpx;
+  }
+  
+  .dish-name {
+    font-size: 40rpx;
+    font-weight: bold;
+    color: #222;
+  }
+  
+  .tag {
+    font-size: 20rpx;
+    line-height: 1;
+    padding: 8rpx 14rpx;
+    border-radius: 8rpx;
+    flex-shrink: 0;
+  }
+  
+  .tag-rec {
+    background: #fff1ea;
+    color: #FF6B35;
+  }
+  
+  .tag-out {
+    background: #f0f0f0;
+    color: #999;
+  }
+  
+  .price-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-top: 18rpx;
+  }
+  
+  .price {
+    font-size: 44rpx;
+    font-weight: bold;
+    color: #FF6B35;
+  }
+  
+  .sold {
+    font-size: 24rpx;
+    color: #999;
+  }
+  
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24rpx;
+    margin-top: 14rpx;
+  }
+  
+  .meta-item {
+    font-size: 24rpx;
+    color: #888;
+  }
+  
+  .desc {
+    font-size: 28rpx;
+    color: #555;
+    line-height: 1.7;
+  }
+  
+  .stock {
+    font-size: 28rpx;
+  }
+  
+  .stock-ok {
+    color: #2f9e5f;
+  }
+  
+  .stock-out {
+    color: #d94a4a;
+  }
+  
+  /* ---------- 底部操作栏 ---------- */
+  
+  .action-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+    padding: 18rpx 24rpx;
+    /* 苹果机型底部有安全区，撑开一点避免被 Home 条挡住 */
+    padding-bottom: calc(18rpx + constant(safe-area-inset-bottom));
+    padding-bottom: calc(18rpx + env(safe-area-inset-bottom));
+    background: #fff;
+    box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+    z-index: 10;
+  }
+  
+  .stepper {
+    display: flex;
+    align-items: center;
+    border: 1rpx solid #e0e0e0;
+    border-radius: 40rpx;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  
+  .step-btn {
+    width: 68rpx;
+    height: 68rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36rpx;
+    color: #333;
+    background: #fafafa;
+  }
+  
+  .step-btn-hover {
+    background: #eee;
+  }
+  
+  /* 已到最小份数时的置灰效果（仍可点击，只是不做任何事） */
+  .step-disabled {
+    color: #ccc;
+  }
+  
+  .step-num {
+    min-width: 56rpx;
+    text-align: center;
+    font-size: 30rpx;
+    color: #222;
+  }
+  
+  .add-btn {
+    flex: 1;
+    height: 72rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 36rpx;
+    background: #FF6B35;
+    color: #fff;
+    font-size: 30rpx;
+    font-weight: bold;
+    box-sizing: border-box;
+  }
+  
+  .add-btn-hover {
+    background: #e55a2b;
+  }
+  
+  .add-btn-disabled {
+    background: #ccc;
+    color: #fff;
+  }
+  
+  /* ---------- 加载中 / 错误态 ---------- */
+  
+  .state-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 180rpx 60rpx;
+  }
+  
+  .state-icon {
+    font-size: 110rpx;
+    margin-bottom: 24rpx;
+  }
+  
+  .state-text {
+    font-size: 30rpx;
+    color: #888;
+    text-align: center;
+    line-height: 1.6;
+  }
+  
+  .state-btn {
+    margin-top: 40rpx;
+    min-width: 300rpx;
+    height: 76rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 38rpx;
+    background: #FF6B35;
+    color: #fff;
+    font-size: 30rpx;
+    box-sizing: border-box;
+  }
+  
+  .state-btn-hover {
+    background: #e55a2b;
+  }
+  
+  .state-btn-plain {
+    margin-top: 20rpx;
+    background: #fff;
+    color: #666;
+    border: 1rpx solid #ddd;
+  }

@@ -117,6 +117,19 @@ Page({
   },
 
   /**
+   * 打开菜品详情（点击 AI 推荐卡片）
+   * 对应页面：pages/dishDetail
+   */
+  onDishTap(e: any) {
+    const dishId = e.currentTarget.dataset.id;
+    if (!dishId) return;
+
+    wx.navigateTo({
+      url: '/pages/dishDetail/dishDetail?id=' + dishId,
+    });
+  },
+
+  /**
    * 快捷加入购物车（从AI推荐的菜品卡片）
    * 接口：POST /api/cart/add.php
    */

@@ -1,0 +1,82 @@
+<!-- 菜品详情页 -->
+<!-- 注意：这里用 .page 而不是 .container 作为最外层类名，
+     避免和 app.wxss / 其他页面的 .container 规则互相影响 -->
+<view class="page">
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="state-box">
+    <view class="state-icon">⏳</view>
+    <view class="state-text">加载中…</view>
+  </view>
+
+  <!-- 加载失败 / 菜品已下架 -->
+  <view wx:elif="{{loadError}}" class="state-box">
+    <view class="state-icon">😕</view>
+    <view class="state-text">{{loadError}}</view>
+    <view class="state-btn" hover-class="state-btn-hover" bindtap="onRetry">重新加载</view>
+    <view class="state-btn state-btn-plain" hover-class="state-btn-hover" bindtap="onGoCart">去购物车</view>
+  </view>
+
+  <block wx:else>
+    <!-- 顶部大图：没有图片时用 emoji 占位，避免发起无效图片请求 -->
+    <view class="hero">
+      <image wx:if="{{dish.image_url}}" class="hero-img" src="{{dish.image_url}}" mode="aspectFill" />
+      <view wx:else class="hero-img hero-ph">🍽️</view>
+    </view>
+
+    <!-- 基本信息 -->
+    <view class="panel">
+      <view class="name-row">
+        <text class="dish-name">{{dish.name}}</text>
+        <view wx:if="{{dish.is_recommend === 1}}" class="tag tag-rec">推荐</view>
+        <view wx:if="{{dish.stock <= 0}}" class="tag tag-out">已售完</view>
+      </view>
+
+      <view class="price-row">
+        <text class="price">{{priceText}}</text>
+        <text class="sold">已售 {{dish.sold}} 份</text>
+      </view>
+
+      <view class="meta-row">
+        <text class="meta-item">{{dish.category_name}}</text>
+        <text wx:if="{{dish.spiciness > 0}}" class="meta-item">辣度 {{spicyText}}</text>
+        <text wx:else class="meta-item">不辣</text>
+      </view>
+    </view>
+
+    <!-- 菜品介绍 -->
+    <view class="panel">
+      <view class="panel-title">菜品介绍</view>
+      <view class="desc">{{dish.description ? dish.description : '店家暂未填写介绍'}}</view>
+    </view>
+
+    <!-- 供应情况 -->
+    <view class="panel">
+      <view class="panel-title">供应情况</view>
+      <view wx:if="{{dish.stock > 0}}" class="stock stock-ok">
+        现货 {{dish.stock}} 份，可正常下单
+      </view>
+      <view wx:else class="stock stock-out">
+        已售完，暂时无法下单
+      </view>
+    </view>
+  </block>
+
+  <!-- 底部操作栏：只在正常加载出菜品时显示 -->
+  <view wx:if="{{!loading && !loadError}}" class="action-bar">
+    <view class="stepper">
+      <view class="step-btn {{quantity <= 1 ? 'step-disabled' : ''}}"
+            hover-class="step-btn-hover" hover-stay-time="60" bindtap="onMinus">−</view>
+      <text class="step-num">{{quantity}}</text>
+      <view class="step-btn" hover-class="step-btn-hover" hover-stay-time="60" bindtap="onPlus">＋</view>
+    </view>
+
+    <!-- 用 view 而不是 button：button 自带块级默认宽度，容易撑破布局 -->
+    <view wx:if="{{dish.stock > 0}}" class="add-btn"
+          hover-class="add-btn-hover" hover-stay-time="80" bindtap="onAddToCart">
+      加入购物车
+    </view>
+    <view wx:else class="add-btn add-btn-disabled">已售完</view>
+  </view>
+
+</view>

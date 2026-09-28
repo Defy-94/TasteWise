@@ -99,6 +99,14 @@ declare namespace WechatMiniprogram {
       fail?: (res: GeneralCallbackResult) => void;
       complete?: (res: GeneralCallbackResult) => void;
     }
+
+    interface SetNavigationBarTitleOption {
+      /** 新的导航栏标题 */
+      title: string;
+      success?: (res: GeneralCallbackResult) => void;
+      fail?: (res: GeneralCallbackResult) => void;
+      complete?: (res: GeneralCallbackResult) => void;
+    }
   
     interface NavigateToOption {
       url: string;
@@ -201,6 +209,8 @@ declare namespace WechatMiniprogram {
     setTabBarBadge(option: WechatMiniprogram.SetTabBarBadgeOption): void;
     /** 移除 tabBar 角标 */
     removeTabBarBadge(option: WechatMiniprogram.RemoveTabBarBadgeOption): void;
+    /** 动态设置导航栏标题（详情页用它显示菜名） */
+    setNavigationBarTitle(option: WechatMiniprogram.SetNavigationBarTitleOption): void;
     getSystemInfoSync(): WechatMiniprogram.SystemInfo;
     setStorageSync(key: string, data: any): void;
     getStorageSync(key: string): any;

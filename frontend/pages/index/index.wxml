@@ -29,7 +29,8 @@
 
   <!-- 菜品列表 -->
   <view class="dish-list">
-    <view wx:for="{{dishes}}" wx:key="id" class="dish-card">
+    <!-- 点卡片任意位置进菜品详情页 -->
+    <view wx:for="{{dishes}}" wx:key="id" class="dish-card" data-id="{{item.id}}" bindtap="onDishTap">
       <!-- 有图显示图，无图显示占位（项目内没有 default_dish.png，避免无效图片请求） -->
       <image wx:if="{{item.image_url}}" class="dish-img" src="{{item.image_url}}" mode="aspectFill" />
       <view wx:else class="dish-img img-ph">🍽️</view>
@@ -40,7 +41,8 @@
           <text class="dish-price">¥{{item.price}}</text>
           <!-- 按钮：加入购物车，绑定后端接口 POST /api/cart/add.php -->
           <!-- 加入购物车：用 view 而非 button（button 自带块级默认宽度，容易溢出/占满整行） -->
-          <view class="add-cart-btn" hover-class="add-cart-btn-hover" hover-stay-time="80" data-id="{{item.id}}" bindtap="onAddToCart">加入购物车</view>
+          <!-- 用 catchtap 而非 bindtap：阻止冒泡到卡片，否则会同时跳转详情页 -->
+          <view class="add-cart-btn" hover-class="add-cart-btn-hover" hover-stay-time="80" data-id="{{item.id}}" catchtap="onAddToCart">加入购物车</view>
         </view>
       </view>
     </view>
@@ -53,7 +55,16 @@
         <text>AI推荐结果</text>
         <text class="close-btn" bindtap="onCloseRecommend">✕</text>
       </view>
-      <view wx:for="{{recommendDishes}}" wx:key="id" class="recommend-item">
+      <!-- 推荐项也可以点进详情 -->
+      <view
+        wx:for="{{recommendDishes}}"
+        wx:key="id"
+        class="recommend-item"
+        hover-class="recommend-item-hover"
+        hover-stay-time="80"
+        data-id="{{item.id}}"
+        bindtap="onDishTap"
+      >
         <text class="rec-name">{{item.name}}</text>
         <text class="rec-price">¥{{item.price}}</text>
         <text class="rec-reason">{{item.ai_reason}}</text>

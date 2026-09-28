@@ -36,6 +36,8 @@
             wx:for-item="dish"
             wx:key="id"
             class="dish-card"
+            data-id="{{dish.id}}"
+            bindtap="onDishTap"
           >
             <!-- 菜品图片 -->
             <!-- 有图显示图，无图显示占位（项目内没有 default_dish.png） -->
@@ -51,13 +53,15 @@
                 <!-- 加入购物车：用 view 而不是 button
                      ⚠️ button 组件自带「块级 + 撑满」的默认样式，即便用类选择器覆盖 width
                         也容易在 flex 行里溢出卡片边界；view 没有默认样式，完全可控 -->
+                <!-- 用 catchtap 而不是 bindtap：阻止点击冒泡到卡片，
+                     否则点「加入购物车」会同时触发卡片跳转详情 -->
                 <view
                   class="add-btn"
                   hover-class="add-btn-hover"
                   hover-stay-time="80"
                   data-id="{{dish.id}}"
                   data-name="{{dish.name}}"
-                  bindtap="onQuickAddCart"
+                  catchtap="onQuickAddCart"
                 >加入购物车</view>
               </view>
             </view>

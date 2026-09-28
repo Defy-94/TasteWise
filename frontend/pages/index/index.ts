@@ -69,6 +69,22 @@ Page({
   },
 
   /**
+   * 打开菜品详情
+   * 对应页面：pages/dishDetail
+   * 触发位置：菜品卡片、AI推荐弹窗里的推荐项
+   */
+  onDishTap(e: any) {
+    const dishId = e.currentTarget.dataset.id;
+    if (!dishId) {
+      return;
+    }
+
+    wx.navigateTo({
+      url: '/pages/dishDetail/dishDetail?id=' + dishId,
+    });
+  },
+
+  /**
    * 加入购物车
    * 对应后端接口：POST /api/cart/add.php
    * 对应按钮：菜品卡片"加入购物车"

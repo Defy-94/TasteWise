@@ -5,6 +5,7 @@
       "pages/aiChat/aiChat",
       "pages/userCenter/userCenter",
       "pages/myOrders/myOrders",
+      "pages/dishDetail/dishDetail",
       "pages/about/about",
       "pages/login/login"
     ],
