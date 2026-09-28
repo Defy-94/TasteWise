@@ -4,7 +4,7 @@
 - 字符集：`utf8mb4` / `utf8mb4_unicode_ci`
 - 初始化脚本：`backend/sql/init.sql`（建库 + 建表 + 演示数据）
 - 访问方式：全部通过 `backend/core/DB.php`（PDO 单例）操作，禁止直接写连接
-- ✅ **本脚本已与项目实际运行库结构同步**（7 张表逐字段校验通过，仅 `orders.status` 的默认值/注释按下文说明修正）
+- ✅ **本脚本已与项目实际运行库结构同步**（7 张表逐字段校验通过）
 
 ## 表结构
 
@@ -54,9 +54,25 @@
 | spiciness | TINYINT | 辣度 0-5 |
 | is_recommend | TINYINT | 是否推荐 0/1 |
 | stock | INT | 库存（默认 999） |
+| is_on_sale | TINYINT | **是否上架 1/0（默认 1）**，管理后台的「上架/下架」开关 |
 | extra_field1 / extra_field2 | VARCHAR(200) | 预留扩展字段 |
 
 索引：`idx_category`(category_id)；外键 `category_id → categories.id ON DELETE CASCADE`
+
+> **`is_on_sale` 的作用范围**：下架菜品在**小程序端完全不可见** —— 菜品列表（`dish/list.php`）、
+> 菜品详情（`dish/detail.php` 直接返回 404）、AI 推荐（`dish/recommend.php`）、
+> AI 对话的菜单注入（`DeepSeek::getDynamicMenu`）与卡片识别（`ai/chat.php`）都做了过滤，
+> 加购（`cart/add.php`）与结算（`order/create.php`）也会拦截。
+> 这样后台点一下下架，就不会出现「顾客还能看到并买到」的情况。
+>
+> **下架不影响历史订单**：`order_items` 冗余存了下单当时的菜名与单价，
+> 所以下架（甚至删除）菜品都不会让历史订单金额或内容发生变化。
+>
+> **`is_on_sale` 不出现在小程序接口的返回值里**：它属于运营概念，小程序端只能看到上架菜品，
+> 没有任何场景需要它，返回它只会让前端多出一个永远为 1 的字段。
+>
+> ⚠️ 该字段是后加的（`ALTER TABLE dishes ADD COLUMN is_on_sale TINYINT(4) NOT NULL DEFAULT '1' AFTER stock`），
+> 老库升级时执行这条语句即可，已有菜品默认全部上架。
 
 ### 4. cart（购物车表）
 
@@ -89,8 +105,13 @@
 **状态取值**：`0` 待支付 / `1` 已支付 / `2` 已完成 / `3` 已取消（状态流转见 [api.md](api.md)）
 
 > ⚠️ 该列类型是 `VARCHAR(20)`（不是 `TINYINT`），历史注释曾约定为 `pending/paid/completed/cancelled` 字符串。
-> 当前代码统一写入 **数字 0-3**；后端读取时会做兼容归一化（数字与旧字符串写法都能识别），
-> 但**请勿手工写入其他字符串值**，以免状态判断出错。
+> 当前代码统一写入 **数字 0-3**；后端读取时由 `core/OrderStatus.php` 的 `normalize()` 做兼容归一化
+> （数字与旧字符串写法都能识别），但**请勿手工写入其他字符串值**，以免状态判断出错。
+>
+> 📌 实际运行库这一列残留着旧设计的痕迹，已对齐到 init.sql：
+> 默认值原本是 `'pending'` → 改为 `'0'`；
+> 注释原本是「订单状态：pending/paid/completed/cancelled」→ 改为「订单状态：0待支付 1已支付 2已完成 3已取消」。
+> 代码在所有插入订单的地方都显式写入状态，默认值只是兜底，对齐是为了让「脚本 = 实际库」这件事成立。
 
 ### 6. order_items（订单明细表）
 
@@ -149,3 +170,13 @@ user_id_counter ──（注册时分配 users.id，无外键）
 1. **`extra_field1/2` 冗余**：各表均预留了扩展字段，正式项目可移除。
 2. **`init.sql` 会 DROP 重建所有表**：仅在全新环境初始化时执行，已有数据的库请勿直接运行。
 3. **不要手工改 `orders.status` 的定义**：代码按数字 0-3 判断状态。
+4. **老库升级需要补 `dishes.is_on_sale`**：`init.sql` 是「全新初始化」脚本，不含 `ALTER`；
+   已经跑着的库执行下面这一句即可（幂等判断见下）：
+   ```sql
+   ALTER TABLE `dishes`
+     ADD COLUMN `is_on_sale` tinyint(4) NOT NULL DEFAULT '1'
+     COMMENT '是否上架(1上架0下架)' AFTER `stock`;
+   ```
+5. **后台没有独立的 admins 表**：管理员账号存在 `backend/config/admin.php`（已被 .gitignore 忽略）。
+   单店、单运营角色的场景下用配置文件更简单，也避免为一个账号去动数据库结构。
+   将来需要多管理员 / 角色权限 / 操作日志时，再改为表并补上外键关联。

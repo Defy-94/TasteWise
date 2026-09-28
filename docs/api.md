@@ -69,28 +69,29 @@ Authorization: Bearer <令牌>
 
 ---
 
-## 接口总览（18 个）
+## 接口总览（19 个）
 
 | # | 方法 | 接口 | 功能 | 鉴权 |
 | --- | --- | --- | --- | --- |
 | 1 | GET | `/api/category/list.php` | 获取菜品分类 | 免登录 |
 | 2 | GET | `/api/dish/list.php` | 获取菜品列表（可按分类筛选） | 免登录 |
-| 3 | POST | `/api/dish/recommend.php` | AI 智能推荐菜品 | 免登录 |
-| 4 | GET | `/api/cart/list.php` | 获取购物车列表 | 🔒 需令牌 |
-| 5 | POST | `/api/cart/add.php` | 加入购物车 | 🔒 需令牌 |
-| 6 | POST | `/api/cart/remove.php` | 移除购物车商品 | 🔒 需令牌 |
-| 7 | POST | `/api/cart/update.php` | **调整购物车数量**（设为 0 即移除） | 🔒 需令牌 |
-| 8 | POST | `/api/order/create.php` | 创建订单（结算） | 🔒 需令牌 |
-| 9 | GET | `/api/order/list.php` | 查询我的订单 | 🔒 需令牌 |
-| 10 | POST | `/api/order/pay.php` | **订单支付**（新增） | 🔒 需令牌 |
-| 11 | POST | `/api/order/cancel.php` | **取消订单**（新增） | 🔒 需令牌 |
-| 12 | POST | `/api/order/complete.php` | **确认订单完成**（新增） | 🔒 需令牌 |
-| 13 | POST | `/api/user/login.php` | **微信一键登录**（code 换 openid，登录即注册） | 免登录（入口） |
-| 14 | POST | `/api/user/login_phone.php` | ~~手机号登录~~ **已停用**（返回 410） | — |
-| 15 | POST | `/api/user/register.php` | ~~用户注册~~ **已停用**（返回 410） | — |
-| 16 | GET | `/api/user/check.php` | 校验登录态 / 获取当前用户 | 🔒 需令牌 |
-| 17 | POST | `/api/user/update.php` | 修改个人信息 | 🔒 需令牌 |
-| 18 | POST | `/api/ai/chat.php` | AI 智能问答（含推荐菜品提取） | 免登录 |
+| 3 | GET | `/api/dish/detail.php` | **获取菜品详情**（含分类名与已售份数） | 免登录 |
+| 4 | POST | `/api/dish/recommend.php` | AI 智能推荐菜品 | 免登录 |
+| 5 | GET | `/api/cart/list.php` | 获取购物车列表 | 🔒 需令牌 |
+| 6 | POST | `/api/cart/add.php` | 加入购物车 | 🔒 需令牌 |
+| 7 | POST | `/api/cart/remove.php` | 移除购物车商品 | 🔒 需令牌 |
+| 8 | POST | `/api/cart/update.php` | **调整购物车数量**（设为 0 即移除） | 🔒 需令牌 |
+| 9 | POST | `/api/order/create.php` | 创建订单（结算） | 🔒 需令牌 |
+| 10 | GET | `/api/order/list.php` | 查询我的订单 | 🔒 需令牌 |
+| 11 | POST | `/api/order/pay.php` | **订单支付**（新增） | 🔒 需令牌 |
+| 12 | POST | `/api/order/cancel.php` | **取消订单**（新增） | 🔒 需令牌 |
+| 13 | POST | `/api/order/complete.php` | **确认订单完成**（新增） | 🔒 需令牌 |
+| 14 | POST | `/api/user/login.php` | **微信一键登录**（code 换 openid，登录即注册） | 免登录（入口） |
+| 15 | POST | `/api/user/login_phone.php` | ~~手机号登录~~ **已停用**（返回 410） | — |
+| 16 | POST | `/api/user/register.php` | ~~用户注册~~ **已停用**（返回 410） | — |
+| 17 | GET | `/api/user/check.php` | 校验登录态 / 获取当前用户 | 🔒 需令牌 |
+| 18 | POST | `/api/user/update.php` | 修改个人信息 | 🔒 需令牌 |
+| 19 | POST | `/api/ai/chat.php` | AI 智能问答（含推荐菜品提取） | 免登录 |
 
 ---
 
@@ -117,6 +118,12 @@ Authorization: Bearer <令牌>
 - 所有状态流转都做了**前置状态校验**与**原子更新**（`UPDATE ... WHERE status = ?`），并发重复请求不会重复生效。
 - 取消订单会把下单时扣减的库存**逐项恢复**，整个过程在事务内完成。
 - 非法流转返回 `409`，例如对已支付订单再次调用 `pay.php`。
+- **这三个接口都只是薄封装**：真正的状态机实现在 `core/OrderStatus.php`，
+  接口只负责「鉴权 → 取参 → 调用 → 出参」。管理后台改订单状态调用的是同一个方法，
+  因此不存在「后台和前台两套流转规则不一致」的问题。详见
+  [architecture.md 第 5 节](architecture.md#5-订单状态流转)。
+- 每个接口都会同时校验 `order_id` 与当前登录用户，操作他人订单统一返回 `404`
+  （而不是 `403`，避免通过响应差异探测某个订单号是否存在）。
 
 ---
 
@@ -148,8 +155,42 @@ Authorization: Bearer <令牌>
   }
 ]
 ```
+- **说明**：
+  - **只返回已上架菜品**（`dishes.is_on_sale = 1`）。下架由管理后台控制，下架菜品对小程序端完全不可见。
+  - **库存为 0 的菜品仍会返回**，前端显示「已售完」—— 让顾客知道这道菜存在、只是暂时没有，比整条消失更合理。
+  - `is_on_sale` 是运营概念，**不在返回值里**，小程序端没有任何场景需要它。
+  - `price` 在本接口是字符串（直接来自数据库 DECIMAL），前端按原样展示即可。
 
-### 3. AI 智能推荐菜品
+### 3. 获取菜品详情
+
+- **地址**：`GET /api/dish/detail.php?id=3`
+- **鉴权**：免登录（与菜品列表一致）
+- **入参**：`id`（菜品ID，必填）
+- **返回 data**：
+```json
+{
+  "id": 3,
+  "category_id": 1,
+  "name": "糖醋里脊",
+  "price": 32,
+  "image_url": "https://...",
+  "description": "酸甜可口，外酥里嫩",
+  "spiciness": 0,
+  "is_recommend": 1,
+  "stock": 999,
+  "category_name": "热菜",
+  "sold": 12
+}
+```
+- **字段说明**：
+  - `category_name`：所属分类名（列表页按分类分组展示，不需要它）
+  - `sold`：累计售出份数 = 该菜品在所有**未取消**订单中的数量之和（订单状态 3 不计入）
+  - `price` 为数字类型，前端负责格式化成两位小数显示
+- **错误**：
+  - `400` 缺少或非法 `id`
+  - `404` 菜品不存在 **或已下架**（下架菜品一律按不存在处理，避免顾客从旧链接继续下单）
+
+### 4. AI 智能推荐菜品
 
 - **地址**：`POST /api/dish/recommend.php`
 - **入参**：`{"preference": "想吃辣一点的菜"}`
@@ -162,9 +203,9 @@ Authorization: Bearer <令牌>
   "total": 1
 }
 ```
-- **说明**：调用 DeepSeek 推荐 3 道菜，后端已过滤不存在于数据库的 ID。
+- **说明**：调用 DeepSeek 推荐 3 道菜，后端已过滤不存在于数据库的 ID，且**只推荐已上架菜品**。
 
-### 4. 获取购物车列表 🔒
+### 5. 获取购物车列表 🔒
 
 - **地址**：`GET /api/cart/list.php`
 - **请求头**：`token: <令牌>`
@@ -177,15 +218,18 @@ Authorization: Bearer <令牌>
 ]
 ```
 
-### 5. 加入购物车 🔒
+### 6. 加入购物车 🔒
 
 - **地址**：`POST /api/cart/add.php`
 - **请求头**：`token: <令牌>`
 - **入参**：`{"dish_id": 3, "quantity": 2}`（quantity 默认 1）
 - **返回 data**：`null`，msg 为「已加入购物车」
 - **说明**：购物车已有该菜品则累加数量，否则新增记录。
+- **错误**：
+  - `400` 缺少 `dish_id`，或菜品不存在
+  - `409` 菜品已下架（正常入口看不到下架菜品，但可能是**加购之后**后台才下架的）
 
-### 6. 移除购物车商品 🔒
+### 7. 移除购物车商品 🔒
 
 - **地址**：`POST /api/cart/remove.php`
 - **请求头**：`token: <令牌>`
@@ -193,7 +237,7 @@ Authorization: Bearer <令牌>
 - **返回 data**：`null`，msg 为「已移除」
 - **说明**：后端同时校验 `cart_id` 与当前用户，删除他人记录返回 `404`。
 
-### 7. 调整购物车数量 🔒（新增）
+### 8. 调整购物车数量 🔒（新增）
 
 - **地址**：`POST /api/cart/update.php`
 - **请求头**：`token: <令牌>`
@@ -214,7 +258,7 @@ Authorization: Bearer <令牌>
 - **实现提示**：MySQL 的 `UPDATE` 在「新值与旧值相同」时受影响行数也是 0，
   所以不能仅凭受影响行数判断记录是否存在，否则"把数量设成原值"会误报 404。
 
-### 8. 创建订单（结算下单）🔒
+### 9. 创建订单（结算下单）🔒
 
 - **地址**：`POST /api/order/create.php`
 - **请求头**：`token: <令牌>`
@@ -230,7 +274,7 @@ Authorization: Bearer <令牌>
   并发下单时后到的请求影响行数为 0 → 回滚并返回 `409`，因此库存不会被扣成负数。
   同理，同一用户重复提交结算也只会生成一笔订单（购物车行有 `FOR UPDATE` 行锁）。
 
-### 9. 查询我的订单 🔒
+### 10. 查询我的订单 🔒
 
 - **地址**：`GET /api/order/list.php`
 - **地址**：`GET /api/order/list.php?status=2`
@@ -252,7 +296,7 @@ Authorization: Bearer <令牌>
 ```
 - **说明**：`id`、`status`、`quantity` 均返回数字类型；`status_text` 由后端返回，前端无需自己维护状态映射。
 
-### 10. 订单支付 🔒（新增）
+### 11. 订单支付 🔒（新增）
 
 - **地址**：`POST /api/order/pay.php`
 - **请求头**：`token: <令牌>`
@@ -266,7 +310,7 @@ Authorization: Bearer <令牌>
 - **⚠️ 重要**：当前为**模拟支付**（直接把订单标记为已支付，便于本地跑通业务流程）。
   正式上线必须替换为微信支付：本接口只负责统一下单，订单状态变更必须由**微信支付回调**驱动，并在回调中验签、做幂等处理。
 
-### 11. 取消订单 🔒（新增）
+### 12. 取消订单 🔒（新增）
 
 - **地址**：`POST /api/order/cancel.php`
 - **请求头**：`token: <令牌>`
@@ -279,7 +323,7 @@ Authorization: Bearer <令牌>
 - **库存回滚**：按订单明细逐项恢复库存（`restored_items` 为恢复的明细条数），事务保证一致性
 - **错误**：已完成/已取消的订单不可再取消 → `409`
 
-### 12. 确认订单完成 🔒（新增）
+### 13. 确认订单完成 🔒（新增）
 
 - **地址**：`POST /api/order/complete.php`
 - **请求头**：`token: <令牌>`
@@ -291,7 +335,7 @@ Authorization: Bearer <令牌>
 - **状态流转**：`1 已支付` → `2 已完成`
 - **错误**：未支付订单不可直接完成 → `409`
 
-### 13. 微信一键登录（登录即注册）
+### 14. 微信一键登录（登录即注册）
 
 - **地址**：`POST /api/user/login.php`
 - **入参**：`{"code": "wx.login 返回的临时 code", "nickname": "昵称(可选)", "avatar_url": "头像(可选)"}`
@@ -305,7 +349,7 @@ Authorization: Bearer <令牌>
 - **本地调试通道**：同时满足「`config/security.php` 中 `allow_dev_openid_login = true`」与
   「请求来自本机回环地址」时可传 `{"openid": "..."}` 直接登录，仅供本地开发（线上必须关闭）。
 
-### 14. 手机号登录 —— 已停用
+### 15. 手机号登录 —— 已停用
 
 - **地址**：`POST /api/user/login_phone.php`
 - **返回**：`code 410`，提示改用微信一键登录
@@ -313,7 +357,7 @@ Authorization: Bearer <令牌>
   任何人知道别人的手机号就能登录成对方账号（账号接管漏洞）。
   而短信验证码需要企业资质申请短信签名，个人开发者无法正规接入。
 
-### 15. 用户注册 —— 已停用
+### 16. 用户注册 —— 已停用
 
 - **地址**：`POST /api/user/register.php`
 - **返回**：`code 410`，提示「微信一键登录，首次登录自动创建账号」
@@ -322,14 +366,14 @@ Authorization: Bearer <令牌>
   2. 改为微信一键登录后首次登录自动建号，不再需要注册流程；
   3. 若确实需要手机号，可改用微信「手机号快速验证」组件（付费能力，由微信完成验证）。
 
-### 16. 校验登录态 / 获取当前用户 🔒
+### 17. 校验登录态 / 获取当前用户 🔒
 
 - **地址**：`GET /api/user/check.php`
 - **请求头**：`token: <令牌>`
 - **入参**：无（**不再需要也不接受 user_id**）
 - **返回 data**：当前登录用户信息；令牌无效返回 `401`，用户不存在返回 `404`
 
-### 17. 修改个人信息 🔒
+### 18. 修改个人信息 🔒
 
 - **地址**：`POST /api/user/update.php`
 - **请求头**：`token: <令牌>`
@@ -337,7 +381,7 @@ Authorization: Bearer <令牌>
 - **返回 data**：更新后的用户信息
 - **说明**：只能修改自己的信息；手机号会做格式与唯一性校验（与他人冲突返回 `409`）。
 
-### 18. AI 智能问答（含推荐菜品提取）
+### 19. AI 智能问答（含推荐菜品提取）
 
 - **地址**：`POST /api/ai/chat.php`
 - **入参**：`{"message": "推荐几道辣菜", "history": [{"role":"user","content":"..."}]}`
