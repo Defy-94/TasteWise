@@ -1,0 +1,16 @@
+# 本目录只放命令行工具，不应该被浏览器访问。
+#
+# 真正起作用的是每个脚本开头的
+#     if (PHP_SAPI !== 'cli') { http_response_code(403); exit(...); }
+# 那层判断不依赖服务器配置，因此在 Apache 与 nginx 下同样有效。
+#
+# 这里再挡一层，用 IfModule 兼容 Apache 2.4 与 2.2 的语法差异。
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

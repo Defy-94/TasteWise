@@ -37,10 +37,16 @@ if ($quantity < 1) {
 try {
     $db = DB::getInstance();
     
-    // 检查菜品是否存在
-    $dish = $db->selectOne('SELECT id, stock FROM dishes WHERE id = ?', [$dishId]);
+    // 检查菜品是否存在，以及是否已下架
+    $dish = $db->selectOne('SELECT id, name, stock, is_on_sale FROM dishes WHERE id = ?', [$dishId]);
     if (!$dish) {
         Response::error('菜品不存在');
+    }
+
+    // 下架菜品不允许加入购物车（正常入口看不到，但可能是加购后后台才下架的，
+    // 或者用户从旧链接/分享进入了详情页）
+    if ((int) $dish['is_on_sale'] !== 1) {
+        Response::error('「' . $dish['name'] . '」已下架，暂时无法加入购物车', 409);
     }
     
     // 检查购物车是否已有该菜品，有则更新数量，无则插入

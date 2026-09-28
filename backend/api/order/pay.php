@@ -6,12 +6,13 @@
  * 入参JSON：{"order_id":10}
  * 返回：{"order_id":10,"order_no":"...","status":1,"status_text":"已支付"}
  * 对应前端：我的订单页"去支付"按钮
- * 
+ *
  * 【状态流转】0（待支付） → 1（已支付）
- * 
- * 【鉴权说明】支付时同时校验 order_id 与当前登录用户，
+ *            规则实现在 core/OrderStatus.php，本文件只负责鉴权、取参与出参。
+ *
+ * 【鉴权说明】操作时同时校验 order_id 与当前登录用户，
  *            因此无法通过猜测 order_id 支付/查看他人订单（防越权）。
- * 
+ *
  * 【重要说明】当前为「模拟支付」：直接把订单标记为已支付，便于本地跑通业务流程。
  *            正式上线必须替换为微信支付：
  *            1. 本接口只负责调用微信统一下单，返回 prepay_id 与支付参数；
@@ -22,6 +23,7 @@
 require_once __DIR__ . '/../../core/DB.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Auth.php';
+require_once __DIR__ . '/../../core/OrderStatus.php';
 
 Response::handleOptions();
 
@@ -35,50 +37,16 @@ $userId = Auth::requireLogin();
 $input   = json_decode(file_get_contents('php://input'), true);
 $orderId = isset($input['order_id']) ? intval($input['order_id']) : 0;
 
-if ($orderId <= 0) {
-    Response::error('参数错误：order_id必填');
-}
-
-$statusTextMap = [0 => '待支付', 1 => '已支付', 2 => '已完成', 3 => '已取消'];
-
 try {
-    $db = DB::getInstance();
-    
-    // 1. 查询订单，且必须属于当前登录用户
-    $order = $db->selectOne(
-        'SELECT id, order_no, status FROM orders WHERE id = ? AND user_id = ?',
-        [$orderId, $userId]
-    );
-    
-    if (!$order) {
-        Response::error('订单不存在或无权操作', 404);
-    }
-    
-    // 2. 状态校验：只有待支付订单可以支付
-    if ((int) $order['status'] !== 0) {
-        $current = isset($statusTextMap[(int) $order['status']])
-            ? $statusTextMap[(int) $order['status']]
-            : '未知';
-        Response::error('订单当前状态不可支付（当前：' . $current . '）', 409);
-    }
-    
-    // 3. 原子更新：WHERE 中带上 status = 0，避免并发重复支付
-    $affected = $db->execute(
-        'UPDATE orders SET status = 1 WHERE id = ? AND user_id = ? AND status = 0',
-        [$orderId, $userId]
-    );
-    
-    if ($affected <= 0) {
-        Response::error('订单状态已变更，请刷新后重试', 409);
-    }
-    
-    Response::success([
-        'order_id'    => $orderId,
-        'order_no'    => $order['order_no'],
-        'status'      => 1,
-        'status_text' => '已支付',
-    ], '支付成功');
-    
+    // 传 $userId 表示只能操作本人订单
+    $result = OrderStatus::transition($orderId, OrderStatus::PAID, $userId);
+
+    Response::success($result, '支付成功');
+
+} catch (OrderStatusException $e) {
+    // 业务错误：404 订单不存在或无权操作 / 409 状态冲突
+    Response::error($e->getMessage(), $e->getHttpCode());
+
 } catch (Exception $e) {
     Response::error('支付失败：' . $e->getMessage(), 500);
 }

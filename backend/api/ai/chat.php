@@ -58,12 +58,13 @@ try {
 
     // ============================================
     // 2. 取出在售菜单，识别回复中提到的菜品
+    //    「在售」= 已上架 且 有库存（下架菜品不能在回复里变成卡片）
     // ============================================
     $db   = DB::getInstance();
     $menu = $db->select(
         'SELECT id, category_id, name, price, image_url, description, spiciness 
          FROM dishes 
-         WHERE stock > 0'
+         WHERE stock > 0 AND is_on_sale = 1'
     );
 
     $recommendDishes = AiReply::matchDishes($reply, $menu, 4);

@@ -21,9 +21,11 @@ $preference = isset($input['preference']) ? trim($input['preference']) : '';
 try {
     $db = DB::getInstance();
     
-    // 获取所有菜品数据
+    // 获取所有上架菜品数据（下架菜品不参与 AI 推荐）
     $allDishes = $db->select(
-        'SELECT id, category_id, name, price, description, spiciness, image_url FROM dishes'
+        'SELECT id, category_id, name, price, description, spiciness, image_url
+         FROM dishes
+         WHERE is_on_sale = 1'
     );
     
     // 调用DeepSeek推荐

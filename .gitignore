@@ -11,6 +11,10 @@ backend/config/database.php
 backend/config/security.php
 # 微信小程序 AppSecret（见 wechat.example.php 模板）
 backend/config/wechat.php
+# 管理后台管理员账号与密码哈希（见 admin.example.php 模板）
+backend/config/admin.php
+# 改密码脚本生成的备份（同样含旧哈希与凭据备忘，严禁上传）
+backend/config/admin.php.bak*
 
 # ===== 第三方工具（不属于项目代码） =====
 # phpstudy 自带的 phpMyAdmin 数据库管理工具

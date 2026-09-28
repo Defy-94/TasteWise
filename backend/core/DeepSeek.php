@@ -153,11 +153,13 @@ class DeepSeek
             $db = DB::getInstance();
             
             // 查询分类和菜品
+            // 只把「上架且还有库存」的菜品喂给 AI，
+            // 否则 AI 会推荐顾客根本点不到的菜。
             $categories = $db->select('SELECT id, name FROM categories ORDER BY sort_order DESC');
             $dishes = $db->select(
                 'SELECT d.id, d.category_id, d.name, d.price, d.description, d.spiciness 
                  FROM dishes d 
-                 WHERE d.stock > 0 
+                 WHERE d.stock > 0 AND d.is_on_sale = 1
                  ORDER BY d.category_id, d.id'
             );
             

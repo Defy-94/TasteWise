@@ -15,6 +15,8 @@
 --   2) users 表含 username 字段，且 openid / username / phone 均为唯一索引
 --   3) orders.status 为 varchar(20)，取值为数字字符串 0/1/2/3
 --      （0待支付 1已支付 2已完成 3已取消，代码按数字比较）
+--   4) dishes 含 is_on_sale 字段（管理后台的「上架/下架」开关，
+--      小程序端只展示上架菜品；下架不影响历史订单，因为 order_items 冗余了菜名与单价）
 -- ============================================================
 
 -- ---------- 创建数据库 ----------
@@ -86,6 +88,7 @@ CREATE TABLE `dishes` (
   `spiciness` tinyint(4) DEFAULT '0' COMMENT '辣度(0-5)',
   `is_recommend` tinyint(4) DEFAULT '0' COMMENT '是否推荐(0否1是)',
   `stock` int(11) DEFAULT '999' COMMENT '库存数量',
+  `is_on_sale` tinyint(4) NOT NULL DEFAULT '1' COMMENT '是否上架(1上架0下架)',
   `extra_field1` varchar(200) DEFAULT '' COMMENT '预留扩展字段1',
   `extra_field2` varchar(200) DEFAULT '' COMMENT '预留扩展字段2',
   PRIMARY KEY (`id`),

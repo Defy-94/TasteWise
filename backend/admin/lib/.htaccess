@@ -1,0 +1,17 @@
+# 禁止通过 URL 直接访问本目录下的 PHP 文件（它们只应被入口页面 include）
+#
+# 这只是「多一层」防护，真正起作用的是每个文件开头的
+#     if (!defined('TW_ADMIN')) { http_response_code(403); exit('Forbidden'); }
+# 那层保护不依赖服务器配置，因此在 Apache 与 nginx 下同样有效。
+#
+# 下面同时写了 Apache 2.4 与 2.2 两种语法，用 IfModule 自动选择，
+# 这样在不同版本的 phpstudy 环境下都不会因为指令不识别而报 500。
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

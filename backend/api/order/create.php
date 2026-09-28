@@ -68,7 +68,7 @@ try {
         //    注：菜品若被删除，cart 行的外键 ON DELETE CASCADE 会级联删除，
         //        所以这里不会出现「购物车里挂着已删除菜品」的情况。
         $cartItems = $db->select(
-            'SELECT c.id as cart_id, c.quantity, d.id as dish_id, d.name, d.price
+            'SELECT c.id as cart_id, c.quantity, d.id as dish_id, d.name, d.price, d.is_on_sale
              FROM cart c
              JOIN dishes d ON c.dish_id = d.id
              WHERE c.user_id = ?',
@@ -78,6 +78,18 @@ try {
         if (empty($cartItems)) {
             $db->rollback();
             Response::error('购物车为空，无法下单');
+        }
+
+        // 2.1 下架拦截
+        //     菜品可能在顾客加购之后被管理后台下架，此时不能再卖出去。
+        //     这里逐项检查而不是在 JOIN 上加条件，是为了能明确告诉顾客
+        //     是哪道菜下架了 —— 如果直接从结果集里过滤掉，顾客只会看到
+        //     购物车里的菜莫名其妙消失或金额对不上。
+        foreach ($cartItems as $item) {
+            if ((int) $item['is_on_sale'] !== 1) {
+                $db->rollback();
+                Response::error('「' . $item['name'] . '」已下架，请从购物车中移除后再结算', 409);
+            }
         }
 
         // 3. 计算总价（单价来自数据库，不信任客户端传值）
