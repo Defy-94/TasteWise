@@ -41,34 +41,17 @@ if ($orderId <= 0) {
 // 2. 查询订单
 // ======================================================================
 try {
-    $order = $db->selectOne(
-        'SELECT o.id, o.order_no, o.user_id, o.total_price, o.status, o.remark,
-                o.created_at, o.updated_at,
-                u.nickname, u.username, u.phone, u.address, u.openid
-         FROM orders o
-         LEFT JOIN users u ON u.id = o.user_id
-         WHERE o.id = ?',
-        [$orderId]
-    );
+    // SQL 见 admin/lib/queries/orders.php
+    $order = admin_order_find($orderId);
 
     if (!$order) {
         flash_set('error', '订单不存在：#' . $orderId);
         redirect('index.php');
     }
 
-    // 明细：同时带出菜品「当前」的上架与库存情况，
-    // 方便管理员判断顾客要的菜现在还能不能做。
-    // order_items 里存的是下单当时的菜名与单价快照，
-    // 所以菜品后来改名、改价甚至被删除，历史订单金额都不会变。
-    $items = $db->select(
-        'SELECT oi.id, oi.dish_id, oi.dish_name, oi.dish_price, oi.quantity,
-                d.id AS dish_exists, d.is_on_sale, d.stock AS current_stock
-         FROM order_items oi
-         LEFT JOIN dishes d ON d.id = oi.dish_id
-         WHERE oi.order_id = ?
-         ORDER BY oi.id',
-        [$orderId]
-    );
+    // 明细同时带出菜品「当前」的上架与库存情况，
+    // 方便管理员判断顾客要的菜现在还能不能做
+    $items = admin_order_items($orderId);
 
 } catch (Exception $e) {
     admin_header('订单详情', 'orders');

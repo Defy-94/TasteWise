@@ -17,12 +17,15 @@ if (!defined('TW_ADMIN')) {
     exit('Forbidden');
 }
 
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/OrderStatus.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 require_once __DIR__ . '/AdminAuth.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/layout.php';
 require_once __DIR__ . '/order_actions.php';
+
+// 查询层：把 SQL 从页面里挪出来，页面只负责「取参数 → 调查询 → 渲染」
+require_once __DIR__ . '/queries/orders.php';
+require_once __DIR__ . '/queries/dishes.php';
 
 // 启动后台会话（幂等）
 AdminAuth::startSession();

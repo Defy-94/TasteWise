@@ -27,6 +27,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $orderId = int_param($_POST, 'order_id', 0, 0);
     $action  = str_param($_POST, 'action', '', 20);
 
+    // 「清理超时未支付订单」不是针对某一笔订单的操作，单独处理
+    if ($action === 'expire_stale') {
+        $count = OrderExpiry::expireStale(null, true);
+
+        flash_set(
+            $count > 0 ? 'success' : 'info',
+            $count > 0
+                ? '已取消 ' . $count . ' 笔超时未支付的订单，对应库存已归还'
+                : '没有需要清理的订单（待支付超过 ' . OrderExpiry::TIMEOUT_MINUTES . ' 分钟的才会被清理）'
+        );
+
+        redirect(url_with([]));
+    }
+
     list($ok, $message) = admin_apply_order_action($orderId, $action);
     flash_set($ok ? 'success' : 'error', $message);
 
@@ -34,104 +48,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect(url_with([]));
 }
 
+// 顺手清理超时未支付的订单（带概率门控），保证列表里的状态是真实的。
+// 详见 core/OrderExpiry.php：phpstudy 没有可靠 cron，所以采用懒清理。
+OrderExpiry::expireStale(null);
+
 // ======================================================================
-// 2. 解析筛选条件
+// 2. 解析筛选条件（SQL 拼装见 admin/lib/queries/orders.php）
 // ======================================================================
 $page    = int_param($_GET, 'page', 1, 1);
 $perPage = 15;
 
-$statusFilter = str_param($_GET, 'status', '', 5);
-$keyword      = str_param($_GET, 'kw', '', 50);
-$dateFrom     = str_param($_GET, 'from', '', 10);
-$dateTo       = str_param($_GET, 'to', '', 10);
-
-// 非法日期直接丢弃，避免拼出无意义的查询
-if (!is_date($dateFrom)) {
-    $dateFrom = '';
-}
-if (!is_date($dateTo)) {
-    $dateTo = '';
-}
+$filters      = admin_order_filters($_GET);
+$whereSql     = $filters['where'];
+$params       = $filters['params'];
+$statusFilter = $filters['status'];
+$keyword      = $filters['kw'];
+$dateFrom     = $filters['from'];
+$dateTo       = $filters['to'];
 
 $statusTextMap = OrderStatus::allText();
-
-$where  = [];
-$params = [];
-
-if ($statusFilter !== '' && isset($statusTextMap[(int) $statusFilter])) {
-    // status 列是 varchar，这里按字符串比较，避免依赖 MySQL 的隐式类型转换
-    $where[]  = 'o.status = ?';
-    $params[] = (string) (int) $statusFilter;
-}
-
-if ($keyword !== '') {
-    // 订单号 / 备注 / 用户昵称 / 用户名 / 手机号 都参与匹配
-    $like     = '%' . like_escape($keyword) . '%';
-    $where[]  = '(o.order_no LIKE ? OR o.remark LIKE ? OR u.nickname LIKE ? OR u.username LIKE ? OR u.phone LIKE ?)';
-    $params[] = $like;
-    $params[] = $like;
-    $params[] = $like;
-    $params[] = $like;
-    $params[] = $like;
-}
-
-if ($dateFrom !== '') {
-    $where[]  = 'o.created_at >= ?';
-    $params[] = $dateFrom . ' 00:00:00';
-}
-
-if ($dateTo !== '') {
-    $where[]  = 'o.created_at <= ?';
-    $params[] = $dateTo . ' 23:59:59';
-}
-
-$whereSql = empty($where) ? '' : ('WHERE ' . implode(' AND ', $where));
 
 // ======================================================================
 // 3. 查询
 // ======================================================================
 try {
     // 3.1 总条数（决定分页）
-    $countRow  = $db->selectOne(
-        "SELECT COUNT(*) AS n FROM orders o LEFT JOIN users u ON u.id = o.user_id $whereSql",
-        $params
-    );
-    $totalRows = (int) $countRow['n'];
+    $totalRows = admin_order_count($whereSql, $params);
     $totalPage = $totalRows > 0 ? (int) ceil($totalRows / $perPage) : 1;
 
     // 页码越界时回到最后一页，而不是显示一片空白
     if ($page > $totalPage) {
         $page = $totalPage;
     }
-    $offset = ($page - 1) * $perPage;
 
     // 3.2 当前页数据
-    // LIMIT/OFFSET 直接把整数拼进 SQL：占位符在原生预处理模式下传参
-    // 容易被 MySQL 当成字符串而对 LIMIT 报错，而这两个值已经过 int_param
-    // 夹取并强转成 int，不存在注入风险。
-    $orders = $db->select(
-        "SELECT o.id, o.order_no, o.user_id, o.total_price, o.status, o.remark, o.created_at,
-                u.nickname, u.username, u.phone,
-                (SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi WHERE oi.order_id = o.id) AS item_count
-         FROM orders o
-         LEFT JOIN users u ON u.id = o.user_id
-         $whereSql
-         ORDER BY o.id DESC
-         LIMIT " . (int) $perPage . " OFFSET " . (int) $offset,
-        $params
-    );
+    $orders = admin_order_page($whereSql, $params, $page, $perPage);
 
     // 3.3 顶部总览（不受筛选影响，始终看全量）
-    $stats = $db->selectOne(
-        "SELECT COUNT(*) AS total,
-                SUM(status = '0') AS pending,
-                SUM(status = '1') AS paid,
-                SUM(status = '2') AS done,
-                SUM(status = '3') AS canceled,
-                COALESCE(SUM(CASE WHEN status <> '3' THEN total_price ELSE 0 END), 0) AS revenue
-         FROM orders"
-    );
-    $todayRow = $db->selectOne('SELECT COUNT(*) AS n FROM orders WHERE created_at >= CURDATE()');
+    $stats    = admin_order_stats();
+    $statToday = admin_order_today_count();
 
 } catch (Exception $e) {
     // 查询出错时不要白屏，给出可读的提示
@@ -143,7 +98,6 @@ try {
 
 $statTotal    = (int) $stats['total'];
 $statRevenue  = (float) $stats['revenue'];
-$statToday    = (int) $todayRow['n'];
 
 // ======================================================================
 // 4. 渲染
@@ -173,6 +127,25 @@ admin_header('订单管理', 'orders', '共 ' . $totalRows . ' 条符合当前�
     <div class="stat-label">有效营业额（不含已取消）</div>
     <div class="stat-value accent"><?php echo money($statRevenue); ?></div>
   </div>
+</div>
+
+<!-- 维护操作：手动清理超时未支付订单 -->
+<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+  <div>
+    <div style="font-weight:600">清理超时未支付订单</div>
+    <div class="muted" style="font-size:12px;line-height:1.7">
+      下单会立即扣库存，而只有取消订单才会把库存还回去。
+      顾客下单后不付款也不取消，那份库存就会被一直占着 ——
+      所以待支付超过 <strong><?php echo (int) OrderExpiry::TIMEOUT_MINUTES; ?> 分钟</strong>的订单会被自动取消并归还库存。
+      平时是懒清理（打开订单页时顺手做），这里可以立刻清一次。
+    </div>
+  </div>
+  <form method="post" action="<?php echo e(url_with([])); ?>" class="inline-form"
+        onsubmit="return confirm('确定立刻清理超时未支付的订单吗？被占用的库存会一并归还。');">
+    <?php echo AdminAuth::csrfField(); ?>
+    <input type="hidden" name="action" value="expire_stale">
+    <button type="submit" class="btn btn-ghost">立刻清理</button>
+  </form>
 </div>
 
 <!-- 筛选 -->

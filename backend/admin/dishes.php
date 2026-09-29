@@ -89,60 +89,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ======================================================================
-// 2. 解析筛选条件
+// 2. 解析筛选条件（SQL 拼装见 admin/lib/queries/dishes.php）
 // ======================================================================
-$categoryFilter = int_param($_GET, 'category_id', 0, 0);
-$saleFilter     = str_param($_GET, 'on_sale', '', 5);     // '' 全部 | '1' 已上架 | '0' 已下架
-$keyword        = str_param($_GET, 'kw', '', 50);
-
-$where  = [];
-$params = [];
-
-if ($categoryFilter > 0) {
-    $where[]  = 'd.category_id = ?';
-    $params[] = $categoryFilter;
-}
-
-if ($saleFilter === '0' || $saleFilter === '1') {
-    $where[]  = 'd.is_on_sale = ?';
-    $params[] = $saleFilter;
-}
-
-if ($keyword !== '') {
-    $like     = '%' . like_escape($keyword) . '%';
-    $where[]  = '(d.name LIKE ? OR d.description LIKE ?)';
-    $params[] = $like;
-    $params[] = $like;
-}
-
-$whereSql = empty($where) ? '' : ('WHERE ' . implode(' AND ', $where));
+$filters        = admin_dish_filters($_GET);
+$whereSql       = $filters['where'];
+$params         = $filters['params'];
+$categoryFilter = $filters['category_id'];
+$saleFilter     = $filters['on_sale'];
+$keyword        = $filters['kw'];
 
 // ======================================================================
 // 3. 查询
 // ======================================================================
 try {
-    $categories = $db->select('SELECT id, name FROM categories ORDER BY sort_order DESC, id');
-
-    // 菜品是「菜单级」数据（几十条），一次性全部列出即可，不做分页
-    $dishes = $db->select(
-        "SELECT d.id, d.category_id, d.name, d.price, d.image_url, d.description,
-                d.spiciness, d.is_recommend, d.stock, d.is_on_sale,
-                c.name AS category_name
-         FROM dishes d
-         LEFT JOIN categories c ON c.id = d.category_id
-         $whereSql
-         ORDER BY d.category_id, d.id",
-        $params
-    );
-
-    $stats = $db->selectOne(
-        'SELECT COUNT(*) AS total,
-                SUM(is_on_sale = 1) AS on_sale,
-                SUM(is_on_sale = 0) AS off_sale,
-                SUM(stock <= 0)     AS out_of_stock,
-                SUM(is_recommend = 1) AS recommend
-         FROM dishes'
-    );
+    $categories = admin_category_options();
+    $dishes     = admin_dish_list($whereSql, $params);
+    $stats      = admin_dish_stats();
 
 } catch (Exception $e) {
     admin_header('菜品管理', 'dishes');

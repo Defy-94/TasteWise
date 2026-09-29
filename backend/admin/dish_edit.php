@@ -45,7 +45,7 @@ $errors = [];
 // 1. 编辑模式：先读出原有数据用于回显
 // ======================================================================
 if ($isEdit) {
-    $existing = $db->selectOne('SELECT * FROM dishes WHERE id = ?', [$editingId]);
+    $existing = admin_dish_find($editingId);
 
     if (!$existing) {
         flash_set('error', '菜品不存在：#' . $editingId);
@@ -58,8 +58,8 @@ if ($isEdit) {
     }
 }
 
-// 分类下拉
-$categories = $db->select('SELECT id, name FROM categories ORDER BY sort_order DESC, id');
+// 分类下拉（SQL 见 admin/lib/queries/dishes.php）
+$categories = admin_category_options();
 
 // ======================================================================
 // 2. 处理提交
