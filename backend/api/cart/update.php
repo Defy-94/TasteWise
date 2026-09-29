@@ -21,42 +21,38 @@
  * 【鉴权说明】WHERE 同时限定 cart_id 与当前登录用户，客户端传入的 user_id 一律忽略，
  *            因此无法通过猜测 cart_id 修改他人的购物车（防越权）。
  */
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/Response.php';
-require_once __DIR__ . '/../../core/Auth.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    Response::error('仅支持POST请求');
-}
+Request::requirePost();
 
 // 校验令牌并取得当前登录用户ID（未登录直接返回401）
 $userId = Auth::requireLogin();
 
-$input    = json_decode(file_get_contents('php://input'), true);
-$cartId   = isset($input['cart_id']) ? $input['cart_id'] : null;
-$quantity = isset($input['quantity']) ? $input['quantity'] : null;
+$cartIdRaw   = Request::raw('cart_id');
+$quantityRaw = Request::raw('quantity');
 
 // ===== 参数校验 =====
 // ⚠️ 必须先判断"参数是否传了"，再判断"是否为合法数字"。
 //    若直接 intval()，会把「没传 quantity」和「quantity=0」都变成 0，
 //    也会把 "abc" 静默当成 0，从而误删用户的购物车记录。
-if ($cartId === null || $cartId === '') {
+//    所以这里刻意用 Request::raw() 取原始值，而不是省事地用 Request::int()。
+if ($cartIdRaw === null || $cartIdRaw === '') {
     Response::error('参数错误：cart_id必填');
 }
-if ($quantity === null || $quantity === '') {
+if ($quantityRaw === null || $quantityRaw === '') {
     Response::error('参数错误：quantity必填');
 }
-if (!is_numeric($cartId) || intval($cartId) <= 0) {
+if (!is_numeric($cartIdRaw) || intval($cartIdRaw) <= 0) {
     Response::error('参数错误：cart_id必须为正整数');
 }
-if (!is_numeric($quantity)) {
+if (!is_numeric($quantityRaw)) {
     Response::error('参数错误：quantity必须为数字');
 }
 
-$cartId   = intval($cartId);
-$quantity = intval($quantity);
+$cartId   = intval($cartIdRaw);
+$quantity = intval($quantityRaw);
 
 if ($quantity < 0) {
     Response::error('参数错误：quantity不能为负数');
@@ -111,5 +107,5 @@ try {
     ], '已更新');
 
 } catch (Exception $e) {
-    Response::error('操作失败：' . $e->getMessage(), 500);
+    Response::serverError('操作失败', $e);
 }

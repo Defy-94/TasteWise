@@ -14,16 +14,13 @@
  * 【sold 字段】累计售出份数 = 该菜品在所有「未取消」订单中的数量之和。
  *            已取消订单不计入（取消时库存已加回，算作没卖出去）。
  */
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    Response::error('仅支持GET请求');
-}
+Request::requireGet();
 
-$dishId = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$dishId = Request::queryInt('id');
 
 if ($dishId <= 0) {
     Response::error('参数错误：id必填');
@@ -32,16 +29,8 @@ if ($dishId <= 0) {
 try {
     $db = DB::getInstance();
 
-    // 1. 菜品本体 + 所属分类名（只取上架菜品）
-    $dish = $db->selectOne(
-        'SELECT d.id, d.category_id, d.name, d.price, d.image_url, d.description,
-                d.spiciness, d.is_recommend, d.stock,
-                c.name AS category_name
-         FROM dishes d
-         LEFT JOIN categories c ON c.id = d.category_id
-         WHERE d.id = ? AND d.is_on_sale = 1',
-        [$dishId]
-    );
+    // 1. 菜品本体 + 所属分类名（只取上架菜品；规则统一定义在 core/DishRepo.php）
+    $dish = DishRepo::findVisibleWithCategory($dishId);
 
     if (!$dish) {
         Response::error('菜品不存在或已下架', 404);
@@ -65,5 +54,5 @@ try {
     Response::success($dish);
 
 } catch (Exception $e) {
-    Response::error('获取菜品详情失败：' . $e->getMessage(), 500);
+    Response::serverError('获取菜品详情失败', $e);
 }

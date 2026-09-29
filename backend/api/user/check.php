@@ -8,15 +8,11 @@
  * 【鉴权说明】用户身份完全取自令牌，忽略客户端传入的任何 user_id，
  *            因此无法通过修改参数查看他人资料。
  */
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/Response.php';
-require_once __DIR__ . '/../../core/Auth.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    Response::error('仅支持GET请求');
-}
+Request::requireGet();
 
 // 校验令牌并取得当前登录用户ID（未登录直接返回401）
 $userId = Auth::requireLogin();
@@ -37,5 +33,5 @@ try {
     
     Response::success($user);
 } catch (Exception $e) {
-    Response::error('校验失败：' . $e->getMessage(), 500);
+    Response::serverError('校验失败', $e);
 }

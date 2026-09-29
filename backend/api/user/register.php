@@ -13,7 +13,7 @@
  * 
  * 【原始实现】保留在 Git 历史中（提交 6d99470 及之前），如需回退可用 git 恢复。
  */
-require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 

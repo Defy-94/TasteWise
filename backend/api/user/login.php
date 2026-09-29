@@ -24,22 +24,16 @@
  * 
  * 【鉴权说明】本接口为登录入口，无需携带 token。
  */
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/Response.php';
-require_once __DIR__ . '/../../core/Auth.php';
-require_once __DIR__ . '/../../core/WeChat.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    Response::error('仅支持POST请求');
-}
+Request::requirePost();
 
-$input     = json_decode(file_get_contents('php://input'), true);
-$code      = isset($input['code']) ? trim($input['code']) : '';
-$nickname  = isset($input['nickname']) ? trim($input['nickname']) : '微信用户';
-$avatarUrl = isset($input['avatar_url']) ? trim($input['avatar_url']) : '';
-$devOpenid = isset($input['openid']) ? trim($input['openid']) : '';
+$code      = Request::str('code');
+$nickname  = Request::str('nickname', '微信用户');
+$avatarUrl = Request::str('avatar_url');
+$devOpenid = Request::str('openid');
 
 $openid = '';
 
@@ -49,7 +43,10 @@ try {
         try {
             $wechat = new WeChat();
         } catch (RuntimeException $e) {
-            // 503：明确告知「微信登录未配置」，前端可据此走本地调试通道
+            // 503：明确告知「微信登录未配置」，前端可据此走本地调试通道。
+            // 这条消息是**有意**带给使用者的（"缺少 appsecret，请去 config/wechat.php 填"），
+            // 所以不走 serverError 的"对外隐藏细节"逻辑，但仍要记一条日志备查。
+            Response::log('微信登录未配置', $e);
             Response::error('微信登录未配置：' . $e->getMessage(), 503);
         }
 
@@ -102,7 +99,7 @@ try {
     Response::success($user, '登录成功');
 
 } catch (Exception $e) {
-    Response::error('登录失败：' . $e->getMessage(), 500);
+    Response::serverError('登录失败', $e);
 }
 
 /**

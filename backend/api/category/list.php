@@ -4,14 +4,11 @@
  * 请求地址：GET /api/category/list.php
  * 对应前端：首页分类导航
  */
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    Response::error('仅支持GET请求');
-}
+Request::requireGet();
 
 try {
     $db = DB::getInstance();
@@ -20,5 +17,5 @@ try {
     );
     Response::success($categories);
 } catch (Exception $e) {
-    Response::error('获取分类失败：' . $e->getMessage(), 500);
+    Response::serverError('获取分类失败', $e);
 }

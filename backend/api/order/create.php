@@ -31,21 +31,27 @@
  * FOR UPDATE 读取（只锁 cart 表，不锁 dishes，避免跨用户死锁）。
  * ============================================
  */
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/Response.php';
-require_once __DIR__ . '/../../core/Auth.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    Response::error('仅支持POST请求');
-}
+Request::requirePost();
 
 // 校验令牌并取得当前登录用户ID（未登录直接返回401）
 $userId = Auth::requireLogin();
 
-$input  = json_decode(file_get_contents('php://input'), true);
-$remark = isset($input['remark']) ? trim($input['remark']) : '';
+$remark = Request::str('remark');
+
+// ============================================
+// 顺手清理超时未支付的订单（懒清理，见 core/OrderExpiry.php）
+//
+// 放在这里的原因很实在：顾客刚才那笔超时未支付的订单会一直占着库存，
+// 如果不先清掉，他这次结算可能因为「库存不足」而失败 ——
+// 而缺的正是他自己上一笔没付钱的订单占掉的那一份。
+// 第二步的全量清理带概率门控，只偶尔做一次。
+// ============================================
+OrderExpiry::expireStale($userId);
+OrderExpiry::expireStale(null);
 
 try {
     $db = DB::getInstance();
@@ -147,5 +153,5 @@ try {
     }
 
 } catch (Exception $e) {
-    Response::error('下单失败：' . $e->getMessage(), 500);
+    Response::serverError('下单失败', $e);
 }

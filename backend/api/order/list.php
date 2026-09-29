@@ -17,18 +17,24 @@
  *            MySQL 会将其隐式转为 0，导致"查已完成订单"实际查出待支付订单。
  *            现已在入口做白名单归一化，并统一返回 status_text。
  */
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/Response.php';
-require_once __DIR__ . '/../../core/Auth.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    Response::error('仅支持GET请求');
-}
+Request::requireGet();
 
 // 校验令牌并取得当前登录用户ID（未登录直接返回401）
 $userId = Auth::requireLogin();
+
+// ============================================
+// 顺手清理超时未支付的订单（懒清理，见 core/OrderExpiry.php）
+//
+// 放在这里是因为：顾客打开「我的订单」时，最该看到的就是真实状态 ——
+// 而不是一笔明明早就超时、却还挂着「待支付」的订单。
+// 顺便把被它占着的库存还回去。
+// 只清理本人的订单（走 user_id 索引，开销很小）。
+// ============================================
+OrderExpiry::expireStale($userId);
 
 // 订单状态字典
 $statusTextMap = [
@@ -47,7 +53,7 @@ $statusAlias = [
 ];
 
 // ===== 状态参数归一化与白名单校验 =====
-$statusRaw = isset($_GET['status']) ? trim($_GET['status']) : '';
+$statusRaw = Request::queryStr('status');
 $status    = null;   // null 表示不筛选
 
 if ($statusRaw !== '') {
@@ -72,12 +78,35 @@ try {
         $params[] = $status;
     }
     
-    // 查询订单主表
+    // ============================================
+    // 分页
+    //
+    // 【为什么必须分页】订单是只增不减的数据：老用户迟早会积累成百上千单，
+    // 一次性全量返回会让响应体越来越大、小程序渲染越来越卡，
+    // 而且每单还要再查一次明细（N+1），开销是随订单数线性增长的。
+    //
+    // 【返回结构保持不变】仍然是数组，只是加了 page / per_page 入参。
+    // 原因：前端与文档都已按数组约定，改成 {list,total} 会波及一片。
+    // 判断「还有下一页」的方式：返回条数 == per_page 就说明可能还有，
+    // 前端据此决定要不要继续上拉加载。
+    //
+    // 【排序为什么要带 id】只按 created_at DESC 排的话，
+    // 同一秒创建的两笔订单顺序不固定，翻页时可能出现「上一页出现过、
+    // 下一页又出现一次」或整条被跳过。加上 id DESC 作为tiebreaker 才是稳定排序。
+    // ============================================
+    $page    = Request::queryInt('page', 1, 1);
+    $perPage = Request::queryInt('per_page', 10, 1, 50);
+    $offset  = ($page - 1) * $perPage;
+
+    // LIMIT/OFFSET 直接拼整数：占位符在原生预处理模式下传参容易踩到
+    // 「MySQL 把 LIMIT 的参数当字符串」的坑，而这两个值已经过 queryInt
+    // 夹取并强转成 int，不存在注入风险。
     $orders = $db->select(
-        "SELECT id, order_no, total_price, status, remark, created_at 
-         FROM orders 
-         {$where} 
-         ORDER BY created_at DESC",
+        "SELECT id, order_no, total_price, status, remark, created_at
+         FROM orders
+         {$where}
+         ORDER BY created_at DESC, id DESC
+         LIMIT " . (int) $perPage . " OFFSET " . (int) $offset,
         $params
     );
     
@@ -116,5 +145,5 @@ try {
     
     Response::success($orders);
 } catch (Exception $e) {
-    Response::error('获取订单失败：' . $e->getMessage(), 500);
+    Response::serverError('获取订单失败', $e);
 }

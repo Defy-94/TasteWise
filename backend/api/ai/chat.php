@@ -21,24 +21,30 @@
  * 
  * 文本解析逻辑见 core/AiReply.php（独立成类是为了能单独做单元测试）。
  * ============================================
+ *
+ * 【限流】本接口每次调用都真实消耗 DeepSeek 额度，因此进入业务逻辑之前
+ *        先过 core/AiRateLimit.php（身份×分钟、身份×天、全站×天 三层）。
+ *        超限返回 429 与 Retry-After。
  */
-require_once __DIR__ . '/../../core/Response.php';
-require_once __DIR__ . '/../../core/DeepSeek.php';
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/AiReply.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    Response::error('仅支持POST请求');
-}
+Request::requirePost();
 
-$input   = json_decode(file_get_contents('php://input'), true);
-$message = isset($input['message']) ? trim($input['message']) : '';
-$history = isset($input['history']) ? $input['history'] : [];
+$message = Request::str('message');
+$history = Request::arr('history');
 
 if (empty($message)) {
     Response::error('参数错误：message必填');
+}
+
+// 限流检查放在参数校验之后、调用 AI 之前：
+// 参数错的请求不该消耗额度，但一旦要花 AI 的额度就必须先过闸。
+try {
+    AiRateLimit::enforce();
+} catch (AiRateLimitException $e) {
+    AiRateLimit::rejectResponse($e);
 }
 
 try {
@@ -57,40 +63,17 @@ try {
         : '抱歉，我暂时无法回答这个问题。';
 
     // ============================================
-    // 2. 取出在售菜单，识别回复中提到的菜品
-    //    「在售」= 已上架 且 有库存（下架菜品不能在回复里变成卡片）
+    // 2. 从回复文本里构建推荐卡片
+    //
+    // 这一步（取在售菜单 → 识别提到的菜品 → 必要时兜底做一次结构化推荐）
+    // 与流式接口共用同一份实现。原来两边各写了一份逐字重复的代码，
+    // 只要改一处忘一处，就会出现「非流式有卡片、流式没卡片」这种难查的不一致。
+    // 实现见 core/AiCards.php（「在售」的判定在 core/DishRepo.php）。
     // ============================================
-    $db   = DB::getInstance();
-    $menu = $db->select(
-        'SELECT id, category_id, name, price, image_url, description, spiciness 
-         FROM dishes 
-         WHERE stock > 0 AND is_on_sale = 1'
-    );
-
-    $recommendDishes = AiReply::matchDishes($reply, $menu, 4);
+    $recommendDishes = AiCards::fromReply($reply, $message, $deepseek);
 
     // ============================================
-    // 3. 兜底：回复里没提到菜品，但用户明显在要推荐
-    //    （会多一次 AI 调用，所以只在必要时才走这里）
-    // ============================================
-    if (empty($recommendDishes) && AiReply::hasRecommendIntent($message)) {
-        $rec = $deepseek->recommend($menu, $message);
-
-        if (!empty($rec['recommendations'])) {
-            foreach ($rec['recommendations'] as $item) {
-                foreach ($menu as $dish) {
-                    if ($dish['id'] == $item['id']) {
-                        $dish['ai_reason'] = isset($item['reason']) ? $item['reason'] : '';
-                        $recommendDishes[] = $dish;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    // ============================================
-    // 4. 返回统一格式
+    // 3. 返回统一格式
     // ============================================
     Response::success([
         'reply'            => $reply,
@@ -99,5 +82,5 @@ try {
     ]);
 
 } catch (Exception $e) {
-    Response::error('AI请求失败：' . $e->getMessage(), 500);
+    Response::serverError('AI请求失败', $e);
 }

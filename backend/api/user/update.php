@@ -9,23 +9,18 @@
  * 【鉴权说明】修改目标用户取自令牌，客户端传入的 user_id 一律忽略，
  *            因此无法通过修改参数篡改他人资料（防越权）。
  */
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/Response.php';
-require_once __DIR__ . '/../../core/Auth.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    Response::error('仅支持POST请求');
-}
+Request::requirePost();
 
 // 校验令牌并取得当前登录用户ID（未登录直接返回401）
 $userId = Auth::requireLogin();
 
-$input    = json_decode(file_get_contents('php://input'), true);
-$nickname = isset($input['nickname']) ? trim($input['nickname']) : '';
-$phone    = isset($input['phone']) ? trim($input['phone']) : '';
-$address  = isset($input['address']) ? trim($input['address']) : '';
+$nickname = Request::str('nickname');
+$phone    = Request::str('phone');
+$address  = Request::str('address');
 
 try {
     $db = DB::getInstance();
@@ -70,5 +65,5 @@ try {
     $user = $db->selectOne('SELECT * FROM users WHERE id = ?', [$userId]);
     Response::success($user, '修改成功');
 } catch (Exception $e) {
-    Response::error('修改失败：' . $e->getMessage(), 500);
+    Response::serverError('修改失败', $e);
 }

@@ -17,6 +17,8 @@
 --      （0待支付 1已支付 2已完成 3已取消，代码按数字比较）
 --   4) dishes 含 is_on_sale 字段（管理后台的「上架/下架」开关，
 --      小程序端只展示上架菜品；下架不影响历史订单，因为 order_items 冗余了菜名与单价）
+--   5) ai_rate_limit AI 接口限流计数表（按时间窗口统计调用次数，
+--      防止 AI 接口被刷导致 API Key 费用失控；过期行由代码定期清理）
 -- ============================================================
 
 -- ---------- 创建数据库 ----------
@@ -33,7 +35,25 @@ DROP TABLE IF EXISTS `dishes`;
 DROP TABLE IF EXISTS `categories`;
 DROP TABLE IF EXISTS `users`;
 DROP TABLE IF EXISTS `user_id_counter`;
+DROP TABLE IF EXISTS `ai_rate_limit`;
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ---------- ai_rate_limit：AI 接口限流计数表（无外键，与业务表解耦） ----------
+-- 设计要点：
+--   1. bucket_key + window_start 建唯一索引，配合 INSERT ... ON DUPLICATE KEY UPDATE
+--      实现原子自增，避免「先查再写」的并发漏洞
+--   2. 固定窗口计数：窗口起点按窗口长度向下取整对齐（如分钟窗口的 window_start 都是整分钟）
+--   3. window_start 上另建普通索引，便于定期删除过期行
+CREATE TABLE `ai_rate_limit` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `bucket_key` varchar(120) NOT NULL COMMENT '限流标识：uid:10004 / ip:1.2.3.4 / global',
+  `window_start` int(10) unsigned NOT NULL COMMENT '窗口起点（Unix 时间戳，按窗口长度对齐）',
+  `hits` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '本窗口内累计请求次数',
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_bucket_window` (`bucket_key`, `window_start`),
+  KEY `idx_window` (`window_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 接口限流计数（按窗口计数，过期行定期清理）';
 
 -- ---------- user_id_counter：用户ID计数器表（注册时生成 10001 起的用户ID，配合行锁防并发） ----------
 CREATE TABLE `user_id_counter` (
@@ -129,6 +149,7 @@ CREATE TABLE `orders` (
   KEY `idx_user` (`user_id`),
   KEY `idx_order_no` (`order_no`),
   KEY `idx_user_id` (`user_id`),
+  KEY `idx_status_created` (`status`, `created_at`),
   CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
 

@@ -185,7 +185,6 @@ class Auth
      */
     public static function requireLogin()
     {
-        require_once __DIR__ . '/Response.php';
 
         $token   = self::tokenFromRequest();
         $payload = self::verify($token);

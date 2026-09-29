@@ -20,22 +20,16 @@
  *            3. 回调中需验证签名，并做幂等处理（同一订单重复通知只生效一次）。
  *            切勿像现在这样由客户端直接请求即可标记支付成功。
  */
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/Response.php';
-require_once __DIR__ . '/../../core/Auth.php';
-require_once __DIR__ . '/../../core/OrderStatus.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    Response::error('仅支持POST请求');
-}
+Request::requirePost();
 
 // 校验令牌并取得当前登录用户ID（未登录直接返回401）
 $userId = Auth::requireLogin();
 
-$input   = json_decode(file_get_contents('php://input'), true);
-$orderId = isset($input['order_id']) ? intval($input['order_id']) : 0;
+$orderId = Request::int('order_id');
 
 try {
     // 传 $userId 表示只能操作本人订单
@@ -48,5 +42,5 @@ try {
     Response::error($e->getMessage(), $e->getHttpCode());
 
 } catch (Exception $e) {
-    Response::error('支付失败：' . $e->getMessage(), 500);
+    Response::serverError('支付失败', $e);
 }

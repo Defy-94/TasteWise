@@ -7,15 +7,11 @@
  * 
  * 【鉴权说明】只能查询自己的购物车，客户端传入的 user_id 一律忽略。
  */
-require_once __DIR__ . '/../../core/DB.php';
-require_once __DIR__ . '/../../core/Response.php';
-require_once __DIR__ . '/../../core/Auth.php';
+require_once __DIR__ . '/../../core/bootstrap.php';
 
 Response::handleOptions();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    Response::error('仅支持GET请求');
-}
+Request::requireGet();
 
 // 校验令牌并取得当前登录用户ID（未登录直接返回401）
 $userId = Auth::requireLogin();
@@ -33,5 +29,5 @@ try {
     
     Response::success($cartList);
 } catch (Exception $e) {
-    Response::error('获取购物车失败：' . $e->getMessage(), 500);
+    Response::serverError('获取购物车失败', $e);
 }
