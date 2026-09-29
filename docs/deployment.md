@@ -115,9 +115,17 @@ Windows 下更省事的方式是**双击项目根目录的 `启动管理后台.b
 
 1. 下载安装 [微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)。
 2. 使用自己的小程序 AppID 导入 `frontend/` 目录（仓库内保留的 AppID 可作开发调试，正式发布请替换为你自己的）。
-3. 修改 `frontend/utils/api.ts` 中的 `BASE_URL` 为后端地址：
+3. 后端地址**按运行环境自动选择**（`frontend/utils/api.ts` 的 `API_BASE_BY_ENV`），不需要改代码：
    ```ts
-   const BASE_URL = 'http://localhost';   // 本地调试；真机预览改为局域网 IP 或线上域名
+   const API_BASE_BY_ENV = {
+     develop: 'http://localhost',          // 开发者工具；真机调试改成电脑局域网 IP
+     trial:   'http://localhost',          // 体验版
+     release: 'https://api.example.com',   // 正式版（必须 https 且已在后台配成合法域名）
+   };
+   ```
+   真机调试时手机上的 `localhost` 指向手机自己，要在控制台执行一句临时切换（不必改代码）：
+   ```js
+   wx.setStorageSync('apiBaseUrl', 'http://192.168.1.5')
    ```
 4. 真机预览：勾选「详情 → 本地设置 → 不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书」。
 5. 编译运行，即可在模拟器中体验完整流程。
@@ -130,13 +138,23 @@ Windows 下更省事的方式是**双击项目根目录的 `启动管理后台.b
 - 创建生产数据库并执行 `init.sql`，更新 `config/database.php` 为线上数据库账号。
 - 申请正式 DeepSeek API Key 填入 `config/apikey.php`，并重新生成 `config/security.php` 的令牌密钥（不要沿用本地密钥）。
 - 在线上 `config/admin.php` 里配置**新的管理员密码**（不要沿用本地调试密码）。
+- **让 AI 流式输出真正生效**：如果 Web 服务器是 Apache + `mod_fcgid`（phpstudy 就是），
+  需要加一行 `FcgidOutputBufferSize 0` 再重启，否则响应会被缓冲到请求结束才发出
+  （功能正常，但没有"逐字蹦出来"的效果）。nginx + php-fpm 默认不缓冲，无需配置。
+- 调整 **AI 接口限流**：`core/AiRateLimit.php` 顶部的常量是按单店小程序设的，
+  上线前按实际用户量重新评估，尤其是全站每日总量（默认 3000）—— 它直接决定
+  一天最多花多少 AI 费用。
+- 调整**待支付订单超时时间**：`core/OrderExpiry.php` 的 `TIMEOUT_MINUTES`（默认 15 分钟）。
+  这个值决定了「顾客下单后不付款」时库存被占用多久。
 - 安全加固（必须）：
+  - **关闭 PHP 错误回显**：`php.ini` 里设 `display_errors = Off`、`log_errors = On`
+    （本地 phpstudy 默认是 `display_errors=1`）。**开着它上线，任何 PHP 警告都会把
+    文件绝对路径、SQL 片段直接吐给客户端** —— 这既是信息泄露，也帮攻击者省了探测成本；
   - **限制 `/admin/` 的访问来源**：只允许内网 IP，或用 Apache/nginx 给 `/admin/` 加一层 Basic 认证。
     PHP 代码层的会话登录与 CSRF 已经做了，但一个运营后台长期暴露在公网本身就是不必要的风险面；
   - `core/DeepSeek.php` 与 `core/WeChat.php` 中 `CURLOPT_SSL_VERIFYPEER` 由 `false` 改回 `true`；
   - 将 `core/Response.php` 中 CORS 的 `Access-Control-Allow-Origin: *` 收紧为具体域名；
   - `order/pay.php` 当前为模拟支付，上线前必须接入微信支付（订单状态由支付回调驱动）；
-  - 为 AI 接口（`ai/chat.php`、`dish/recommend.php`）增加限流，防止 Key 被刷产生费用；
   - 确认 `config/security.php` 的 `allow_dev_openid_login` 为 `false`；
   - 全站启用 HTTPS。
 
@@ -155,6 +173,11 @@ Windows 下更省事的方式是**双击项目根目录的 `启动管理后台.b
 | 接口返回 500 / 空白 | 查看 `config/database.php` 账号密码与 MySQL 是否启动 |
 | 接口返回 401 | 未登录或令牌过期：重新登录；确认请求头带了 `token`；刚改过 `security.php` 密钥时需重新登录 |
 | AI 回复报错 | 检查 `config/apikey.php` 的 Key 是否有效、是否欠费 |
+| AI 回复提示「请求太频繁」或「今天的 AI 使用次数已用完」 | 触发了 AI 接口限流（见 [architecture.md](architecture.md) 第 10 节）。限额常量在 `core/AiRateLimit.php` 顶部，本地调试嫌严可以调大；计数表是 `ai_rate_limit`，清空该表可立即重置额度 |
+| 流式输出没有「逐字」效果，而是等几秒整段蹦出来 | **Apache + mod_fcgid 的响应缓冲导致的**，不是代码问题。在 Apache 配置里加 `FcgidOutputBufferSize 0` 并重启 Apache。详见 [architecture.md](architecture.md) 第 11 节（phpstudy 用的是 mod_fcgid，默认缓冲 64KB） |
+| 流式输出的中文变成乱码 | 检查是否有人改坏了 `frontend/utils/utf8.ts`（它负责把跨分块的半个汉字拼回来），或服务端是否被中间层二次压缩 |
+| 待支付订单过一会儿自己变成「已取消」 | **这是设计行为，不是 bug**：下单会立即扣库存，若不付款也不取消，那份库存会被永久占用。所以待支付超过 `core/OrderExpiry.php` 的 `TIMEOUT_MINUTES`（默认 15 分钟）会自动取消并把库存还回去，备注里会留下「（超时未支付，系统自动取消）」。后台订单管理页有「立刻清理」按钮可手动触发 |
+| 库存数量和预期对不上 | 按顺序排查：① 是否有超时未支付订单被自动取消后又下单（属正常）；② 后台菜品页可以直接看/改库存，确认没被人手动改过；③ 用「订单明细合计」对账 —— 后台订单详情页会自动比对明细合计与订单金额，不一致会给出警告 |
 | 小程序请求失败 | 确认 `BASE_URL` 可达；真机调试需关闭域名校验或配置合法域名 |
 | 注册报错「表不存在」 | 未执行过 `backend/sql/init.sql`（该脚本已包含 `user_id_counter` 表），请检查库结构 |
 | 后台打开是 404 | 站点根目录没指向 `backend/`；后台在 `backend/admin/`，确认 `http://localhost/admin/login.php` 能打开 |

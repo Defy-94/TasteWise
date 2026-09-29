@@ -4,7 +4,7 @@
 - 字符集：`utf8mb4` / `utf8mb4_unicode_ci`
 - 初始化脚本：`backend/sql/init.sql`（建库 + 建表 + 演示数据）
 - 访问方式：全部通过 `backend/core/DB.php`（PDO 单例）操作，禁止直接写连接
-- ✅ **本脚本已与项目实际运行库结构同步**（7 张表逐字段校验通过）
+- ✅ **本脚本已与项目实际运行库结构同步**（8 张表逐字段校验通过）
 
 ## 表结构
 
@@ -100,7 +100,12 @@
 | created_at / updated_at | DATETIME | 创建 / 更新时间 |
 | extra_field1 / extra_field2 | VARCHAR(200) | 预留扩展字段 |
 
-索引：`order_no` UNIQUE、`idx_user`、`idx_order_no`、`idx_user_id`；外键 `user_id → users.id ON DELETE CASCADE`
+索引：`order_no` UNIQUE、`idx_user`、`idx_order_no`、`idx_user_id`、**`idx_status_created`(status, created_at)**；外键 `user_id → users.id ON DELETE CASCADE`
+
+> **`idx_status_created` 是给「超时未支付订单的懒清理」用的**：
+> 那个清理要按 `status = '0' AND created_at < 某时刻` 筛选（见 `core/OrderExpiry.php`），
+> 没有这个索引就是全表扫描；加上之后该查询走 `type=range`。
+> 单用户维度的清理还能同时用上 `idx_user`(user_id)。
 
 **状态取值**：`0` 待支付 / `1` 已支付 / `2` 已完成 / `3` 已取消（状态流转见 [api.md](api.md)）
 
@@ -138,6 +143,32 @@
 
 - 注册时 `register.php` 用 `SELECT ... FOR UPDATE` 加行锁读取该值并 +1，从而分配从 **10001** 起的用户 ID（防并发重复）。
 - 初始数据：`('user_id', 10000)`，因此第一个注册用户的 ID 为 10001。
+
+### 8. ai_rate_limit（AI 接口限流计数表）
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| id | INT UNSIGNED PK AI | 自增主键 |
+| bucket_key | VARCHAR(120) | 限流标识：`uid:10004` / `ip:1.2.3.4` / `global` |
+| window_start | INT UNSIGNED | 窗口起点（Unix 时间戳，按窗口长度对齐） |
+| hits | INT UNSIGNED | 本窗口内累计请求次数 |
+| updated_at | DATETIME | 更新时间 |
+
+索引：`uniq_bucket_window`(bucket_key, window_start) **唯一**、`idx_window`(window_start)
+
+- **唯一索引是关键**：`INSERT ... ON DUPLICATE KEY UPDATE hits = hits + 1`
+  靠它一条语句完成「不存在就插入、存在就自增」，
+  换成「先 SELECT 判断再 UPDATE」在并发下会漏计数。
+- **固定窗口计数**：window_start 按窗口长度向下取整对齐
+  （分钟窗口都是整分钟、天窗口都是整天的零点，以 Unix 时间戳对齐，不依赖服务器时区）。
+- **无外键**：刻意与业务表解耦，删用户/订单都不会牵动它，清理也简单。
+- **过期行由代码定期清理**（不是定时任务）：`core/AiRateLimit.php` 里
+  平均每 50 次请求触发一次删除，保留 2 天。
+  之所以不做成 cron，是因为这个项目跑在 phpstudy 上，没有可靠的定时任务保证。
+
+**用途**：`ai/chat.php`、`ai/chat_stream.php`、`dish/recommend.php` 三个接口
+每次调用都会真实消耗 DeepSeek 额度，限流是防止 API Key 被刷导致费用失控。
+限额常量在 `core/AiRateLimit.php` 顶部，改限额不需要动数据库。
 
 ## 关系图
 

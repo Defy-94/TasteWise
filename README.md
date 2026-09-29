@@ -10,11 +10,12 @@
 
 | 模块 | 功能说明 |
 | --- | --- |
-| 🏠 首页 | 菜品分类导航、菜品列表展示（价格/辣度/图片/描述）、AI 推荐入口、一键加入购物车 |
+| 🏠 首页 | 菜品分类导航、**菜品搜索（边打字边搜，同时匹配菜名与描述，菜名命中优先）**、菜品列表展示（价格/辣度/图片/描述）、AI 推荐入口、一键加入购物车、空结果友好提示 |
 | 🍲 菜品详情 | 大图、完整介绍、辣度与**已售份数**、**可调份数加购**、售完/已下架友好提示 |
 | 🛒 购物车 | 购物车列表、加入/移除商品、**数量调整（− / +，减到 0 即移除）**、订单备注、结算下单（含库存校验与扣减）、TabBar 件数角标 |
 | 📦 订单系统 | 下单（事务保证 + **原子扣减防超卖**）、**订单状态流转**（待支付 → 已支付 → 已完成 / 已取消）、取消自动回滚库存、**按状态筛选订单** |
-| 🤖 AI 助手 | 与 DeepSeek 大模型实时对话，动态注入当日菜单防止编造菜品、推荐结果生成可点击菜品卡片、**快捷提问**与「正在输入」提示 |
+| 🤖 AI 助手 | 与 DeepSeek 大模型实时对话，**流式输出（SSE，逐字显示，基础库不支持时自动回退）**，动态注入当日菜单防止编造菜品、推荐结果生成可点击菜品卡片、**快捷提问**与「正在输入」提示 |
+| 🛡️ 接口防护 | AI 接口**三层限流**（身份每分钟 / 身份每天 / 全站每天总量），防止 API Key 被刷导致费用失控；超限返回 `429` + `Retry-After`，成功时带剩余额度响应头 |
 | 👤 用户中心 | **微信一键登录**（首次登录自动建号，无需注册）、**订单各状态数量概览（点击直达筛选）**、个人信息编辑、最近订单 |
 | 🔐 登录鉴权 | 微信 `code2Session` 换取 openid + HMAC-SHA256 登录令牌，**防越权、防账号伪造** |
 | 🛠️ 管理后台 | 独立的 PHP 后台（`/admin/`）：订单管理（筛选/改状态/看明细）、菜品管理（增删改查、**上架下架**、行内改库存价格）、数据总览；**会话登录 + CSRF 防护 + 登录失败锁定** |
@@ -47,19 +48,23 @@ TasteWise/
 │   │   └── about/             #   关于
 │   ├── utils/
 │   │   ├── api.ts             #   HTTP 请求封装（BASE_URL 配置 + 令牌注入 + 401 处理）
+│   │   ├── error.ts           #   统一的错误文案提取与日志
+│   │   ├── sse.ts             #   AI 流式对话客户端（wx.request 分块接收 + SSE 解析）
+│   │   ├── sseParser.ts       #   SSE 文本流分帧（纯逻辑，可单测）
+│   │   ├── utf8.ts            #   跨分块的增量 UTF-8 解码（纯逻辑，可单测）
 │   │   ├── cartBadge.ts       #   购物车 TabBar 角标同步
 │   │   └── types.ts           #   全局 TS 类型定义
 │   ├── images/                #  TabBar 图标等静态资源
 │   ├── app.ts / app.json / app.wxss
 │   └── project.config.json    #   开发者工具项目配置
 ├── backend/                   # PHP 后端服务
-│   ├── api/                   # RESTful 接口（19 个）
+│   ├── api/                   # RESTful 接口（20 个）
 │   │   ├── category/          #   分类
 │   │   ├── dish/              #   菜品列表 / 详情 / AI 推荐
 │   │   ├── cart/              #   购物车（列表/加入/移除/改数量）
 │   │   ├── order/             #   订单（创建/列表/支付/取消/完成）
 │   │   ├── user/              #   用户（登录/资料/校验）
-│   │   └── ai/                #   AI 对话
+│   │   └── ai/                #   AI 对话（非流式 + SSE 流式）
 │   ├── admin/                 # 🛠️ 管理后台（浏览器访问 /admin/，PHP 服务端渲染）
 │   │   ├── login.php          #   管理员登录（会话 + CSRF + 失败锁定）
 │   │   ├── logout.php         #   退出（仅 POST）
@@ -72,10 +77,16 @@ TasteWise/
 │   ├── tools/                 # 🧰 命令行工具（不在浏览器里用，URL 直访被拒）
 │   │   └── admin_passwd.php   #   改管理员密码：交互式输入 → 写回配置 → 回读校验
 │   ├── core/                  # 核心封装层
-│   │   ├── DB.php             #   PDO 单例数据库操作类
-│   │   ├── Response.php       #   统一 JSON 返回格式
+│   │   ├── bootstrap.php      #   自动加载注册（入口只需引它一行）
+│   │   ├── DB.php             #   PDO 单例数据库操作类 + LIKE 转义
+│   │   ├── Request.php        #   请求入参读取（统一 trim/夹取/默认值）
+│   │   ├── Response.php       #   统一 JSON 返回格式 + 500 日志与脱敏
 │   │   ├── Auth.php           #   登录令牌签发与校验（鉴权入口）
+│   │   ├── DishRepo.php       #   ⭐ 菜品查询唯一入口（「在售」规则只在这里定义）
+│   │   ├── AiRateLimit.php    #   AI 接口限流（三层窗口，防 API 费用失控）
+│   │   ├── AiCards.php        #   AI 回复 → 推荐卡片（非流式与流式共用一份）
 │   │   ├── OrderStatus.php    #   ⭐ 订单状态机唯一实现（接口与后台共用）
+│   │   ├── OrderExpiry.php    #   超时未支付订单的自动取消（懒清理，归还库存）
 │   │   ├── WeChat.php         #   微信接口封装（code2Session）
 │   │   ├── DeepSeek.php       #   DeepSeek API 封装（提示词 + 动态菜单注入）
 │   │   └── AiReply.php        #   AI 回复文本中识别菜品（生成推荐卡片）
@@ -150,10 +161,14 @@ Windows 下更方便的方式：**双击项目根目录的 `启动管理后台.b
 ### 3. 前端（微信开发者工具）
 
 1. 打开 [微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)，导入 `frontend/` 目录。
-2. 在 `frontend/utils/api.ts` 中修改后端地址：
-   ```ts
-   const BASE_URL = 'http://localhost';   // 改成你的后端域名/IP
-   ```
+2. 后端地址**不用改代码**：`frontend/utils/api.ts` 里按运行环境自动选（见 `API_BASE_BY_ENV`）。
+   - **开发版**（开发者工具）默认用 `http://localhost`，开箱即用
+   - **真机调试**时手机上的 `localhost` 指的是手机自己，需要改成电脑的局域网 IP，例如 `http://192.168.1.5`。
+     不想改代码的话，在开发者工具控制台执行一句即可：
+     ```js
+     wx.setStorageSync('apiBaseUrl', 'http://192.168.1.5')   // 清掉：wx.removeStorageSync('apiBaseUrl')
+     ```
+   - **体验版 / 正式版**分别读 `trial` / `release` 两项配置，上线前填成你的测试与正式域名
 3. 若使用手机预览，请勾选开发者工具「详情 → 本地设置 → 不校验合法域名」。
 
 > 注意：本仓库未提交 `project.private.config.json`（微信开发者工具私有配置），clone 后首次打开会自动生成。
@@ -164,7 +179,7 @@ Windows 下更方便的方式：**双击项目根目录的 `启动管理后台.b
 | --- | --- |
 | [docs/README.md](docs/README.md) | 文档目录总览 |
 | [docs/architecture.md](docs/architecture.md) | 系统架构、鉴权设计、订单状态机与并发一致性 |
-| [docs/api.md](docs/api.md) | 全部 19 个接口的详细文档（含鉴权说明） |
+| [docs/api.md](docs/api.md) | 全部 20 个接口的详细文档（含鉴权说明、AI 限流与 SSE 事件格式） |
 | [docs/database.md](docs/database.md) | 数据库表结构设计 |
 | [docs/deployment.md](docs/deployment.md) | 本地部署与上线指南 |
 | [docs/git-guide.md](docs/git-guide.md) | Git/GitHub 仓库创建与上传指引 |
@@ -173,7 +188,10 @@ Windows 下更方便的方式：**双击项目根目录的 `启动管理后台.b
 
 - **接口鉴权**：除登录接口与公开数据接口外，所有接口都要求携带登录令牌；**用户身份一律取自令牌，客户端传的 `user_id` 会被忽略**，因此无法通过改参数操作他人购物车、订单或资料。资源类接口（改数量、删除购物车、订单支付/取消/完成）还会校验资源归属。
 - **管理后台独立鉴权**：后台不复用小程序令牌，而是独立的会话登录（专用 Cookie `TWSESSID`，HttpOnly + SameSite=Lax + 仅 `/admin` 路径有效）。密码以 bcrypt 哈希存储，登录成功与退出时都会更换会话 ID（防会话固定攻击），连续失败 5 次锁定 5 分钟（按 IP 计数，清 Cookie 无法绕过）。
+- **AI 接口限流**：`ai/chat.php`、`ai/chat_stream.php`、`dish/recommend.php` 每次调用都真实消耗 DeepSeek 额度，因此做了三层限流（身份每分钟、身份每天、全站每天总量）。**先自增再判断**，被拒绝的请求也计数，攻击者无法靠重试绕过；计数用 `INSERT ... ON DUPLICATE KEY UPDATE` 原子自增，并发下不会漏计。
+- **AI 对话长度上限**：客户端传来的 `history` 会在服务端被清洗 —— **只放行 `user` / `assistant` 角色**（否则可以塞 `system` 消息覆盖「小味」的身份约束，属于提示词注入），并限制条数、单条长度与合计长度（第 N 轮要重发前 N-1 轮，成本是 O(N²)，不限制会让一次闲聊烧掉大量额度，而且迟早超出模型上下文窗口直接报错）。
 - **后台写操作防护**：所有改变数据的操作一律 POST + 一次性 CSRF 令牌校验；后台页面输出全部经过 HTML 转义（防存储型 XSS —— 菜品名、订单备注都可能被塞入脚本）。
+- **错误信息不泄露内部细节**：500 响应走 `Response::serverError()` —— 完整细节（含 SQL 报错、文件路径）**始终写入服务器错误日志**，但只对**本机回环地址**的请求回传；外部请求只得到一句通用提示。避免把表结构、列名这类信息告诉调用方。
 - **敏感配置**：`backend/config/` 下的 `apikey.php`（DeepSeek 密钥）、`database.php`（数据库密码）、`security.php`（令牌签名密钥）、`wechat.php`（小程序 AppSecret）、`admin.php`（管理员账号）均已加入 `.gitignore` **不会上传**；仓库中提供对应的 `.example` 模板，克隆后自行填写。
 - `frontend/project.private.config.json`（开发者工具私有配置）同样被忽略。
 - `backend/phpMyAdmin4.8.5/` 为 phpstudy 自带的第三方数据库管理工具，不属于项目代码，已忽略不提交。
@@ -184,8 +202,10 @@ Windows 下更方便的方式：**双击项目根目录的 `启动管理后台.b
   4. `core/DeepSeek.php` 与 `core/WeChat.php` 中 `CURLOPT_SSL_VERIFYPEER` 恢复为 `true`；
   5. `Response.php` 中的 CORS `Access-Control-Allow-Origin: *` 收紧为具体域名；
   6. 订单支付接入微信支付（当前 `order/pay.php` 为模拟支付，详见 [docs/api.md](docs/api.md)）；
-  7. 为 AI 接口增加限流，防止 API Key 被刷产生费用；
-  8. 启用 HTTPS。
+  7. **关闭 PHP 的错误回显**：`display_errors` 必须设为 `Off`、同时 `log_errors` 设为 `On`（本地 phpstudy 默认是 `display_errors=1`，上线后任何 PHP 警告都会把**文件绝对路径、SQL 片段**直接吐给客户端）；
+  8. **按实际用户量重新评估 AI 限流阈值**（`core/AiRateLimit.php` 顶部常量，尤其是全站每日总量 —— 它直接决定一天最多花多少 AI 费用）；
+  9. 按实际用户量评估**待支付订单超时时间**（`core/OrderExpiry.php` 的 `TIMEOUT_MINUTES`，默认 15 分钟）；
+  10. 启用 HTTPS。
 
 ## 📄 License
 
