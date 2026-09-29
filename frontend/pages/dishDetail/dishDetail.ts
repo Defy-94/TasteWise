@@ -16,6 +16,7 @@
 import { get, post } from '../../utils/api';
 import { DishDetail } from '../../utils/types';
 import { refreshCartBadge } from '../../utils/cartBadge';
+import { errorMessage, logError } from '../../utils/error';
 
 /** 辣度文字：0 不显示，1-5 显示对应数量的辣椒 */
 function buildSpicyText(level: number): string {
@@ -58,7 +59,9 @@ Page({
     this.setData({ loading: true, loadError: '' });
 
     try {
-      const dish = await get<DishDetail>('/api/dish/detail.php', { id: dishId });
+      // silentError：本页会把失败原因渲染成持续的「错误态 + 重新加载」，
+      // 请求层再弹一次 toast 就是同一件事提示两遍
+      const dish = await get<DishDetail>('/api/dish/detail.php', { id: dishId }, { silentError: true });
 
       this.setData({
         dish,
@@ -73,10 +76,12 @@ Page({
       wx.setNavigationBarTitle({ title: dish.name });
 
     } catch (err: any) {
+      logError('加载菜品详情失败', err);
+
       // 后端在下架/不存在时返回 404，msg 里已写明原因，直接展示给顾客
       this.setData({
         loading: false,
-        loadError: err && err.msg ? err.msg : '菜品加载失败，请稍后重试',
+        loadError: errorMessage(err, '菜品加载失败，请稍后重试'),
       });
     }
   },

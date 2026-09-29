@@ -1,6 +1,14 @@
 /* pages/myOrders/myOrders.wxss */
 
-.container {
+/* 分页状态提示（触底加载时显示） */
+.list-footer {
+    text-align: center;
+    padding: 30rpx 0 40rpx;
+    font-size: 24rpx;
+    color: #aaa;
+  }
+  
+  .container {
     min-height: 100vh;
     background: #f5f5f5;
     padding: 0 0 20rpx;

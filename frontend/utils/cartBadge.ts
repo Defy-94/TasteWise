@@ -57,11 +57,11 @@ async function refreshCartBadge() {
   }
 
   try {
-    const list = await get<CartItem[]>('/api/cart/list.php', {}, true);
+    const list = await get<CartItem[]>('/api/cart/list.php', {}, { silent401: true, silentError: true });
     const count = (list || []).reduce((sum, item) => sum + Number(item.quantity), 0);
     setCartBadge(count);
   } catch (e) {
-    // 静默失败：角标不是关键功能
+    // 静默失败：角标不是关键功能，不该弹提示打扰用户
   }
 }
 

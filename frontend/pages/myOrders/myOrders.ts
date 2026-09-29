@@ -10,12 +10,16 @@
  */
 import { get, post, getToken } from '../../utils/api';
 import { Order, OrderStatusMap } from '../../utils/types';
+import { errorMessage, logError } from '../../utils/error';
 
 // 订单状态常量（与数据库 orders.status 一致）
 const STATUS_PENDING   = 0;   // 待支付
 const STATUS_PAID      = 1;   // 已支付
 const STATUS_COMPLETED = 2;   // 已完成
 const STATUS_CANCELLED = 3;   // 已取消
+
+/** 每页加载多少条订单（上拉加载时按这个粒度追加） */
+const PER_PAGE = 10;
 
 /**
  * 筛选标签
@@ -45,6 +49,10 @@ Page({
     loading: false,
     filters: FILTERS,
     activeStatus: -1,                 // 当前筛选：-1 全部 / 0-3 具体状态
+    page: 1,                          // 已加载到第几页
+    hasMore: true,                    // 是否还有下一页（触底时据此决定要不要继续加载）
+    loadingMore: false,               // 是否正在上拉加载（防止重复触发）
+    loadError: '',                    // 加载失败原因（非空时显示错误态而不是"还没有订单"）
   },
 
   /**
@@ -68,7 +76,8 @@ Page({
     }
 
     this.setData({ needLogin: false });
-    this.loadOrders(this.data.activeStatus);
+    // 每次进入页面都从第 1 页重新加载：期间可能刚下过单或改过状态
+    this.loadOrders(this.data.activeStatus, 1);
   },
 
   /**
@@ -80,28 +89,45 @@ Page({
     if (isNaN(status) || status === this.data.activeStatus) return;
 
     this.setData({ activeStatus: status });
-    this.loadOrders(status);
+    // 换筛选条件相当于换了一份列表，必须从第 1 页重新开始
+    this.loadOrders(status, 1);
+  },
+
+  /** 触底加载下一页（配合 wxml 外层容器与 onReachBottom） */
+  onReachBottom() {
+    if (!this.data.hasMore || this.data.loadingMore || this.data.loading) {
+      return;
+    }
+
+    this.loadOrders(this.data.activeStatus, this.data.page + 1, true);
   },
 
   /**
-   * 加载订单列表
-   * 接口：GET /api/order/list.php?status=2（不传 status 即返回全部）
-   * 
-   * @param status -1 表示不筛选；0-3 表示按状态筛选
+   * 加载订单列表（分页）
+   * 接口：GET /api/order/list.php?status=2&page=1&per_page=10
+   *
+   * @param status     -1 表示不筛选；0-3 表示按状态筛选
+   * @param page       要加载第几页（从 1 开始）
+   * @param append     true 表示追加到现有列表（上拉加载），false 表示替换
+   *
+   * 判断「还有下一页」用的是「本页返回条数 == per_page」——
+   * 后端刻意保持返回数组（而不是 {list,total}），所以只能这样判断。
    */
-  async loadOrders(status: number = -1) {
-    this.setData({ loading: true });
+  async loadOrders(status: number = -1, page: number = 1, append: boolean = false) {
+    const perPage = PER_PAGE;
+
+    this.setData(append ? { loadingMore: true } : { loading: true });
 
     try {
-      const params: any = {};
+      const params: any = { page: page, per_page: perPage };
       if (status >= 0) {
         params.status = status;
       }
 
-      const orders = await get<OrderView[]>('/api/order/list.php', params);
+      const list = await get<OrderView[]>('/api/order/list.php', params, { silentError: true });
 
       // 整理状态：统一为数字，并计算当前状态可执行哪些操作
-      orders.forEach((o) => {
+      list.forEach((o) => {
         o.status = Number(o.status);
         o.status_text = o.status_text || OrderStatusMap[o.status] || '未知';
         o.can_pay      = o.status === STATUS_PENDING;
@@ -109,15 +135,35 @@ Page({
         o.can_complete = o.status === STATUS_PAID;
       });
 
+      const orders = append ? this.data.orders.concat(list) : list;
+
       this.setData({
         orders,
         isEmpty: orders.length === 0,
+        loadError: '',
+        page,
+        hasMore: list.length >= perPage,
       });
     } catch (err) {
-      console.error('加载订单失败：', err);
+      logError('加载订单失败', err);
+
+      // 关键：把「加载失败」和「一单都没有」区分开 ——
+      // 否则网络一断，用户看到的是「还没有订单」，会以为自己的订单丢了
+      // 上拉加载失败时不要清空已有列表，只停止继续加载
+      this.setData({
+        orders: append ? this.data.orders : [],
+        isEmpty: append ? this.data.isEmpty : true,
+        loadError: errorMessage(err, '订单加载失败，请检查网络后重试'),
+        hasMore: false,
+      });
     } finally {
-      this.setData({ loading: false });
+      this.setData({ loading: false, loadingMore: false });
     }
+  },
+
+  /** 加载失败后重新加载 */
+  onRetryLoad() {
+    this.loadOrders(this.data.activeStatus, 1);
   },
 
   /**
@@ -151,8 +197,9 @@ Page({
       wx.hideLoading();
       console.error('订单操作失败：', err);
     } finally {
-      // 无论成功失败都刷新列表，保证状态与后端一致
-      this.loadOrders(this.data.activeStatus);
+      // 无论成功失败都刷新列表，保证状态与后端一致。
+      // 从第 1 页开始：状态变了之后，这笔订单在当前筛选下可能已经不该出现
+      this.loadOrders(this.data.activeStatus, 1);
     }
   },
 

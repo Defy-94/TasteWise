@@ -7,6 +7,14 @@
     <button class="login-btn" bindtap="onGoLogin">去登录</button>
   </view>
 
+  <!-- 加载失败提示（必须排在「空购物车」前面：
+       否则网络一断，用户看到的是「购物车空空如也」，以为自己的菜没了） -->
+  <view wx:elif="{{loadError}}" class="empty-cart">
+    <text class="empty-icon">⚠️</text>
+    <text class="empty-text">{{loadError}}</text>
+    <button class="login-btn" bindtap="onRetryLoad">重新加载</button>
+  </view>
+
   <!-- 空购物车提示 -->
   <view wx:elif="{{isEmpty}}" class="empty-cart">
     <text class="empty-icon">🛒</text>

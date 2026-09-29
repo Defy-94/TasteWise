@@ -73,11 +73,13 @@
       <view wx:if="{{item.role === 'user'}}" class="user-avatar">👤</view>
     </view>
 
-    <!-- 「正在输入」气泡：替代模态 loading，聊天期间界面不会被遮罩锁住 -->
-    <view wx:if="{{sending}}" id="msg-typing" class="msg-item ai-msg">
+    <!-- 「正在输入」/「流式输出中」气泡：替代模态 loading，聊天期间界面不会被遮罩锁住
+         有 streamingText 时直接显示正在生成的文字，否则显示三点动画 -->
+    <view wx:if="{{sending || streamingText}}" id="msg-typing" class="msg-item ai-msg">
       <view class="ai-avatar">🤖</view>
       <view class="msg-body">
-        <view class="msg-bubble typing">
+        <text wx:if="{{streamingText}}" class="msg-bubble" user-select="true">{{streamingText}}</text>
+        <view wx:else class="msg-bubble typing">
           <view class="dot"></view>
           <view class="dot"></view>
           <view class="dot"></view>

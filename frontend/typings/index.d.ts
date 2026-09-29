@@ -19,6 +19,22 @@ declare namespace WechatMiniprogram {
       header: Record<string, string>;
       cookies?: string[];
     }
+
+    /** onChunkReceived 回调的入参：本次收到的分块数据 */
+    interface OnChunkReceivedCallbackResult {
+      /** 分块数据。注意它的边界是 TCP 层面的，和字符边界无关（见 utils/utf8.ts） */
+      data: ArrayBuffer;
+    }
+
+    /**
+     * wx.request 的返回值（请求任务对象）
+     * 只有开启 enableChunked 后，onChunkReceived 才会真正回调
+     */
+    interface RequestTask {
+      abort(): void;
+      onChunkReceived(callback: (result: OnChunkReceivedCallbackResult) => void): void;
+      offChunkReceived(callback?: (result: OnChunkReceivedCallbackResult) => void): void;
+    }
   
     interface RequestOption {
       url: string;
@@ -106,6 +122,19 @@ declare namespace WechatMiniprogram {
       success?: (res: GeneralCallbackResult) => void;
       fail?: (res: GeneralCallbackResult) => void;
       complete?: (res: GeneralCallbackResult) => void;
+    }
+
+    /**
+     * 小程序账号信息（wx.getAccountInfoSync 的返回值）
+     * 用它判断当前跑在开发版 / 体验版还是正式版，从而决定后端地址
+     */
+    interface AccountInfo {
+      miniProgram: {
+        appId: string;
+        /** 运行环境：develop 开发版 / trial 体验版 / release 正式版 */
+        envVersion: 'develop' | 'trial' | 'release';
+        version: string;
+      };
     }
   
     interface NavigateToOption {
@@ -195,7 +224,8 @@ declare namespace WechatMiniprogram {
   }
 
   declare var wx: {
-    request(option: WechatMiniprogram.RequestOption): void;
+    /** 发起网络请求，返回请求任务对象（开启 enableChunked 后可监听分块数据） */
+  request(option: WechatMiniprogram.RequestOption): WechatMiniprogram.RequestTask;
     showToast(option: WechatMiniprogram.ShowToastOption): void;
     showLoading(option: WechatMiniprogram.ShowLoadingOption): void;
     hideLoading(option?: { success?: (res: WechatMiniprogram.GeneralCallbackResult) => void }): void;
@@ -211,6 +241,8 @@ declare namespace WechatMiniprogram {
     removeTabBarBadge(option: WechatMiniprogram.RemoveTabBarBadgeOption): void;
     /** 动态设置导航栏标题（详情页用它显示菜名） */
     setNavigationBarTitle(option: WechatMiniprogram.SetNavigationBarTitleOption): void;
+    /** 获取小程序账号信息（含运行环境 envVersion，用于切换后端地址） */
+    getAccountInfoSync(): WechatMiniprogram.AccountInfo;
     getSystemInfoSync(): WechatMiniprogram.SystemInfo;
     setStorageSync(key: string, data: any): void;
     getStorageSync(key: string): any;

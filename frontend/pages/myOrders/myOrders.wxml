@@ -19,6 +19,14 @@
     <button class="login-btn" bindtap="onGoLogin">去登录</button>
   </view>
 
+  <!-- 加载失败提示（必须排在「空订单」前面：
+       否则网络一断，用户看到的是「暂无订单记录」，会以为自己的订单丢了） -->
+  <view wx:elif="{{loadError}}" class="empty">
+    <text class="empty-icon">⚠️</text>
+    <text class="empty-text">{{loadError}}</text>
+    <button class="login-btn" bindtap="onRetryLoad">重新加载</button>
+  </view>
+
   <!-- 空订单提示（按当前筛选给出不同文案） -->
   <view wx:elif="{{isEmpty}}" class="empty">
     <text class="empty-icon">📋</text>
@@ -56,6 +64,13 @@
         <view wx:if="{{item.can_pay}}" class="btn btn-primary" hover-class="btn-hover" data-id="{{item.id}}" bindtap="onPay">去支付</view>
         <view wx:if="{{item.can_complete}}" class="btn btn-primary" hover-class="btn-hover" data-id="{{item.id}}" bindtap="onComplete">确认完成</view>
       </view>
+    </view>
+
+    <!-- 分页状态：触底自动加载下一页（见 ts 的 onReachBottom） -->
+    <view class="list-footer">
+      <text wx:if="{{loadingMore}}">正在加载…</text>
+      <text wx:elif="{{hasMore}}">上拉加载更多</text>
+      <text wx:else>没有更多了</text>
     </view>
   </view>
 </view>

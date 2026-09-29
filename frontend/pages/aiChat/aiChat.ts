@@ -1,14 +1,17 @@
 /**
  * AI助手页面 - DeepSeek 智能点餐助手对话
- * 功能：对话、推荐菜品卡片、快捷加入购物车
- * 
+ * 功能：对话（流式输出）、推荐菜品卡片、快捷加入购物车
+ *
  * 【接口说明】
- *   - /api/ai/chat.php 为公开接口（无需登录）
+ *   - /api/ai/chat_stream.php 流式版（SSE），基础库 ≥ 2.20.2 时优先使用
+ *   - /api/ai/chat.php        非流式版，作为不支持分块接收时的回退
+ *   - 两者都用同一个 AI 额度，限流也是同一套（见 core/AiRateLimit.php）
  *   - 「加入购物车」需要登录，未登录时会由请求层统一跳转登录页
  */
 import { post } from '../../utils/api';
-import { ChatMessageExtended, AIChatResult } from '../../utils/types';
+import { ChatMessageExtended, ChatMessage, AIChatResult, RecommendDish } from '../../utils/types';
 import { refreshCartBadge } from '../../utils/cartBadge';
+import { streamChat, supportsChunked, StreamTask } from '../../utils/sse';
 
 // 开场白
 const WELCOME = '您好！我是 AI 点餐助手「小味」，可以帮您推荐菜品、解答食材口味问题。试试说「推荐几道辣菜」吧~';
@@ -21,12 +24,31 @@ const QUICK_QUESTIONS = [
   '有什么汤品推荐',
 ];
 
+/**
+ * 流式输出的刷新间隔（毫秒）
+ *
+ * 为什么要节流：AI 可能每几十毫秒就吐一个词，如果每来一个字就 setData 一次，
+ * 一次回复会触发上百次视图更新，在低端机上会明显卡顿。
+ * 合并成每 80ms 刷新一次，肉眼看上去依旧是"逐字蹦出来"的连续效果。
+ */
+const STREAM_FLUSH_MS = 80;
+
+/**
+ * 最多携带多少条历史消息（一问一答算 2 条）
+ *
+ * 为什么要有上限：第 N 轮请求要把前面 N-1 轮的内容全部重发一遍，
+ * 成本是 O(N²)，而且迟早会超出模型的上下文窗口、请求直接失败。
+ * 服务端也会再洗一遍（不能只信客户端），这里截断主要是为了少传数据。
+ */
+const MAX_HISTORY_MESSAGES = 12;
+
 Page({
   data: {
     messages: [] as ChatMessageExtended[],
     inputText: '',
     scrollToView: '',
-    sending: false,                 // AI 正在回复（显示"正在输入"气泡）
+    sending: false,                 // 等待 AI 首个响应（显示"正在输入"三点动画）
+    streamingText: '',              // 流式输出中的文本（非空时优先显示它）
     quickQuestions: QUICK_QUESTIONS,
   },
 
@@ -34,6 +56,11 @@ Page({
     this.setData({
       messages: [{ role: 'assistant', content: WELCOME }],
     });
+  },
+
+  onUnload() {
+    // 离开页面时中断流式请求，避免后台还在拉数据、回调打到已销毁的页面上
+    this.abortStream();
   },
 
   /** 点击「发送」按钮 / 键盘发送 */
@@ -55,64 +82,171 @@ Page({
 
   /**
    * 发送一条消息并获取 AI 回复
-   * 接口：POST /api/ai/chat.php
-   * 
-   * 说明：不再使用 wx.showLoading 的模态遮罩，而是显示「正在输入」气泡，
-   *      这样等待期间界面不会被锁住、用户也能继续看到历史对话。
+   *
+   * 优先走流式接口（回复逐字蹦出来），
+   * 基础库不支持分块接收时自动回退到非流式接口 —— 功能完全一样，只是没有逐字效果。
    */
   async sendText(text: string) {
     // 上一条还在回复中：忽略这次发送，避免并发请求
-    if (this.data.sending) return;
+    if (this.data.sending || this.data.streamingText) return;
 
-    const userMsg: ChatMessageExtended = { role: 'user', content: text };
-    const messages = [...this.data.messages, userMsg];
-
-    this.setData({
-      messages,
-      sending: true,
-      scrollToView: 'msg-typing',
-    });
-
-    try {
-      // 构建历史对话（排除第一条欢迎语）
-      const history = messages.slice(1).map(m => ({
+    // 历史对话 = 本条消息之前的消息（排除开场白，且只保留最近若干条）。
+    // ⚠️ 不要把本条消息也塞进 history：服务端会自己把 message 追加到对话末尾，
+    //    带上就会让同一句话出现两次（这是原来就存在的一个小毛病）。
+    const history: ChatMessage[] = this.data.messages
+      .slice(1)
+      .slice(-MAX_HISTORY_MESSAGES)
+      .map((m) => ({
         role: m.role,
         content: m.content,
       }));
 
-      const result = await post<AIChatResult>('/api/ai/chat.php', {
-        message: text,
-        history: history,
-      });
+    const userMsg: ChatMessageExtended = { role: 'user', content: text };
 
-      const aiMsg: ChatMessageExtended = {
-        role: 'assistant',
-        content: result.reply,
-        recommendDishes: result.recommend_dishes || [],
-      };
+    this.setData({
+      messages: [...this.data.messages, userMsg],
+      sending: true,
+      streamingText: '',
+      scrollToView: 'msg-typing',
+    });
 
-      const newMessages = [...this.data.messages, aiMsg];
-
-      this.setData({
-        messages: newMessages,
-        sending: false,
-        scrollToView: 'msg-' + (newMessages.length - 1),
-      });
-    } catch (err) {
-      // 失败也要结束"正在输入"，并给用户一句明确回复，避免界面一直转圈
+    try {
+      if (supportsChunked()) {
+        await this.streamReply(text, history);
+      } else {
+        await this.requestReply(text, history);
+      }
+    } catch (err: any) {
       console.error('AI回复失败：', err);
+      this.failReply(err);
+    }
+  },
 
-      const failMsg: ChatMessageExtended = {
-        role: 'assistant',
-        content: '抱歉，我这边出了点小问题，请稍后再试一次~',
+  /**
+   * 流式获取回复
+   *
+   * 增量文本先写进 data.streamingText（单个字符串），结束后再作为一条正式消息追加。
+   * 不每次重建 messages 数组的原因：那会把整段对话反复发给视图层，
+   * 一次回复下来开销很大，低端机上明显卡。
+   */
+  streamReply(text: string, history: ChatMessage[]): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let streamed = '';
+      let lastFlushAt = 0;
+      let flushTimer: any = null;
+      let finished = false;
+
+      const cleanup = () => {
+        if (flushTimer) {
+          clearTimeout(flushTimer);
+          flushTimer = null;
+        }
+        this.streamTask = null;
       };
-      const newMessages = [...this.data.messages, failMsg];
 
-      this.setData({
-        messages: newMessages,
-        sending: false,
-        scrollToView: 'msg-' + (newMessages.length - 1),
+      this.streamTask = streamChat(text, history, {
+        onDelta: (delta) => {
+          if (finished) return;
+
+          streamed += delta;
+
+          const now = Date.now();
+
+          // 第一段立刻显示（让用户马上看到反馈），之后按间隔合并刷新
+          if (lastFlushAt === 0 || now - lastFlushAt >= STREAM_FLUSH_MS) {
+            if (flushTimer) {
+              clearTimeout(flushTimer);
+              flushTimer = null;
+            }
+            lastFlushAt = now;
+            this.setData({ streamingText: streamed, sending: false });
+            return;
+          }
+
+          if (!flushTimer) {
+            flushTimer = setTimeout(() => {
+              flushTimer = null;
+              lastFlushAt = Date.now();
+              this.setData({ streamingText: streamed });
+            }, STREAM_FLUSH_MS);
+          }
+        },
+
+        onDone: (payload) => {
+          if (finished) return;
+          finished = true;
+          cleanup();
+          this.appendReply(payload.reply || streamed, payload.recommend_dishes || []);
+          resolve();
+        },
+
+        onError: (msg) => {
+          if (finished) return;
+          finished = true;
+          cleanup();
+          reject(new Error(msg));
+        },
       });
+    });
+  },
+
+  /**
+   * 非流式回退：一次拿到完整回复
+   * 接口：POST /api/ai/chat.php
+   */
+  async requestReply(text: string, history: ChatMessage[]) {
+    const result = await post<AIChatResult>('/api/ai/chat.php', {
+      message: text,
+      history: history,
+    });
+
+    this.appendReply(result.reply, result.recommend_dishes || []);
+  },
+
+  /** 把 AI 回复作为一条正式消息追加进去，并结束「正在输入」状态 */
+  appendReply(reply: string, dishes: RecommendDish[]) {
+    const aiMsg: ChatMessageExtended = {
+      role: 'assistant',
+      content: reply,
+      recommendDishes: dishes,
+    };
+
+    const newMessages = [...this.data.messages, aiMsg];
+
+    this.setData({
+      messages: newMessages,
+      sending: false,
+      streamingText: '',
+      scrollToView: 'msg-' + (newMessages.length - 1),
+    });
+  },
+
+  /**
+   * 失败时的收尾：结束「正在输入」，并给用户一句明确的话，避免界面一直转圈
+   *
+   * 限流（429）、AI 服务异常这类后端已经给出可读原因的，直接转达；
+   * 其余情况用一句兜底话术，不把技术细节抛给顾客。
+   */
+  failReply(err?: any) {
+    const raw = err ? String((err && err.message) || (err && err.msg) || '') : '';
+
+    const explainable = raw !== '' && (
+      raw.indexOf('频繁') >= 0 ||
+      raw.indexOf('次数') >= 0 ||
+      raw.indexOf('上限') >= 0
+    );
+
+    this.appendReply(
+      explainable ? raw : '抱歉，我这边出了点小问题，请稍后再试一次~',
+      []
+    );
+  },
+
+  /** 中断当前流式请求（离开页面时调用） */
+  abortStream() {
+    if (this.streamTask) {
+      this.streamTask.abort();
+      this.streamTask = null;
     }
   },
 

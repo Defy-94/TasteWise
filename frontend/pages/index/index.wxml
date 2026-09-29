@@ -1,5 +1,25 @@
 <!-- 首页 - 菜品列表 -->
 <view class="container">
+  <!-- 菜品搜索：边打字边搜（防抖 350ms），回车立即出结果 -->
+  <view class="search-bar">
+    <input
+      class="search-input"
+      placeholder="搜索菜名，如 汤 / 鸡丁 / 辣"
+      value="{{searchKeyword}}"
+      confirm-type="search"
+      bindinput="onSearchInput"
+      bindconfirm="onSearchConfirm"
+    />
+    <!-- 有内容时才显示清空按钮 -->
+    <view
+      wx:if="{{searchKeyword}}"
+      class="search-clear"
+      hover-class="search-clear-hover"
+      hover-stay-time="60"
+      bindtap="onClearSearch"
+    >✕</view>
+  </view>
+
   <!-- AI推荐搜索栏 -->
   <view class="ai-search-bar">
     <input 
@@ -46,6 +66,36 @@
         </view>
       </view>
     </view>
+  </view>
+
+  <!-- 加载失败：必须和「空结果」区分开，
+       否则网络一断用户看到的是「该分类下暂时没有菜品」，会以为店里没菜 -->
+  <view wx:if="{{loadError}}" class="dish-empty">
+    <view class="dish-empty-icon">⚠️</view>
+    <view class="dish-empty-text">{{loadError}}</view>
+    <view
+      class="dish-empty-btn"
+      hover-class="dish-empty-btn-hover"
+      hover-stay-time="60"
+      bindtap="onRetryLoad"
+    >重新加载</view>
+  </view>
+
+  <!-- 空结果提示 -->
+  <!-- 要区分「搜不到」和「这个分类下本来就没菜」两种情况，
+       否则用户面对一片空白，不知道是自己搜错了还是店里确实没有 -->
+  <view wx:elif="{{!loadingDishes && dishes.length === 0}}" class="dish-empty">
+    <view class="dish-empty-icon">🔍</view>
+    <view class="dish-empty-text">
+      {{searchKeyword ? '没有找到与「' + searchKeyword + '」相关的菜品' : '该分类下暂时没有菜品'}}
+    </view>
+    <view
+      wx:if="{{searchKeyword}}"
+      class="dish-empty-btn"
+      hover-class="dish-empty-btn-hover"
+      hover-stay-time="60"
+      bindtap="onClearSearch"
+    >清空搜索</view>
   </view>
 
   <!-- AI推荐弹窗 -->

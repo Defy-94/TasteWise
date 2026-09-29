@@ -8,6 +8,7 @@
 import { get, post, getToken } from '../../utils/api';
 import { CartItem } from '../../utils/types';
 import { setCartBadge } from '../../utils/cartBadge';
+import { errorMessage, logError } from '../../utils/error';
 
 Page({
   data: {
@@ -17,6 +18,7 @@ Page({
     needLogin: false,     // 未登录时显示登录提示
     updating: false,      // 数量调整中：防止快速连点导致并发请求乱序
     remark: '',           // 订单备注（结算时提交给后端）
+    loadError: '',        // 加载失败原因（非空时显示错误态而不是"购物车为空"）
   },
 
   onShow() {
@@ -41,8 +43,11 @@ Page({
    * 接口：GET /api/cart/list.php（用户身份由令牌决定）
    */
   async loadCart() {
+    this.setData({ loadError: '' });
+
     try {
-      const list = await get<CartItem[]>('/api/cart/list.php');
+      // silentError：加载失败时本页会渲染错误态，请求层不必再弹一次提示
+      const list = await get<CartItem[]>('/api/cart/list.php', {}, { silentError: true });
       const total = list.reduce((sum, item) => sum + item.price * item.quantity, 0);
       this.setData({
         cartList: list,
@@ -54,8 +59,22 @@ Page({
       const count = list.reduce((sum, item) => sum + Number(item.quantity), 0);
       setCartBadge(count);
     } catch (err) {
-      console.error('加载购物车失败：', err);
+      logError('加载购物车失败', err);
+
+      // 关键：把「加载失败」和「购物车为空」区分开 ——
+      // 原来两种情况都是购物车空着，用户无法判断是没加过菜还是网络坏了
+      this.setData({
+        cartList: [],
+        totalPrice: 0,
+        isEmpty: true,
+        loadError: errorMessage(err, '购物车加载失败，请检查网络后重试'),
+      });
     }
+  },
+
+  /** 加载失败后重新加载 */
+  onRetryLoad() {
+    this.loadCart();
   },
 
   /**
