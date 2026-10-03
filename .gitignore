@@ -46,3 +46,6 @@ Thumbs.db
 *.cache
 npm-debug.log*
 yarn-error.log*
+
+# 数据库备份（含真实数据，绝不入库）
+backup/
