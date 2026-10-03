@@ -193,6 +193,15 @@ Page({
    */
   async onAddToCart(e: any) {
     const dishId = e.currentTarget.dataset.id;
+
+    // 防御性检查：视图层已经把售罄的菜换成不可点的「已售完」，
+    // 这里再拦一道，避免以后改版式时又漏掉（详情页也是同样的双重保险）
+    const dish = this.data.dishes.find((d) => d.id === Number(dishId));
+    if (dish && Number(dish.stock) <= 0) {
+      wx.showToast({ title: '该菜品已售完', icon: 'none' });
+      return;
+    }
+
     try {
       await post('/api/cart/add.php', {
         dish_id: dishId,
@@ -202,7 +211,7 @@ Page({
       // 同步底部购物车角标
       refreshCartBadge();
     } catch (err) {
-      console.error('加入购物车失败：', err);
+      logError('加入购物车失败', err);
     }
   },
 

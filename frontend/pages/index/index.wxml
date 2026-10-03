@@ -62,7 +62,17 @@
           <!-- 按钮：加入购物车，绑定后端接口 POST /api/cart/add.php -->
           <!-- 加入购物车：用 view 而非 button（button 自带块级默认宽度，容易溢出/占满整行） -->
           <!-- 用 catchtap 而非 bindtap：阻止冒泡到卡片，否则会同时跳转详情页 -->
-          <view class="add-cart-btn" hover-class="add-cart-btn-hover" hover-stay-time="80" data-id="{{item.id}}" catchtap="onAddToCart">加入购物车</view>
+          <!-- 售罄时换成不可点的「已售完」，与菜品详情页保持一致：
+               否则顾客要一路点到结算才会被"库存不足"拦下 -->
+          <view
+            wx:if="{{item.stock > 0}}"
+            class="add-cart-btn"
+            hover-class="add-cart-btn-hover"
+            hover-stay-time="80"
+            data-id="{{item.id}}"
+            catchtap="onAddToCart"
+          >加入购物车</view>
+          <view wx:else class="add-cart-btn add-cart-btn-disabled">已售完</view>
         </view>
       </view>
     </view>

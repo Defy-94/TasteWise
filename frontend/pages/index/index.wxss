@@ -213,6 +213,11 @@
     background: #e55a2b;
   }
   
+  /* 售罄：置灰且不可点（与菜品详情页的「已售完」保持一致） */
+  .add-cart-btn-disabled {
+    background: #ccc;
+  }
+  
   /* AI推荐弹窗 */
   .recommend-modal {
     position: fixed;
