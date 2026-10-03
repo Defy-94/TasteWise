@@ -81,8 +81,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `openid` (`openid`),
   UNIQUE KEY `idx_username` (`username`),
-  UNIQUE KEY `idx_phone` (`phone`),
-  KEY `idx_openid` (`openid`)
+  UNIQUE KEY `idx_phone` (`phone`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
 -- ---------- categories：菜品分类表 ----------
@@ -146,8 +145,6 @@ CREATE TABLE `orders` (
   `extra_field2` varchar(200) DEFAULT '' COMMENT '预留扩展字段2',
   PRIMARY KEY (`id`),
   UNIQUE KEY `order_no` (`order_no`),
-  KEY `idx_user` (`user_id`),
-  KEY `idx_order_no` (`order_no`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_status_created` (`status`, `created_at`),
   CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
@@ -165,6 +162,8 @@ CREATE TABLE `order_items` (
   `extra_field2` varchar(200) DEFAULT '' COMMENT '预留扩展字段2',
   PRIMARY KEY (`id`),
   KEY `idx_order` (`order_id`),
+  -- 给菜品详情页的「已售 N 份」用：按 dish_id 统计，没有它就得全表扫描
+  KEY `idx_dish` (`dish_id`),
   CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单明细表';
 
