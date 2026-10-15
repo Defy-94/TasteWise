@@ -1,9 +1,6 @@
 /**
- * 用户中心页面（「我的」）
- * 功能：个人信息展示与编辑、订单概览（各状态数量）、订单入口、退出登录
- * 
- * 【鉴权说明】用户身份完全由登录令牌决定（见 utils/api.ts），
- *            因此不再需要向接口传 user_id，也无法查看他人数据。
+ * 用户中心（「我的」）：个人信息展示与编辑、订单概览、退出登录
+ * 用户身份完全由登录令牌决定，不传 user_id
  */
 import { get, post, saveAuth, clearAuth } from '../../utils/api';
 import { UserInfo, Order, OrderStatusMap } from '../../utils/types';
@@ -38,10 +35,7 @@ Page({
     this.checkLoginStatus();
   },
 
-  /**
-   * 检查登录状态
-   * 先看本地缓存，再调用接口校验登录态是否仍有效
-   */
+  /** 检查登录状态：先看本地缓存，再调接口校验令牌是否仍有效 */
   async checkLoginStatus() {
     const cachedUser = wx.getStorageSync('userInfo');
 
@@ -90,11 +84,8 @@ Page({
   },
 
   /**
-   * 加载订单概览：各状态数量 + 最近一笔订单
-   * 接口：GET /api/order/list.php（不传 status 即返回全部）
-   * 
-   * 说明：接口一次性返回全部订单，因此各状态数量直接在前端统计，
-   *      不必为每个状态各发一次请求（省请求，也不会出现数量不一致）。
+   * 加载订单概览：GET /api/order/list.php（不传 status 返回全部）
+   * 接口一次返回全部订单，各状态数量在前端统计，避免多次请求与数量不一致
    */
   async loadOrderSummary() {
     try {
@@ -124,11 +115,7 @@ Page({
     }
   },
 
-  /**
-   * 格式化时间
-   * 入参：'2025-01-15 10:30:00'
-   * 返回：'2025-01-15 10:30'
-   */
+  /** 格式化时间：'2025-01-15 10:30:00' -> '2025-01-15 10:30' */
   formatTime(dateStr: string): string {
     if (!dateStr) return '';
     const date = new Date(dateStr.replace(/-/g, '/'));
@@ -145,14 +132,7 @@ Page({
     wx.navigateTo({ url: '/pages/login/login' });
   },
 
-  /**
-   * 跳转「我的订单」页
-   * 
-   * 支持从订单概览的数字直接带状态进入（data-status="0" → 只看待支付）：
-   *   /pages/myOrders/myOrders?status=0
-   * 
-   * 注意：myOrders 不是 tabBar 页面，必须用 navigateTo（switchTab 会静默失败）
-   */
+  /** 跳转「我的订单」页（可带 status 只看某状态）；myOrders 不是 tabBar 页，用 navigateTo */
   onGoMyOrders(e: any) {
     const raw = e && e.currentTarget ? e.currentTarget.dataset.status : undefined;
     const status = (raw === undefined || raw === null || raw === '') ? -1 : Number(raw);
@@ -197,10 +177,7 @@ Page({
     this.checkLoginStatus();
   },
 
-  /**
-   * 保存修改
-   * 接口：POST /api/user/update.php（只能修改当前登录用户自己的信息）
-   */
+  /** 保存修改：POST /api/user/update.php */
   async onSave() {
     if (!this.data.userInfo) return;
 

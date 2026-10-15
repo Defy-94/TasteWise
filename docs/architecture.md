@@ -64,13 +64,16 @@
 | 配置层 | `config/` | 数据库连接、DeepSeek Key、令牌签名密钥、微信 AppSecret、后台账号（⚠️ 敏感，不提交） |
 | 数据库脚本 | `sql/init.sql` | 建库建表 + 测试数据 |
 
-## 3. 请求流程（以「AI 推荐菜品」为例）
+## 3. 请求流程（以「AI 点餐助手对话」为例）
 
-1. 首页点击「AI 推荐」→ 输入口味偏好 → `POST /api/dish/recommend.php`
-2. 后端 `recommend.php` 从数据库读取全部菜品 → 调用 `DeepSeek::recommend($dishes, $preference)`
-3. `DeepSeek` 将菜品列表 JSON 注入提示词，请求大模型返回 `{"recommendations":[{"id","reason"}]}`
-4. 后端**过滤无效 ID**（只保留菜品表中真实存在的 ID，防止 AI 编造）
-5. 返回完整菜品信息 + `ai_reason` 推荐理由 → 前端弹窗展示
+1. 顾客在小程序里说「推荐几道辣菜」→ 前端 `POST /api/ai/chat_stream.php`（SSE 流式），
+   基础库不支持分块接收时回退到 `POST /api/ai/chat.php`
+2. 后端先做三层限流（`core/AiRateLimit.php`），再清洗 `history`（只放行 user/assistant 角色）
+3. `core/DeepSeek.php` 把**当日真实菜单**注入提示词（防止 AI 编造菜品），请求大模型流式返回
+4. 边收边转发给前端（逐字显示）；回复结束后 `core/AiCards.php`
+   从文本中识别出菜品，必要时兜底调用 `DeepSeek::recommend()` 拿到结构化推荐
+5. 返回 `{"reply": "...", "recommend_dishes": [...]}` → 对话页把小味切成
+   「开心」表情，并把推荐菜品渲染成可点击的卡片
 
 ## 4. AI 集成设计（核心亮点）
 
@@ -138,8 +141,8 @@
 
 - **openid 只信微信**：`core/WeChat.php` 封装 `code2Session`，openid 由微信服务器签发，客户端无法伪造。
   若直接信任客户端传来的 openid，等于「任何人知道别人的 openid 就能登录成对方账号」。
-- **登录即注册**：首次登录自动建号，因此不再需要单独的注册流程
-  （原 `register.php`、`login_phone.php` 已停用，原因见 [api.md](api.md)）。
+- **登录即注册**：首次登录自动建号，因此不存在单独的注册流程 ——
+  小程序里只有一个登录入口（微信一键登录）。
 - **令牌格式**：`base64url(payload) . base64url(HMAC-SHA256(payload, secret))`，
   payload 含 `uid / openid / iat / exp`，有效期 7 天。
 - **无状态**：服务端不存储会话，校验只需重算签名；修改 `config/security.php` 的
@@ -327,8 +330,8 @@ phpstudy 安装路径写死了**，换台电脑就失效。改成仓库里的脚
 
 ## 10. AI 接口限流（core/AiRateLimit.php）
 
-AI 接口的风险不是「数据泄露」而是「**费用失控**」：`ai/chat.php`、`ai/chat_stream.php`、
-`dish/recommend.php` 每次调用都真实消耗 DeepSeek 额度，而它们原本免登录、无次数限制 ——
+AI 接口的风险不是「数据泄露」而是「**费用失控**」：`ai/chat.php`、`ai/chat_stream.php`
+每次调用都真实消耗 DeepSeek 额度，而它们原本免登录、无次数限制 ——
 任何人写个循环就能把 API Key 的余额刷光。
 
 ### 三层同时生效
@@ -508,7 +511,6 @@ $cutoff = date('Y-m-d H:i:s', time() - 15 * 60);
 | --- | --- | --- |
 | `api/dish/list.php` | `is_on_sale = 1` | 正确（售完仍要展示） |
 | `api/dish/detail.php` | `d.is_on_sale = 1` | 正确 |
-| `api/dish/recommend.php` | `is_on_sale = 1` | ⚠️ **漏了库存条件** → 会把已售完的菜推荐给顾客 |
 | `api/ai/chat.php` | `stock > 0 AND is_on_sale = 1` | 正确 |
 | `api/ai/chat_stream.php` | `stock > 0 AND is_on_sale = 1` | 与上一行**逐字重复** |
 | `core/DeepSeek.php` | `d.stock > 0 AND d.is_on_sale = 1` | 正确 |
@@ -701,3 +703,48 @@ $stats    = admin_order_stats();              // 顶部总览（不受筛选影�
 同一秒创建的两笔订单顺序不固定，翻页时会出现「上一页出现过、下一页又出现一次」
 或整条被跳过。测试里专门造了同一秒的多笔订单来覆盖这一点
 （每页 3 条翻 5 页，验证无重复、无漏单）。
+
+
+---
+
+## 更新记录
+
+> 这里记录**已经落地**的改动。只写结果，不写过程。
+
+### 品牌与形象
+
+| 改动 | 说明 |
+| --- | --- |
+| 品牌命名 | 小程序与应用名统一为「**智味**」（TasteWise），AI 助手名为「**小味**」 |
+| 助手形象 | 新增 AI 点餐助手「小味」的完整形象体系（6 张状态差分 + 头像 + 指引立绘 + TabBar 轮廓图） |
+| 状态联动 | 对话页新增舞台区组件，小味的表情跟随对话状态切换：招呼 / 思考 / 开心 / 抱歉 / 道谢 / 待命 |
+| 交互反馈 | 点击小味会弹一下并立刻切换为开心表情，2 秒后收回原状态；支持连点重播 |
+| 形象露出 | 首页常驻推荐浮窗、菜品详情页指引立绘、空购物车引导、用户中心与关于页头像 |
+| 品牌配色 | 全站主色统一为 **#11B3D4**（小程序 + 管理后台），TabBar 图标同步重制；菜品价格等食欲相关信息保留暖色 |
+
+### 功能调整
+
+| 改动 | 说明 |
+| --- | --- |
+| 供应情况 | 不再展示具体份数，改为「**供应充足 / 供应紧张 / 已售完**」两档措辞（阈值见 `frontend/utils/supply.ts`） |
+| 首页 AI 推荐 | 移除「输入口味偏好 + AI 推荐按钮 + 结果弹窗」链路，改为常驻浮窗直接进入 AI 助手对话页 |
+| 关于页 | 新增「小味表情」横向滑动展示区块；顶部 logo 换为小味头像 |
+| 加载失败提示 | 图片与数据加载失败时统一使用小味形象 + 「加载失败」标题 + 具体原因 |
+| 登录页 | 顶部 logo 换为小味头像 |
+| 后台 | 顶栏与登录卡片加上小味头像；配色跟随品牌蓝 |
+
+### 接口调整
+
+| 改动 | 说明 |
+| --- | --- |
+| `POST /api/dish/recommend.php` | 已删除。首页推荐链路移除后前端不再调用；AI 对话页仍会通过 `core/AiCards.php` 兜底调用 `DeepSeek::recommend()`，推荐能力不受影响 |
+| `POST /api/user/login_phone.php` | 已删除。原实现仅凭手机号即可登录（账号接管风险），且前端一直未接入 |
+| `POST /api/user/register.php` | 已删除。改为微信一键登录，首次登录自动建号，不需要注册流程 |
+
+### 工程
+
+| 改动 | 说明 |
+| --- | --- |
+| 授权 | 新增 [LICENSE](../LICENSE)：允许学习/参考/二次开发，禁止商业使用 |
+| 素材规范 | 小味素材统一 600×600 透明底 PNG，按内容包围盒对齐，单张 ≤ 62KB |
+| 死代码清理 | 移除未被引用的类型、字段与接口，收敛不再使用的导出 |

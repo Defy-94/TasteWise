@@ -3,10 +3,7 @@
  * 管理后台登录页
  *
  * 安全要点：
- *   1. 会话级 CSRF 校验（防「登录 CSRF」：诱导他人登录成攻击者的账号）
- *   2. 登录失败次数锁定，见 lib/AdminAuth.php
- *   3. 登录成功后换会话ID（防会话固定攻击）
- *   4. 错误提示不区分「用户名错」与「密码错」，不帮攻击者确认用户名
+ * 1. 会话级 CSRF 校验（防「登录 CSRF」：诱导他人登录成攻击者的账号）
  */
 define('TW_ADMIN', true);
 require_once __DIR__ . '/lib/bootstrap.php';
@@ -57,7 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="login-card">
   <div class="login-brand">
     <div class="mark">🍽️</div>
-    <h1>TasteWise 管理后台</h1>
+    <img class="login-avatar" src="assets/xiaowei-avatar.png" alt="智味">
+      <h1>TasteWise 管理后台</h1>
     <p>智味 · AI 点餐系统运营入口</p>
   </div>
 

@@ -1,13 +1,10 @@
 <?php
 /**
  * 接口：修改个人信息（仅能修改自己的信息）
- * 请求地址：POST /api/user/update.php
+ *
  * 请求头：token: <登录令牌>
  * 入参JSON：{"nickname":"新昵称","phone":"138xxxx","address":"收货地址"}
- * 对应前端：用户中心页面"保存"按钮
- * 
- * 【鉴权说明】修改目标用户取自令牌，客户端传入的 user_id 一律忽略，
- *            因此无法通过修改参数篡改他人资料（防越权）。
+ * 请求地址：POST /api/user/update.php
  */
 require_once __DIR__ . '/../../core/bootstrap.php';
 

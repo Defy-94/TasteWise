@@ -6,33 +6,37 @@
     <text class="empty-hint">登录后即可使用购物车</text>
     <button class="login-btn" bindtap="onGoLogin">去登录</button>
   </view>
-
-  <!-- 加载失败提示（必须排在「空购物车」前面：
-       否则网络一断，用户看到的是「购物车空空如也」，以为自己的菜没了） -->
+  <!-- 失败态必须排在空购物车前面，否则断网时会被误认为"菜没了" -->
   <view wx:elif="{{loadError}}" class="empty-cart">
-    <text class="empty-icon">⚠️</text>
-    <text class="empty-text">{{loadError}}</text>
+    <image class="empty-fail" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
+    <text class="empty-text">加载失败</text>
+    <text class="empty-hint">{{loadError}}</text>
     <button class="login-btn" bindtap="onRetryLoad">重新加载</button>
   </view>
-
-  <!-- 空购物车提示：小味来指个路，别让这一页光秃秃的 -->
+  <!-- 空购物车：小味指引 + 去首页按钮 -->
   <view wx:elif="{{isEmpty}}" class="empty-cart">
-    <image
-      class="empty-pointing"
-      src="/assets/xiaowei/ui/xiaowei-pointing.png"
-      mode="aspectFit"
-      fade-in="{{true}}"
-    />
+    <view class="empty-pointing-wrap">
+      <image
+        class="empty-pointing"
+        src="/assets/xiaowei/ui/xiaowei-pointing.png"
+        mode="aspectFit"
+        fade-in="{{true}}"
+      />
+      <view class="empty-go-btn" hover-class="empty-go-btn-hover" hover-stay-time="60" bindtap="onGoHome">
+        <text class="empty-go-arrow">→</text>
+        <text>去首页挑菜</text>
+      </view>
+    </view>
     <text class="empty-text">购物车空空如也</text>
-    <text class="empty-hint">快去首页挑选美食吧</text>
+    <text class="empty-hint">挑几道喜欢的，小味帮你记着</text>
   </view>
 
   <!-- 购物车列表 -->
   <view wx:else class="cart-list">
     <view wx:for="{{cartList}}" wx:key="cart_id" class="cart-item">
-      <!-- 有图显示图，无图显示占位（项目内没有 default_dish.png，写死该路径会产生无效图片请求） -->
+  <!-- 无图时用小味占位（不要写死图片路径，那会产生无效请求） -->
       <image wx:if="{{item.image_url}}" class="item-img" src="{{item.image_url}}" mode="aspectFill" />
-      <view wx:else class="item-img img-ph">🍽️</view>
+      <image wx:else class="item-img img-ph-img" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
       <view class="item-info">
         <text class="item-name">{{item.name}}</text>
         <text class="item-desc">{{item.description}}</text>

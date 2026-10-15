@@ -1,17 +1,7 @@
 /**
- * 菜品详情页
- *
- * 对应后端接口：GET /api/dish/detail.php?id=x
+ * 菜品详情页：GET /api/dish/detail.php?id=x
  * 入口：首页菜品卡片、AI 助手推荐卡片
- *
- * 【为什么要有这个页面】
- *   首页卡片空间有限，只能放菜名、简介和价格；顾客在决定要不要点之前，
- *   通常还想看大图、完整介绍、辣度、已售份数、还剩多少份。
- *   详情页还给了一个可调份数的加购入口，比首页「一次加一份」更好用。
- *
- * 【下架处理】菜品被后台下架后，详情接口返回 404，
- *            页面进入错误态并显示后端给的原因（"菜品不存在或已下架"），
- *            这样从旧分享链接进来的顾客不会看到一个空白页。
+ * 下架菜品接口返回 404，页面进入错误态并显示后端给的原因，避免旧链接打开是空白页
  */
 import { get, post } from '../../utils/api';
 import { DishDetail } from '../../utils/types';
@@ -56,10 +46,7 @@ Page({
     this.loadDish(dishId);
   },
 
-  /**
-   * 拉取菜品详情
-   * 接口：GET /api/dish/detail.php?id=x
-   */
+  /** 拉取菜品详情：GET /api/dish/detail.php?id=x */
   async loadDish(dishId: number) {
     this.setData({ loading: true, loadError: '' });
 
@@ -119,10 +106,7 @@ Page({
     this.setData({ quantity: quantity + 1 });
   },
 
-  /**
-   * 加入购物车
-   * 对应后端接口：POST /api/cart/add.php
-   */
+  /** 加入购物车：POST /api/cart/add.php */
   async onAddToCart() {
     const dish = this.data.dish;
     if (!dish) {
@@ -162,10 +146,7 @@ Page({
     }
   },
 
-  /**
-   * 去购物车
-   * 购物车是 tabBar 页面，只能用 switchTab（用 navigateTo 会静默失败）
-   */
+  /** 去购物车：tabBar 页面只能用 switchTab */
   onGoCart() {
     wx.switchTab({ url: '/pages/cart/cart' });
   },

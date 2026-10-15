@@ -1,47 +1,11 @@
 <?php
 /**
  * 接口：DeepSeek AI 智能问答 · 流式版（SSE）
- * 请求地址：POST /api/ai/chat_stream.php
+ *
  * 入参JSON：{"message":"推荐几道辣菜","history":[]}
  * 返回：text/event-stream，逐段推送
- *
- * ============================================
- * 【为什么小程序要用这条链路，而不是原生 EventSource】
- *   微信小程序没有 EventSource，wx.request 也不支持真正的 SSE 解析。
- *   可行做法是 wx.request({ enableChunked: true }) + onChunkReceived
- *   —— 服务端仍然按 SSE 格式（text/event-stream）输出，客户端自己按
- *   「空行分隔事件」的规则解析。所以这个接口就是标准的 SSE，
- *   用浏览器 / curl 也能直接调试。
- * ============================================
- *
- * ============================================
- * 【事件格式】每个事件都是 data: 一行 JSON，以空行结束
- *
- *   data: {"type":"delta","text":"宫保"}      ← 增量文本，会来很多次
- *   data: {"type":"done","reply":"...","recommend_dishes":[...],"has_recommend":true}
- *   data: {"type":"error","msg":"..."}        ← 出错时只发这个
- *   data: [DONE]                              ← 结束标记（与 OpenAI 风格一致）
- *
- *   delta 只负责「显示得快」，推荐卡片要等全文出来才能确定
- *   （卡片是从完整回复里识别菜品名得到的，见 core/AiReply.php），
- *   所以卡片统一放在最后的 done 事件里。
- * ============================================
- *
- * ============================================
- * 【让输出真的是"流"的：三层缓冲都要关】
- *   1. PHP 自身的输出缓冲（php.ini 的 output_buffering）：用 ob_end_flush() 结束掉
- *   2. gzip 压缩（zlib.output_compression）：压缩算法天然要攒数据，必须关闭
- *   3. 反向代理的缓冲（nginx 的 proxy_buffering）：用 X-Accel-Buffering: no 关闭
- *   少关任何一层，用户都会看到「等好几秒，然后整段一次性蹦出来」，
- *   白做了流式。
- * ============================================
- *
- * ============================================
- * 【限流】与非流式接口共用同一套额度（core/AiRateLimit.php）——
- *        它们烧的是同一份 API 额度，分开计数等于给了双倍配额。
- *        注意：限流检查必须在切换到 SSE 输出之前完成，
- *        否则响应头已经发出去了，没法再返回 429 JSON。
- * ============================================
+ * 请求地址：POST /api/ai/chat_stream.php
+ * 它们烧的是同一份 API 额度，分开计数等于给了双倍配额。
  */
 require_once __DIR__ . '/../../core/bootstrap.php';
 

@@ -1,22 +1,9 @@
 <?php
 /**
- * DeepSeek AI API请求封装类
- * 
- * ============================================
- * 【DeepSeek密钥配置修改位置】
- * 修改 config/apikey.php 中的 deepseek_api_key 值
- * ============================================
- * 
- * ============================================
- * 【AI提示词自定义修改位置】
- * 修改 buildPrompt() 方法中的提示词内容
- * ============================================
- * 
- * 功能说明：
- * 1. 封装 DeepSeek API 的调用逻辑
- * 2. 动态从数据库读取菜品菜单，注入系统提示词
- * 3. 智能推荐菜品，过滤无效ID，防止AI编造
- * 4. 严格限制AI行为，防止幻觉（如声称已操作购物车）
+ * DeepSeek API 封装
+ * 密钥配置：config/apikey.php 的 deepseek_api_key
+ * 提示词修改入口：buildPrompt()
+ * 主要能力：动态菜单注入（防编造菜品）、结构化推荐（过滤无效 ID）、行为约束（防幻觉）
  */
 class DeepSeek
 {
@@ -35,16 +22,8 @@ class DeepSeek
     // 温度参数（0-1，越低越精准，越高越随机；0.5降低随机性减少幻觉）
     private $temperature = 0.5;
 
-    // ==================================================
-    // 对话长度上限
-    //
-    // 为什么必须有：第 N 轮请求要把前面 N-1 轮的内容全部重发一遍，
-    // 所以一次长对话的成本是 O(N²)。不限制的话，一次几十轮的闲聊
-    // 就能烧掉大量额度，而且迟早超出模型上下文窗口、请求直接失败。
-    //
-    // 注意：前端也会截断，但那只是"省流量"，不能当安全边界 ——
-    // 任何人都可以绕过小程序直接调接口，所以服务端必须自己再洗一遍。
-    // ==================================================
+    // 对话长度上限：第 N 轮要重发前 N-1 轮，成本 O(N²)，不限制会烧额度并超出上下文窗口。
+    // 前端也会截断但那只是省流量，不能当安全边界（可直接调接口），服务端必须自己洗一遍。
 
     /** 最多携带多少条历史消息（一问一答算 2 条） */
     const MAX_HISTORY_MESSAGES = 12;
@@ -60,23 +39,11 @@ class DeepSeek
 
     /**
      * 清洗并裁剪客户端传来的历史对话
-     *
-     * 做三件事：
-     *
-     * 1. 【安全】拒绝 system 角色
-     *    请求体里的消息会被拼在系统提示词**之后**。如果放行客户端传来的
-     *    {"role":"system", ...}，就等于让调用者覆盖「小味」的身份与行为约束 ——
-     *    典型的提示词注入，能让 AI 说出任何话、还顶着助手的名义返回。
-     *    所以只放行 user / assistant 两种角色。
-     *
-     * 2. 【成本与稳定性】限制条数与长度
-     *    见上面 MAX_HISTORY_* 常量的说明。
-     *
-     * 3. 【健壮性】丢掉结构不合法的项
-     *    防止脏数据把请求体搞成模型无法解析的形状。
+     * 只放行 user / assistant 角色（放行 system 等于允许覆盖小味的身份约束，
+     * 属于提示词注入）；同时限制条数与长度，并丢掉结构不合法的项
      *
      * @param mixed $history
-     * @return array 干净的 [['role'=>..., 'content'=>...], ...]
+     * @return array [['role'=>..., 'content'=>...], ...]
      */
     public static function sanitizeHistory($history)
     {
@@ -164,10 +131,9 @@ class DeepSeek
 
     /**
      * 发送对话请求
-     * 
-     * @param string $userMessage  用户消息
-     * @param array  $history      历史对话(可选) 格式:[['role'=>'user','content'=>'...'],...]
-     * @return array               返回AI回复
+     * @param string $userMessage 用户消息
+     * @param array  $history     历史对话 [['role'=>'user','content'=>'...'], ...]
+     * @return array AI 回复
      */
     public function chat($userMessage, $history = [])
     {
@@ -201,20 +167,13 @@ class DeepSeek
     }
 
     /**
-     * 流式对话：AI 吐一个字就转发一个字
+     * 流式对话：AI 吐一段就转发一段
+     * 非流式要等整段写完（2-5 秒），流式第一个字通常 1 秒内就到
      *
-     * ============================================
-     * 【为什么值得单独做一条链路】
-     *   非流式接口要等 AI 把整段话写完（通常 2-5 秒）才返回，
-     *   界面上只能干等。改成流式后第一个字通常在 1 秒内就到，
-     *   体感快很多 —— 这也是各家 AI 产品都默认流式的原因。
-     * ============================================
-     *
-     * @param string        $userMessage 用户消息
-     * @param array         $history     历史对话
-     * @param callable|null $onDelta     每收到一段增量文本就调用一次：function(string $delta): void
-     *
-     * @return array ['text' => 完整回复] 或 ['error' => '错误说明']
+     * @param string        $userMessage
+     * @param array         $history
+     * @param callable|null $onDelta function(string $delta): void
+     * @return array ['text'=>完整回复] 或 ['error'=>错误说明]
      */
     public function chatStream($userMessage, $history = [], $onDelta = null)
     {
@@ -245,22 +204,13 @@ class DeepSeek
 
     /**
      * 以流式方式请求 API，逐段回调
-     *
-     * ============================================
-     * 【实现要点】
-     *   1. 用 CURLOPT_WRITEFUNCTION 代替 CURLOPT_RETURNTRANSFER：
-     *      前者是「数据一到就交给我们」，后者是「攒齐了再给」，
-     *      用错任何一个流式都会退化成一次性返回。
-     *   2. 写回调必须返回收到的字节数。返回别的值（或什么都不返回）
-     *      cURL 会认为写入失败并中断连接 —— 这是最容易踩的坑。
-     *   3. TCP 分块边界和 SSE 事件边界完全无关：
-     *      一次回调可能拿到半行、也可能拿到好几行，
-     *      所以必须自己维护一个行缓冲，只处理完整的行，剩下的留到下次。
-     * ============================================
+     * 三个要点：用 CURLOPT_WRITEFUNCTION（而不是 RETURNTRANSFER，否则退化成一次性返回）；
+     * 写回调必须返回收到的字节数（否则 cURL 认为写入失败并中断连接）；
+     * TCP 分块边界与 SSE 事件边界无关，必须自己维护行缓冲、只处理完整的行
      *
      * @param array         $postData
      * @param callable|null $onDelta
-     * @return array ['text' => string] 或 ['error' => string]
+     * @return array ['text'=>string] 或 ['error'=>string]
      */
     private function requestApiStream($postData, $onDelta = null)
     {
@@ -355,11 +305,10 @@ class DeepSeek
     }
 
     /**
-     * 智能推荐菜品
-     * 
-     * @param array  $dishes      菜品列表（从数据库查询）
-     * @param string $preference  用户偏好描述
-     * @return array              推荐结果 {'recommendations': [{id, reason}]}
+     * 结构化推荐
+     * @param array  $dishes     菜品列表
+     * @param string $preference 用户偏好
+     * @return array {'recommendations': [{id, reason}]}
      */
     public function recommend($dishes, $preference = '')
     {
@@ -409,22 +358,15 @@ class DeepSeek
         return ['recommendations' => []];
     }
 
-    /**
-     * 动态获取菜单数据
-     * 从数据库读取所有在售菜品，按分类格式化文本
-     * 
-     * @return string 格式化后的菜单文本
-     */
+    /** 动态获取菜单文本（读取在售菜品并按分类格式化） */
     private function getDynamicMenu()
     {
         try {
             // 引入数据库操作类
             $db = DB::getInstance();
 
-            // 查询分类和菜品
-            // 只把「上架且还有库存」的菜品喂给 AI，否则 AI 会推荐顾客根本点不到的菜。
-            // 这条规则统一定义在 core/DishRepo.php，不要在这里另写一份 ——
-            // 之前正因为抄了多份，AI 推荐接口漏掉了库存条件。
+            // 只喂「上架且有库存」的菜，否则 AI 会推荐点不到的菜。
+            // 该规则统一定义在 core/DishRepo.php，不要在这里另写一份。
 
             $categories = $db->select('SELECT id, name FROM categories ORDER BY sort_order DESC');
             $dishes     = DishRepo::sellableList();
@@ -473,19 +415,11 @@ class DeepSeek
     }
 
     /**
-     * 构建系统提示词
-     * ============================================
-     * 【提示词修改入口】在此处自定义AI的系统提示词
-     * ============================================
-     * 
-     * 设计要点：
-     * 1. 明确身份定位：仅提供信息咨询，无操作权限
-     * 2. 严格行为限制：禁止声称已加入购物车/已下单等
-     * 3. 禁止编造菜品：只能推荐动态菜单中存在的菜品
-     * 4. 规定回复规范：简短、不重复价格、不假装执行操作
-     * 
+     * 构建系统提示词（提示词修改入口）
+     * 要点：明确「只提供咨询、无操作权限」；禁止声称已加购/已下单；只能推荐菜单里存在的菜
+     *
      * @param string $menuText 动态菜单文本
-     * @return string 完整的系统提示词
+     * @return string 系统提示词
      */
     private function buildPrompt($menuText)
     {
@@ -521,10 +455,8 @@ class DeepSeek
     }
 
     /**
-     * 实际发送API请求
-     * 
-     * @param array $postData  请求体数据
-     * @return array           响应数据（含error字段表示请求失败）
+     * 实际发送 API 请求
+     * @return array 响应数据（含 error 字段表示失败）
      */
     private function requestApi($postData)
     {

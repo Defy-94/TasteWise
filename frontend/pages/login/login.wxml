@@ -10,7 +10,7 @@
   <!-- 登录区域 -->
   <view class="form-section">
     <view class="brand">
-      <view class="brand-logo">🍽️</view>
+      <image class="brand-logo" src="/assets/xiaowei/ui/xiaowei-avatar.png" mode="aspectFit" />
       <view class="brand-name">智味 · AI 点餐</view>
       <view class="brand-desc">使用微信一键登录，安全快捷</view>
     </view>

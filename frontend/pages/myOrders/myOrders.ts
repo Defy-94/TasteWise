@@ -1,12 +1,6 @@
 /**
- * 我的订单页面
- * 功能：按状态筛选订单、支付/取消/完成订单
- * 
- * 【鉴权说明】请求自动携带登录令牌（见 utils/api.ts），
- *            未登录时页面提示登录，令牌过期会自动跳转登录页。
- * 
- * 【订单状态】0待支付 1已支付 2已完成 3已取消（-1 表示不筛选）
- *            后端已返回 status_text，本页仅根据 status 计算可执行操作。
+ * 我的订单页：按状态筛选、支付/取消/完成
+ * 订单状态 0待支付 1已支付 2已完成 3已取消，-1 表示不筛选
  */
 import { get, post, getToken } from '../../utils/api';
 import { Order, OrderStatusMap } from '../../utils/types';
@@ -21,11 +15,7 @@ const STATUS_CANCELLED = 3;   // 已取消
 /** 每页加载多少条订单（上拉加载时按这个粒度追加） */
 const PER_PAGE = 10;
 
-/**
- * 筛选标签
- * 注意：用 -1 表示「全部」而不是 null —— WXML 的 data-* 属性里 null 会被转成空字符串，
- *      用数字可以避免这种隐式转换带来的歧义。
- */
+/** 筛选标签：用 -1 表示「全部」而不是 null（data-* 里 null 会变成空字符串） */
 const FILTERS = [
   { label: '全部',   value: -1 },
   { label: '待支付', value: STATUS_PENDING },
@@ -55,10 +45,7 @@ Page({
     loadError: '',                    // 加载失败原因（非空时显示错误态而不是"还没有订单"）
   },
 
-  /**
-   * 支持从其他页面带状态进入，如：
-   *   wx.navigateTo({ url: '/pages/myOrders/myOrders?status=0' })
-   */
+  /** 支持带状态进入：/pages/myOrders/myOrders?status=0 */
   onLoad(options: any) {
     if (options && options.status !== undefined && options.status !== '') {
       const s = Number(options.status);
@@ -80,10 +67,7 @@ Page({
     this.loadOrders(this.data.activeStatus, 1);
   },
 
-  /**
-   * 切换筛选标签
-   * 纯前端筛选：后端接口支持 status 参数，无需重新设计数据
-   */
+  /** 切换筛选标签 */
   onFilterTap(e: any) {
     const status = Number(e.currentTarget.dataset.status);
     if (isNaN(status) || status === this.data.activeStatus) return;
@@ -103,15 +87,10 @@ Page({
   },
 
   /**
-   * 加载订单列表（分页）
-   * 接口：GET /api/order/list.php?status=2&page=1&per_page=10
-   *
-   * @param status     -1 表示不筛选；0-3 表示按状态筛选
-   * @param page       要加载第几页（从 1 开始）
-   * @param append     true 表示追加到现有列表（上拉加载），false 表示替换
-   *
-   * 判断「还有下一页」用的是「本页返回条数 == per_page」——
-   * 后端刻意保持返回数组（而不是 {list,total}），所以只能这样判断。
+   * 加载订单列表（分页）：GET /api/order/list.php?status=&page=&per_page=
+   * @param status -1 不筛选；0-3 按状态筛选
+   * @param append true 追加到现有列表（上拉加载），false 替换
+   * 后端返回的是数组而非 {list,total}，所以用「本页条数 == per_page」判断还有下一页
    */
   async loadOrders(status: number = -1, page: number = 1, append: boolean = false) {
     const perPage = PER_PAGE;
@@ -180,12 +159,7 @@ Page({
     });
   },
 
-  /**
-   * 执行订单状态流转操作
-   * @param url          接口地址（pay/cancel/complete）
-   * @param orderId      订单ID
-   * @param successText  成功提示文案
-   */
+  /** 执行订单状态流转：pay / cancel / complete */
   async doAction(url: string, orderId: number, successText: string) {
     wx.showLoading({ title: '处理中...', mask: true });
     try {
@@ -203,11 +177,7 @@ Page({
     }
   },
 
-  /**
-   * 支付订单
-   * 接口：POST /api/order/pay.php
-   * 说明：当前为模拟支付，正式环境应接入微信支付（见接口内注释）
-   */
+  /** 支付订单：POST /api/order/pay.php（当前为模拟支付） */
   async onPay(e: any) {
     const orderId = Number(e.currentTarget.dataset.id);
     if (!orderId) return;
@@ -218,11 +188,7 @@ Page({
     await this.doAction('/api/order/pay.php', orderId, '支付成功');
   },
 
-  /**
-   * 取消订单
-   * 接口：POST /api/order/cancel.php
-   * 说明：取消后已扣减的库存会自动恢复
-   */
+  /** 取消订单：POST /api/order/cancel.php（已扣减的库存会自动恢复） */
   async onCancel(e: any) {
     const orderId = Number(e.currentTarget.dataset.id);
     if (!orderId) return;
@@ -233,10 +199,7 @@ Page({
     await this.doAction('/api/order/cancel.php', orderId, '订单已取消');
   },
 
-  /**
-   * 确认订单完成（取餐/收货完成）
-   * 接口：POST /api/order/complete.php
-   */
+  /** 确认订单完成：POST /api/order/complete.php */
   async onComplete(e: any) {
     const orderId = Number(e.currentTarget.dataset.id);
     if (!orderId) return;

@@ -1,11 +1,10 @@
 <?php
 /**
  * 接口：获取购物车列表
- * 请求地址：GET /api/cart/list.php
+ *
  * 请求头：token: <登录令牌>
  * 对应前端：购物车页面
- * 
- * 【鉴权说明】只能查询自己的购物车，客户端传入的 user_id 一律忽略。
+ * 请求地址：GET /api/cart/list.php
  */
 require_once __DIR__ . '/../../core/bootstrap.php';
 

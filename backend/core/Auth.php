@@ -1,24 +1,12 @@
 <?php
 /**
- * 身份认证与登录令牌（Token）鉴权类
- * 
- * ============================================
- * 【功能说明】
- * 1. 登录成功后签发令牌（HMAC-SHA256 签名的自包含 Token，无需数据库存储）
- * 2. 接口通过 Auth::requireLogin() 校验令牌，从令牌中取得用户ID
- * 3. 从根本上杜绝「客户端传任意 user_id 即可操作他人数据」的越权漏洞
- * ============================================
- * 
- * ============================================
- * 【密钥配置】config/security.php 中的 token_secret
- * ============================================
- * 
+ * 登录令牌的签发与校验（HMAC-SHA256 签名的自包含 Token，服务端免存储）
+ * 接口用 Auth::requireLogin() 取用户 ID，杜绝「客户端传任意 user_id 操作他人数据」
+ * 密钥：config/security.php 的 token_secret
+ *
  * 令牌格式：base64url(payload) . base64url(hmac_sha256(payload, secret))
- * payload  ：{"uid":用户ID,"openid":微信openid,"iat":签发时间,"exp":过期时间}
- * 
- * 客户端携带方式（二选一，推荐第一种）：
- *   token: <令牌>
- *   Authorization: Bearer <令牌>
+ * payload ：{"uid","openid","iat","exp"}
+ * 携带方式：token: <令牌>（推荐）或 Authorization: Bearer <令牌>
  */
 class Auth
 {
@@ -28,10 +16,7 @@ class Auth
     /** 缓存的签名密钥 */
     private static $secret = null;
 
-    /**
-     * 读取签名密钥
-     * @throws RuntimeException 配置文件缺失或未填写密钥
-     */
+    /** 读取签名密钥（配置缺失或未填写时抛异常） */
     private static function secret()
     {
         if (self::$secret !== null) {
@@ -68,13 +53,7 @@ class Auth
         return base64_decode(strtr($data, '-_', '+/'));
     }
 
-    /**
-     * 签发登录令牌
-     * 
-     * @param int    $userId 用户ID
-     * @param string $openid 微信openid（可选）
-     * @return string 令牌字符串
-     */
+    /** 签发登录令牌 */
     public static function issue($userId, $openid = '')
     {
         $payload = [
@@ -90,12 +69,7 @@ class Auth
         return $body . '.' . $sign;
     }
 
-    /**
-     * 校验令牌
-     * 
-     * @param string $token 令牌字符串
-     * @return array|null 校验通过返回 payload，失败返回 null
-     */
+    /** 校验令牌：通过返回 payload，失败返回 null */
     public static function verify($token)
     {
         if (empty($token) || !is_string($token)) {
@@ -128,12 +102,7 @@ class Auth
         return $payload;
     }
 
-    /**
-     * 从请求头中提取令牌
-     * 支持 token 头与 Authorization: Bearer 两种方式
-     * 
-     * @return string 未找到返回空字符串
-     */
+    /** 从请求头提取令牌（支持 token 头与 Authorization: Bearer），找不到返回空串 */
     public static function tokenFromRequest()
     {
         // 方式一：token 请求头
@@ -177,12 +146,7 @@ class Auth
         return $value;
     }
 
-    /**
-     * 强制登录：校验令牌并返回用户ID
-     * 未登录/令牌无效时直接输出 401 并终止请求
-     * 
-     * @return int 当前登录用户ID
-     */
+    /** 强制登录：校验令牌并返回用户 ID，无效时输出 401 并终止请求 */
     public static function requireLogin()
     {
 
@@ -196,11 +160,7 @@ class Auth
         return (int) $payload['uid'];
     }
 
-    /**
-     * 获取当前登录用户信息（校验令牌但允许失败）
-     * 
-     * @return array|null
-     */
+    /** 获取当前登录用户信息（校验令牌但允许失败） */
     public static function currentUser()
     {
         $payload = self::verify(self::tokenFromRequest());

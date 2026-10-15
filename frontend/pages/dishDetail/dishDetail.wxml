@@ -11,8 +11,9 @@
 
   <!-- 加载失败 / 菜品已下架 -->
   <view wx:elif="{{loadError}}" class="state-box">
-    <view class="state-icon">😕</view>
-    <view class="state-text">{{loadError}}</view>
+    <image class="state-img" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
+    <view class="state-text">加载失败</view>
+    <view class="state-sub">{{loadError}}</view>
     <view class="state-btn" hover-class="state-btn-hover" bindtap="onRetry">重新加载</view>
     <view class="state-btn state-btn-plain" hover-class="state-btn-hover" bindtap="onGoCart">去购物车</view>
   </view>
@@ -21,7 +22,7 @@
     <!-- 顶部大图：没有图片时用 emoji 占位，避免发起无效图片请求 -->
     <view class="hero">
       <image wx:if="{{dish.image_url}}" class="hero-img" src="{{dish.image_url}}" mode="aspectFill" />
-      <view wx:else class="hero-img hero-ph">🍽️</view>
+      <image wx:else class="hero-img hero-ph-img" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
 
       <!-- 小味指引：压在图片左下角，手指方向指向右侧的菜名与信息 -->
       <image

@@ -1,28 +1,10 @@
 <?php
 /**
  * 接口：微信一键登录（用 wx.login 的 code 换取 openid）
- * 请求地址：POST /api/user/login.php
+ *
  * 入参JSON：{"code":"wx.login() 返回的 code","nickname":"昵称(可选)","avatar_url":"头像(可选)"}
  * 返回：用户信息 + token（后续接口需在请求头携带 token 表明身份）
- * 对应前端：登录页「微信一键登录」按钮
- * 
- * 【登录流程】
- *   1. 小程序调用 wx.login() 得到临时 code
- *   2. 本接口用 code 调用微信 code2Session 换取 openid
- *   3. 按 openid 查找用户，不存在则自动创建（登录即注册，无需单独注册流程）
- *   4. 签发登录令牌并返回
- * 
- * 【为什么不接受客户端传来的 openid】
- *   openid 是账号的唯一标识。若直接信任客户端传来的 openid，
- *   任何人只要知道别人的 openid 就能登录成对方账号（账号接管漏洞）。
- *   只有微信服务器签发的 openid 才可信，因此正式流程只接受 code。
- * 
- * 【本地开发调试通道】需同时满足以下两个条件才生效（默认关闭）：
- *   1. config/security.php 中 allow_dev_openid_login = true
- *   2. 请求来自本机回环地址（127.0.0.1 / ::1）
- *   线上服务器不会被回环地址访问，因此即便误开开关也不会留下后门。
- * 
- * 【鉴权说明】本接口为登录入口，无需携带 token。
+ * 请求地址：POST /api/user/login.php
  */
 require_once __DIR__ . '/../../core/bootstrap.php';
 

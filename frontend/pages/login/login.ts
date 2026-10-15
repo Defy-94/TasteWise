@@ -1,15 +1,7 @@
 /**
- * 登录页面 —— 微信一键登录
- * 
- * 【登录原理】
- *   wx.login() 取临时 code → 后端用 code 调微信 code2Session 换 openid
- *   → 按 openid 查/建用户 → 签发登录令牌
- *   openid 由微信服务器签发，客户端无法伪造；首次登录自动创建账号（无需注册）
- * 
- * 【本地调试兜底】
- *   若后端尚未配置微信 AppSecret（返回 503），且后端允许本地调试通道
- *   （config/security.php 开关 + 请求来自本机），则自动改用调试账号登录，
- *   并给出明确提示，方便本地开发。
+ * 登录页 —— 微信一键登录
+ * wx.login() 取 code → 后端 code2Session 换 openid → 查/建用户 → 签发令牌
+ * 后端未配置 AppSecret 返回 503 时，若开启本地调试通道则改用调试账号登录
  */
 import { post, saveAuth } from '../../utils/api';
 import { AuthUser } from '../../utils/types';
@@ -30,11 +22,7 @@ Page({
     wx.navigateBack();
   },
 
-  /**
-   * 微信一键登录
-   * 对应按钮：「微信一键登录」
-   * 接口：POST /api/user/login.php（入参 code）
-   */
+  /** 微信一键登录：POST /api/user/login.php（入参 code） */
   async onWxLogin() {
     if (this.data.logging) return;
     this.setData({ logging: true });
@@ -58,10 +46,7 @@ Page({
     }
   },
 
-  /**
-   * 执行登录
-   * 优先走正式的微信登录；仅当后端「未配置 AppSecret」时才退回本地调试通道
-   */
+  /** 执行登录：优先微信登录，仅后端未配置 AppSecret 时退回本地调试通道 */
   async doLogin(): Promise<AuthUser> {
     // 1) wx.login 获取临时 code
     let code = '';

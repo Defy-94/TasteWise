@@ -1,21 +1,11 @@
 <?php
 /**
  * 接口：查询我的订单（支持按状态筛选）
- * 请求地址：GET /api/order/list.php
- * 请求地址：GET /api/order/list.php?status=2
+ *
  * 请求头：token: <登录令牌>
  * 对应前端：我的订单页、用户中心"已完成订单"
- * 
- * 【鉴权说明】只能查询自己的订单，客户端传入的 user_id 一律忽略。
- * 
- * 【状态参数】status 支持两种写法：
- *   - 数字：0=待支付 1=已支付 2=已完成 3=已取消（推荐）
- *   - 兼容写法：pending / paid / completed / cancelled
- * 不传 status 返回全部订单；传了非法值直接返回参数错误（不再静默查错数据）。
- * 
- * 【修复记录】原实现把 status 原样拼进 SQL，而前端曾传 "completed" 字符串，
- *            MySQL 会将其隐式转为 0，导致"查已完成订单"实际查出待支付订单。
- *            现已在入口做白名单归一化，并统一返回 status_text。
+ * 请求地址：GET /api/order/list.php
+ * 请求地址：GET /api/order/list.php?status=2
  */
 require_once __DIR__ . '/../../core/bootstrap.php';
 

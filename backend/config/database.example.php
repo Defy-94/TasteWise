@@ -1,11 +1,9 @@
 <?php
 /**
  * 数据库连接配置（示例模板）
- * 
+ *
  * 使用方式：复制本文件为 database.php 并填入真实环境配置
- *   cp database.example.php database.php
- * 
- * 注意：database.php 已被 .gitignore 忽略，不会上传到 Git 仓库
+ * cp database.example.php database.php
  */
 return [
     'host'     => '127.0.0.1',      // 数据库地址

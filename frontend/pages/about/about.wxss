@@ -1,7 +1,7 @@
 /* 关于页面样式 */
 .about-container {
     min-height: 100vh;
-    background: linear-gradient(180deg, #5b93f2 0%, #a8c4f7 30%, #f6f7fb 30%);
+    background: linear-gradient(180deg, #11B3D4 0%, #7ECFE1 30%, #F6F8F9 30%);
     padding-bottom: 40rpx;
   }
   
@@ -94,15 +94,12 @@
     flex-shrink: 0;
   }
   
-  .gallery-item:active {
-    opacity: 0.85;
-  }
   
   .gallery-thumb {
     width: 210rpx;
     height: 210rpx;
     border-radius: 18rpx;
-    background: linear-gradient(180deg, #f1f6ff 0%, #fafbff 100%);
+    background: linear-gradient(180deg, #ECF9FC 0%, #fafbff 100%);
     border: 1rpx solid #e8eefb;
     display: flex;
     align-items: center;
@@ -145,7 +142,7 @@
     padding: 12rpx 0;
     font-size: 28rpx;
     color: #555;
-    border-bottom: 1px solid #f6f7fb;
+    border-bottom: 1px solid #F6F8F9;
   }
   .tech-item text:first-child {
     width: 160rpx;

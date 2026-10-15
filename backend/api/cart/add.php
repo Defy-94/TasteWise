@@ -1,13 +1,10 @@
 <?php
 /**
  * 接口：加入购物车
- * 请求地址：POST /api/cart/add.php
+ *
  * 请求头：token: <登录令牌>
  * 入参JSON：{"dish_id":3,"quantity":2}
- * 对应前端：菜品卡片上"加入购物车"按钮
- * 
- * 【鉴权说明】购物车归属用户取自令牌，客户端传入的 user_id 一律忽略，
- *            因此无法往他人购物车里加东西。
+ * 请求地址：POST /api/cart/add.php
  */
 require_once __DIR__ . '/../../core/bootstrap.php';
 

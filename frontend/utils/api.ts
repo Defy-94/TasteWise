@@ -1,14 +1,6 @@
 /**
- * 全局API请求封装
- * 统一管理后端接口地址、登录令牌注入、全局请求/响应拦截
- * 
- * ============================================
- * 【后端地址配置入口】修改 BASE_URL 即可切换服务器
- * ============================================
- * 
- * 【鉴权说明】登录成功后后端返回 token，本文件统一保存并在每个请求头中携带
- *            （header: token）。若后端返回 401（未登录/令牌过期），
- *            会自动清除本地登录信息并跳转登录页。
+ * 全局请求封装：后端地址、令牌注入（header: token）、401 统一处理
+ * 后端地址按运行环境自动选择，也可用本地存储临时覆盖（见 resolveBaseUrl）
  */
 
 /**
@@ -146,14 +138,7 @@ function handleUnauthorized(msg?: string) {
   }, 800);
 }
 
-/**
- * 请求选项
- *
- * 【为什么用对象而不是两个布尔参数】
- *   原来是 get(url, data, silent401) 这种位置参数，再加一个就只能
- *   get(a, b, false, true) —— 读代码的人根本记不住哪个 false 是哪个。
- *   换成具名选项后，调用处自带说明。
- */
+/** 请求选项：silent401 不自动跳登录页；silentError 不弹统一提示（页面自己渲染错误态） */
 export interface RequestOptions {
   /** 为 true 时，遇到 401 只静默失败、不跳转登录页
    *  （用于购物车角标这类后台辅助请求，避免一进页面就弹登录） */
@@ -164,10 +149,7 @@ export interface RequestOptions {
   silentError?: boolean;
 }
 
-/**
- * 统一请求方法
- * 自动携带登录令牌、统一处理 401 与业务错误
- */
+/** 统一请求方法 */
 function request<T>(method: 'GET' | 'POST', url: string, data: any = {}, options: RequestOptions = {}): Promise<T> {
   return new Promise((resolve, reject) => {
     // 请求头：带上登录令牌（未登录时不带，由后端返回 401）
@@ -215,18 +197,12 @@ function request<T>(method: 'GET' | 'POST', url: string, data: any = {}, options
   });
 }
 
-/**
- * GET 请求
- * @param options 见 RequestOptions（silent401 / silentError）
- */
+/** GET 请求 */
 function get<T = any>(url: string, data: any = {}, options: RequestOptions = {}): Promise<T> {
   return request<T>('GET', url, data, options);
 }
 
-/**
- * POST 请求
- * @param options 见 RequestOptions（silent401 / silentError）
- */
+/** POST 请求 */
 function post<T = any>(url: string, data: any = {}, options: RequestOptions = {}): Promise<T> {
   return request<T>('POST', url, data, options);
 }

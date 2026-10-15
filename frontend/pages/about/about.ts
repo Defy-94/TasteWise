@@ -63,7 +63,6 @@ Page({
       appName: '智味',
       version: '1.0.0',
       description: '基于DeepSeek大模型的智能点餐小程序\n支持AI智能推荐、智能客服问答',
-      techStack: 'TypeScript + PHP + MySQL + DeepSeek',
       developer: 'Defy-94',
       expressionList: EXPRESSION_LIST,
     },

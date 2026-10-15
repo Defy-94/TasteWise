@@ -2,13 +2,13 @@
 
 .container {
     min-height: 100vh;
-    background: #f6f7fb;
+    background: #F6F8F9;
     padding-bottom: 60rpx;
   }
   
   /* ========== 顶部用户卡（渐变） ========== */
   .hero {
-    background: linear-gradient(135deg, #79a6f5 0%, #5b93f2 100%);
+    background: linear-gradient(135deg, #2FBEDC 0%, #11B3D4 100%);
     padding: 50rpx 40rpx 70rpx;
     border-radius: 0 0 40rpx 40rpx;
   }
@@ -61,7 +61,7 @@
   .hero-btn {
     flex-shrink: 0;
     font-size: 24rpx;
-    color: #5b93f2;
+    color: #11B3D4;
     background: #fff;
     padding: 12rpx 28rpx;
     border-radius: 30rpx;
@@ -102,7 +102,7 @@
   
   .card-more {
     font-size: 26rpx;
-    color: #5b93f2;
+    color: #11B3D4;
   }
   
   /* ========== 订单概览：各状态数量 ========== */
@@ -135,8 +135,8 @@
   }
   
   /* 待支付用主色突出，其余按语义着色 */
-  .stat-pending { color: #5b93f2; }
-  .stat-paid { color: #2d8cf0; }
+  .stat-pending { color: #11B3D4; }
+  .stat-paid { color: #11B3D4; }
   .stat-completed { color: #19be6b; }
   .stat-cancelled { color: #bbb; }
   
@@ -151,8 +151,8 @@
   }
   
   /* 订单状态配色：0待支付 1已支付 2已完成 3已取消 */
-  .status-0 { color: #5b93f2; }
-  .status-1 { color: #2d8cf0; }
+  .status-0 { color: #11B3D4; }
+  .status-1 { color: #11B3D4; }
   .status-2 { color: #19be6b; }
   .status-3 { color: #999; }
   
@@ -170,7 +170,7 @@
   .latest-total {
     font-size: 34rpx;
     font-weight: bold;
-    color: #5b93f2;
+    color: #11B3D4;
   }
   
   .latest-time {
@@ -185,7 +185,7 @@
     display: flex;
     align-items: center;
     padding: 24rpx 0;
-    border-bottom: 1px solid #f6f7fb;
+    border-bottom: 1px solid #F6F8F9;
   }
   
   .info-row-last {
@@ -229,12 +229,12 @@
   }
   
   .save-btn {
-    background: #5b93f2;
+    background: #11B3D4;
     color: #fff;
   }
   
   .cancel-btn {
-    background: #f6f7fb;
+    background: #F6F8F9;
     color: #666;
   }
   
@@ -248,7 +248,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 32rpx 0;
-    border-bottom: 1px solid #f6f7fb;
+    border-bottom: 1px solid #F6F8F9;
   }
   
   .menu-item-last {

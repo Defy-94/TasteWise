@@ -1,8 +1,14 @@
 /* 购物车页面样式 */
 .container {
     min-height: 100vh;
-    background: #f6f7fb;
+    background: #F6F8F9;
     padding-bottom: 120rpx;
+  }
+  
+  /* 购物车列表容器（WXML 用了 cart-list，之前漏写样式） */
+  .cart-list {
+    padding: 20rpx;
+    box-sizing: border-box;
   }
   
   /* 空购物车 */
@@ -44,7 +50,7 @@
   /* 未登录时的去登录按钮 */
   .login-btn {
     margin-top: 40rpx;
-    background: #5b93f2;
+    background: #11B3D4;
     color: #fff;
     font-size: 30rpx;
     padding: 15rpx 60rpx;
@@ -96,7 +102,7 @@
   }
   
   .item-price {
-    color: #5b93f2;
+    color: #11B3D4;
     font-size: 28rpx;
   }
   
@@ -120,8 +126,8 @@
     line-height: 46rpx;
     text-align: center;
     font-size: 34rpx;
-    color: #5b93f2;
-    border: 1px solid #5b93f2;
+    color: #11B3D4;
+    border: 1px solid #11B3D4;
     border-radius: 50%;
     background: #fff;
   }
@@ -183,15 +189,58 @@
   }
   
   .total-price {
-    color: #5b93f2;
+    color: #11B3D4;
     font-size: 36rpx;
     font-weight: bold;
   }
   
   .checkout-btn {
-    background: #5b93f2;
+    background: #11B3D4;
     color: #fff;
     font-size: 30rpx;
     padding: 15rpx 40rpx;
     border-radius: 10rpx;
+  }
+
+  /* 空态/失败态的小味立绘 */
+  .empty-fail {
+    width: 320rpx;
+    height: 320rpx;
+  }
+  
+  /* 小味立绘 + 手指位置的按钮（手指朝右上，按钮就摆在右上） */
+  .empty-pointing-wrap {
+    position: relative;
+    width: 360rpx;
+    height: 360rpx;
+  }
+  
+  .empty-go-btn {
+    position: absolute;
+    /* 往右上移，落点对齐小味抬起的指尖，且不压到她的脸 */
+    right: -96rpx;
+    top: 10rpx;
+    display: flex;
+    align-items: center;
+    gap: 6rpx;
+    padding: 14rpx 26rpx;
+    border-radius: 40rpx;
+    background: #11B3D4;
+    color: #fff;
+    font-size: 26rpx;
+    box-shadow: 0 6rpx 18rpx rgba(17, 179, 212, 0.35);
+  }
+  
+  .empty-go-btn-hover {
+    background: #0E93B0;
+  }
+  
+  .empty-go-arrow {
+    font-size: 26rpx;
+    line-height: 1;
+  }
+  
+  /* 无图占位：小味立绘 */
+  .img-ph-img {
+    background: #f4f6f8;
   }

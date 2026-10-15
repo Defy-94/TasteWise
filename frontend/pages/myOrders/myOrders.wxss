@@ -10,7 +10,7 @@
   
   .container {
     min-height: 100vh;
-    background: #f6f7fb;
+    background: #F6F8F9;
     padding: 0 0 20rpx;
   }
   
@@ -34,7 +34,7 @@
   }
   
   .filter-active {
-    color: #5b93f2;
+    color: #11B3D4;
     font-weight: bold;
   }
   
@@ -47,7 +47,7 @@
     transform: translateX(-50%);
     width: 44rpx;
     height: 6rpx;
-    background: #5b93f2;
+    background: #11B3D4;
     border-radius: 3rpx;
   }
   
@@ -77,7 +77,7 @@
   
   .login-btn {
     margin-top: 40rpx;
-    background: #5b93f2;
+    background: #11B3D4;
     color: #fff;
     font-size: 30rpx;
     padding: 15rpx 60rpx;
@@ -112,11 +112,11 @@
   }
   
   .status-0 {
-    color: #5b93f2;   /* 待支付 */
+    color: #11B3D4;   /* 待支付 */
   }
   
   .status-1 {
-    color: #2d8cf0;   /* 已支付 */
+    color: #11B3D4;   /* 已支付 */
   }
   
   .status-2 {
@@ -172,7 +172,7 @@
   }
   
   .total-price {
-    color: #5b93f2;
+    color: #11B3D4;
     font-size: 34rpx;
     font-weight: bold;
   }
@@ -212,7 +212,7 @@
   
   /* 主要操作（去支付 / 确认完成） */
   .btn-primary {
-    background: #5b93f2;
+    background: #11B3D4;
     color: #fff;
   }
   
@@ -221,4 +221,31 @@
     background: #fff;
     color: #666;
     border: 1px solid #ddd;
+  }
+
+  /* 加载失败时的小味立绘 */
+  .empty-fail {
+    width: 320rpx;
+    height: 320rpx;
+  }
+  
+  /* 失败态用的文字按钮（与页面既有风格一致） */
+  .empty-btn {
+    margin-top: 32rpx;
+    min-width: 220rpx;
+    height: 68rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 34rpx;
+    background: #11B3D4;
+    color: #fff;
+    font-size: 28rpx;
+  }
+
+  /* 空订单态：小味思考立绘 */
+  .empty-thinking {
+    width: 340rpx;
+    height: 340rpx;
+    margin-bottom: 6rpx;
   }

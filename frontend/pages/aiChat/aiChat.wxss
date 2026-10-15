@@ -5,7 +5,7 @@
     flex-direction: column;
     /* 高度交给文件末尾的 .container { height: 100% } 统一定义：
        这里不写 100vh —— 小程序里 vh 包含 tabBar 区域，会把输入栏顶到 tabBar 下面 */
-    background: #f6f7fb;
+    background: #F6F8F9;
     /* 下面两条写出来是为了自包含：默认值就是它们，
        显式声明可以防止将来全局样式又加入居中/分散布局影响本页 */
     align-items: stretch;
@@ -29,7 +29,7 @@
     width: 72rpx;
     height: 72rpx;
     border-radius: 50%;
-    background: #f1f6ff;
+    background: #ECF9FC;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -96,7 +96,7 @@
   }
   
   .user-avatar {
-    background: #5b93f2;
+    background: #11B3D4;
   }
   
   /* 小味头像图：透明底 PNG，容器是白圆，加内边距防止贴边 */
@@ -131,7 +131,7 @@
   }
   
   .user-msg .msg-bubble {
-    background: #5b93f2;
+    background: #11B3D4;
     color: #fff;
     border-bottom-right-radius: 5rpx;
   }
@@ -157,7 +157,7 @@
     width: 14rpx;
     height: 14rpx;
     border-radius: 50%;
-    background: #c2d7fa;
+    background: #BFE3EC;
     animation: typing-blink 1.2s infinite ease-in-out;
   }
   
@@ -260,7 +260,7 @@
   
   .dish-price {
     font-size: 30rpx;
-    color: #5b93f2;
+    color: #11B3D4;
     font-weight: bold;
   }
   
@@ -280,14 +280,14 @@
     font-size: 24rpx;
     line-height: 1;
     border-radius: 26rpx;
-    background: #5b93f2;
+    background: #11B3D4;
     color: #fff;
     box-sizing: border-box;
   }
   
   /* 点击反馈（替代 button 的默认按压效果） */
   .add-btn-hover {
-    background: #e55a2b;
+    background: #0E93B0;
   }
   
   /* ============================================
@@ -304,8 +304,8 @@
   
   .quick-item {
     font-size: 24rpx;
-    color: #5b93f2;
-    background: #f1f6ff;
+    color: #11B3D4;
+    background: #ECF9FC;
     border-radius: 30rpx;
     padding: 12rpx 26rpx;
   }
@@ -336,7 +336,7 @@
     border-radius: 36rpx;
     padding: 0 28rpx;
     font-size: 28rpx;
-    background: #f6f7fb;
+    background: #F6F8F9;
     box-sizing: border-box;
   }
   
@@ -350,12 +350,12 @@
     margin: 0;
     border-radius: 36rpx;
     font-size: 28rpx;
-    background: #5b93f2;
+    background: #11B3D4;
     color: #fff;
   }
   
   .send-btn[disabled] {
-    background: #c6d9fa;
+    background: #BADFEA;
     color: #fff;
   }
   
@@ -383,3 +383,7 @@
     overflow: hidden;
   }
 
+  /* 推荐卡片里的无图占位：小味立绘（原来是餐具 emoji） */
+  .img-ph-img {
+    background: #f4f6f8;
+  }

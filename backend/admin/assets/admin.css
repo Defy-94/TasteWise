@@ -1,6 +1,6 @@
 /* ============================================================
    TasteWise 管理后台样式
-   主色 #FF6B35（与小程序保持一致），纯手写、无 UI 框架依赖。
+   主色 #0E93B0（与小程序保持一致），纯手写、无 UI 框架依赖。
    ============================================================ */
 
 * {
@@ -17,7 +17,7 @@ body {
 }
 
 a {
-  color: #d9531e;
+  color: #11B3D4;
   text-decoration: none;
 }
 
@@ -91,8 +91,8 @@ a:hover {
 }
 
 .nav a.active {
-  background: #fff1ea;
-  color: #d9531e;
+  background: #EAF9FC;
+  color: #11B3D4;
   font-weight: 600;
 }
 
@@ -169,8 +169,8 @@ a:hover {
 
 .flash-warn {
   background: #fdf6e7;
-  border-color: #f0dcae;
-  color: #8a6212;
+  border-color: #CDEBF3;
+  color: #0F6E85;
 }
 
 .flash-info {
@@ -238,7 +238,7 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #FF6B35;
+  border-color: #0E93B0;
   box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.12);
 }
 
@@ -283,7 +283,7 @@ input[type="password"] {
 }
 
 .btn-primary {
-  background: #FF6B35;
+  background: #0E93B0;
   color: #fff;
 }
 
@@ -408,7 +408,7 @@ table.list td.actions {
 
 .badge-warn {
   background: #fdf6e7;
-  color: #8a6212;
+  color: #0F6E85;
 }
 
 .badge-muted {
@@ -437,8 +437,8 @@ table.list td.actions {
 
 .page-link:hover {
   text-decoration: none;
-  border-color: #FF6B35;
-  color: #d9531e;
+  border-color: #0E93B0;
+  color: #11B3D4;
 }
 
 .page-link.disabled {
@@ -504,7 +504,7 @@ table.list td.actions {
 }
 
 .stat-value.accent {
-  color: #FF6B35;
+  color: #0E93B0;
 }
 
 /* ---------- 表单布局 ---------- */
@@ -585,7 +585,7 @@ table.list td.actions {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #FF6B35;
+  background: #0E93B0;
 }
 
 /* ---------- 登录页 ---------- */
@@ -595,7 +595,7 @@ table.list td.actions {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(140deg, #fff3ee 0%, #f4f5f7 55%, #eef2f7 100%);
+  background: linear-gradient(140deg, #EAF9FC 0%, #f4f5f7 55%, #eef2f7 100%);
   padding: 24px;
 }
 
@@ -676,4 +676,25 @@ table.list td.actions {
   .form-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* 品牌标记：小味头像（原来是餐具 emoji 文本） */
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #EAF9FC;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* 登录卡片上的小味头像 */
+.login-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #EAF9FC;
+  object-fit: contain;
+  margin: 0 auto 14px;
+  display: block;
 }

@@ -1,13 +1,10 @@
 <?php
 /**
  * 接口：移除购物车商品
- * 请求地址：POST /api/cart/remove.php
+ *
  * 请求头：token: <登录令牌>
  * 入参JSON：{"cart_id":5}
- * 对应前端：购物车页面"删除"按钮
- * 
- * 【鉴权说明】删除时同时校验 cart_id 与当前登录用户，
- *            因此无法通过猜测 cart_id 删除他人的购物车记录（防越权）。
+ * 请求地址：POST /api/cart/remove.php
  */
 require_once __DIR__ . '/../../core/bootstrap.php';
 

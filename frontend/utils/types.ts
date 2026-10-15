@@ -1,8 +1,4 @@
-/**
- * 全局TS类型定义文件
- * 统一封装菜品、订单、用户、AI问答等数据类型
- * 适配TS基础模版规范
- */
+/** 全局类型定义 */
 
 /** 菜品分类 */
 export interface Category {
@@ -35,13 +31,8 @@ export interface Category {
 
   /**
    * 菜品详情（GET /api/dish/detail.php）
-   *
-   * 比列表多两个字段：
-   *   category_name 所属分类名（列表页按分类分组展示，不需要它）
-   *   sold          累计售出份数（已取消的订单不计入）
-   *
-   * 注意：is_on_sale（是否上架）不在接口返回值里 —— 小程序端只能看到
-   *      上架菜品，下架菜品详情接口直接返回 404，所以前端不需要关心这个字段。
+   * 比列表多：category_name（分类名）、sold（累计售出，已取消的订单不计入）
+   * 无 is_on_sale 字段：下架菜品的详情接口直接返回 404
    */
   export interface DishDetail extends Dish {
     category_name: string;
@@ -60,7 +51,8 @@ export interface Category {
   }
   
   /** 订单明细项 */
-  export interface OrderItem {
+  /** 订单里的单个菜品行（只在本文件内被 Order/OrderDetail 引用，不用导出） */
+  interface OrderItem {
     dish_name: string;
     dish_price: number;
     quantity: number;
@@ -100,12 +92,6 @@ export interface Category {
     content: string;
   }
   
-  /** AI推荐结果 */
-  export interface AIRecommendResult {
-    recommendations: Dish[];
-    total: number;
-  }
-  
   /** 统一API响应结构 */
   export interface ApiResponse<T = any> {
     code: number;
@@ -113,29 +99,10 @@ export interface Category {
     data: T;
   }
 
-  /** 注册信息 */
-export interface RegisterInfo {
-    username: string;
-    phone: string;
-    code: string;
-  }
-  
-  /** 登录信息 */
-  export interface LoginInfo {
-    phone: string;
-  }
-  
-  /**
-   * 订单状态枚举（数字，与数据库 orders.status 一致）
-   * 0待支付 1已支付 2已完成 3已取消
-   */
+  /** 订单状态：0待支付 1已支付 2已完成 3已取消（与数据库 orders.status 一致） */
   export type OrderStatus = 0 | 1 | 2 | 3;
   
-  /**
-   * 订单状态文本映射
-   * 注意：后端 order/list.php 已直接返回 status_text，
-   *      此处保留映射供本地判断/兜底使用，键必须为数字。
-   */
+  /** 订单状态文本（后端已返回 status_text，这里供兜底使用；键必须是数字） */
   export const OrderStatusMap: Record<number, string> = {
     0: '待支付',
     1: '已支付',

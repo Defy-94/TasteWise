@@ -1,19 +1,14 @@
 /**
  * 首页 - 菜品列表
- * 功能：分类导航、菜品搜索、菜品展示、AI推荐、加入购物车
+ * 接口：/api/category/list.php、/api/dish/list.php、/api/cart/add.php
  */
 import { get, post } from '../../utils/api';
-import { Category, Dish, AIRecommendResult } from '../../utils/types';
+import { Category, Dish } from '../../utils/types';
 import { refreshCartBadge } from '../../utils/cartBadge';
 import { errorMessage, logError } from '../../utils/error';
 import { supplyLabel } from '../../utils/supply';
 
-/**
- * 搜索输入的防抖时间（毫秒）
- *
- * 边打字边搜体验更好，但每个按键都发一次请求既浪费也会让结果闪烁。
- * 350ms 是「停下来想下一个字」和「感觉是实时的」之间的常见折中。
- */
+/** 搜索输入防抖（毫秒）：每个按键都发请求既浪费也会让结果闪烁 */
 const SEARCH_DEBOUNCE_MS = 350;
 
 Page({
@@ -24,14 +19,21 @@ Page({
     searchKeyword: '',                 // 当前搜索关键词
     loadingDishes: false,              // 是否正在加载菜品（用来区分「空结果」和「还没加载完」）
     loadError: '',                     // 加载失败原因（非空时显示错误态而不是空结果）
-    recommendDishes: [] as Dish[],     // AI推荐菜品
-    showRecommend: false,              // 是否显示推荐弹窗
-    preferenceInput: '',               // 用户偏好输入
   },
 
   onLoad() {
     this.loadCategories();
     this.loadDishes();
+    this.cleanupLegacyTipFlag();
+  },
+
+  /** 清掉早期版本的浮窗显示标记（已不再使用） */
+  cleanupLegacyTipFlag() {
+    try {
+      wx.removeStorageSync('xiaowei_tip_shown');
+    } catch (e) {
+      // 存储不可用时忽略即可，不影响任何功能
+    }
   },
 
   onShow() {
@@ -48,20 +50,12 @@ Page({
     }
   },
 
-  /**
-   * 点击小味浮窗：进 AI 助手页
-   *
-   * 浮窗是长期常驻的提示（不做关闭、不做过期隐藏），
-   * 也就是说它天然承担了"AI 推荐入口"的角色，点击直接跳转即可。
-   */
+  /** 点击小味浮窗：进 AI 助手页 */
   onTapXiaoweiTip() {
     wx.switchTab({ url: '/pages/aiChat/aiChat' });
   },
 
-  /**
-   * 加载分类列表
-   * 接口：GET /api/category/list.php
-   */
+  /** 加载分类列表：GET /api/category/list.php */
   async loadCategories() {
     try {
       const categories = await get<Category[]>('/api/category/list.php');
@@ -74,14 +68,9 @@ Page({
   },
 
   /**
-   * 加载菜品列表
-   * 接口：GET /api/dish/list.php?category_id=xx&keyword=xx
-   *
-   * 分类与关键词是两个独立条件，会同时生效 —— 所以这里都从入参取，
-   * 而不是在函数里读 this.data（避免「切分类时把关键词丢了」这类问题）。
-   *
-   * 注意：这里**不**回写 searchKeyword。否则请求返回得比用户打字慢时，
-   * 会把搜索框里的新内容覆盖回旧值，表现为「打字被打断」。
+   * 加载菜品列表：GET /api/dish/list.php?category_id=xx&keyword=xx
+   * 分类与关键词都从入参取（读 this.data 容易在切分类时丢关键词）；
+   * 不回写 searchKeyword，否则返回比打字慢时会覆盖掉用户刚输入的内容。
    */
   async loadDishes(categoryId: number = 0, keyword: string = '') {
     this.setData({ loadingDishes: true, loadError: '' });
@@ -164,35 +153,19 @@ Page({
     this.loadDishes(0, '');
   },
 
-  /**
-   * 执行搜索
-   *
-   * 搜索时会把分类重置成「全部」：否则用户在「热菜」分类里搜「汤」，
-   * 会因为分类与关键词同时生效而得到空列表 ——
-   * 而他并不知道"当前分类也在参与筛选"，只会以为搜索坏了。
-   */
+  /** 执行搜索：同时把分类重置为「全部」，否则会因两个条件叠加而搜出空列表 */
   applySearch(keyword: string) {
     this.setData({ activeCategoryId: 0 });
     this.loadDishes(0, keyword);
   },
 
-  /**
-   * 切换分类
-   *
-   * 关键词会一起带过去 —— 分类和搜索是两个独立条件，同时生效。
-   * （搜索时我们主动把分类重置成「全部」，但用户之后仍可以再选分类，
-   *   那时应该在他的关键词范围内筛选，而不是悄悄把关键词丢掉。）
-   */
+  /** 切换分类：带上当前关键词（分类与搜索两个条件同时生效） */
   onCategoryTap(e: any) {
     const categoryId = e.currentTarget.dataset.id;
     this.loadDishes(categoryId, this.data.searchKeyword);
   },
 
-  /**
-   * 打开菜品详情
-   * 对应页面：pages/dishDetail
-   * 触发位置：菜品卡片、AI推荐弹窗里的推荐项
-   */
+  /** 打开菜品详情：pages/dishDetail */
   onDishTap(e: any) {
     const dishId = e.currentTarget.dataset.id;
     if (!dishId) {
@@ -204,11 +177,7 @@ Page({
     });
   },
 
-  /**
-   * 加入购物车
-   * 对应后端接口：POST /api/cart/add.php
-   * 对应按钮：菜品卡片"加入购物车"
-   */
+  /** 加入购物车：POST /api/cart/add.php */
   async onAddToCart(e: any) {
     const dishId = e.currentTarget.dataset.id;
 
@@ -233,41 +202,4 @@ Page({
     }
   },
 
-  /**
-   * AI智能推荐
-   * 对应后端接口：POST /api/dish/recommend.php
-   * 对应按钮：首页顶部"AI推荐"按钮
-   */
-  async onAIRecommend() {
-    const preference = this.data.preferenceInput.trim();
-    if (!preference) {
-      wx.showToast({ title: '请描述您的口味偏好', icon: 'none' });
-      return;
-    }
-
-    wx.showLoading({ title: 'AI正在为您推荐...' });
-    try {
-      const result = await post<AIRecommendResult>('/api/dish/recommend.php', {
-        preference: preference,
-      });
-      this.setData({
-        recommendDishes: result.recommendations || [],
-        showRecommend: true,
-      });
-      wx.hideLoading();
-    } catch (err) {
-      wx.hideLoading();
-      console.error('AI推荐失败：', err);
-    }
-  },
-
-  /** 关闭推荐弹窗 */
-  onCloseRecommend() {
-    this.setData({ showRecommend: false });
-  },
-
-  /** 偏好输入框变化 */
-  onPreferenceInput(e: any) {
-    this.setData({ preferenceInput: e.detail.value });
-  },
 });

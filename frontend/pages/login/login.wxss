@@ -1,7 +1,7 @@
 /* 登录页面样式（微信一键登录） */
 .login-container {
     min-height: 100vh;
-    background: #f6f7fb;
+    background: #F6F8F9;
   }
   
   .nav-bar {
@@ -15,7 +15,7 @@
   
   .back-btn {
     font-size: 28rpx;
-    color: #5b93f2;
+    color: #11B3D4;
   }
   
   .nav-title {
@@ -43,8 +43,14 @@
   }
   
   .brand-logo {
-    font-size: 110rpx;
-    line-height: 1;
+    width: 160rpx;
+    height: 160rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.12);
+    /* 小味头像是方形透明底 PNG，留一点内边距避免贴到圆边 */
+    padding: 10rpx;
+    box-sizing: border-box;
   }
   
   .brand-name {
@@ -63,7 +69,7 @@
   /* 微信一键登录按钮 */
   .submit-btn {
     margin-top: 60rpx;
-    background: #5b93f2;
+    background: #11B3D4;
     color: #fff;
     font-size: 32rpx;
     font-weight: bold;
@@ -72,7 +78,7 @@
   }
   
   .submit-btn[disabled] {
-    background: #c6d9fa;
+    background: #BADFEA;
     color: #fff;
   }
   

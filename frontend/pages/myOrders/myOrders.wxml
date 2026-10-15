@@ -1,4 +1,3 @@
-<!-- 我的订单页面 -->
 <view class="container">
   <!-- 状态筛选栏（未登录时不显示） -->
   <view wx:if="{{!needLogin}}" class="filter-bar">
@@ -13,29 +12,27 @@
 
   <!-- 未登录提示 -->
   <view wx:if="{{needLogin}}" class="empty">
-    <text class="empty-icon">🔒</text>
+    <image class="empty-thinking" src="/assets/xiaowei/diffs/xiaowei-idle.png" mode="aspectFit" />
     <text class="empty-text">请先登录</text>
     <text class="empty-hint">登录后即可查看您的订单</text>
     <button class="login-btn" bindtap="onGoLogin">去登录</button>
   </view>
-
-  <!-- 加载失败提示（必须排在「空订单」前面：
-       否则网络一断，用户看到的是「暂无订单记录」，会以为自己的订单丢了） -->
+  <!-- 失败态必须排在空订单前面，否则断网时会被误认为"订单丢了" -->
   <view wx:elif="{{loadError}}" class="empty">
-    <text class="empty-icon">⚠️</text>
-    <text class="empty-text">{{loadError}}</text>
-    <button class="login-btn" bindtap="onRetryLoad">重新加载</button>
+    <image class="empty-fail" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
+    <text class="empty-text">加载失败</text>
+    <text class="empty-hint">{{loadError}}</text>
+    <view class="empty-btn" bindtap="onRetryLoad">重新加载</view>
   </view>
 
   <!-- 空订单提示（按当前筛选给出不同文案） -->
   <view wx:elif="{{isEmpty}}" class="empty">
-    <text class="empty-icon">📋</text>
+    <image class="empty-thinking" src="/assets/xiaowei/diffs/xiaowei-thinking.png" mode="aspectFit" />
     <text class="empty-text">{{activeStatus === -1 ? '暂无订单记录' : '该状态下暂无订单'}}</text>
     <text class="empty-hint">快去首页点餐吧</text>
     <button class="login-btn" bindtap="onGoIndex">去点餐</button>
   </view>
 
-  <!-- 订单列表 -->
   <view wx:else class="order-list">
     <view wx:for="{{orders}}" wx:key="id" class="order-card">
       <view class="order-header">

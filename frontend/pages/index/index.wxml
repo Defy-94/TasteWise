@@ -1,4 +1,3 @@
-<!-- 首页 - 菜品列表 -->
 <view class="container">
   <!-- 菜品搜索：边打字边搜（防抖 350ms），回车立即出结果 -->
   <view class="search-bar">
@@ -20,24 +19,8 @@
     >✕</view>
   </view>
 
-  <!-- AI推荐搜索栏 -->
-  <view class="ai-search-bar">
-    <input 
-      class="ai-input" 
-      placeholder="描述口味偏好，AI为您推荐" 
-      value="{{preferenceInput}}" 
-      bindinput="onPreferenceInput"
-      confirm-type="search"
-      bindconfirm="onAIRecommend"
-    />
-    <!-- 按钮：AI推荐，绑定后端接口 /api/dish/recommend.php -->
-    <button class="ai-btn" bindtap="onAIRecommend">AI推荐</button>
-  </view>
+  <!-- AI 推荐入口：点击进入 AI 助手对话页 -->
 
-  <!-- ============================================
-       小味浮窗：提示"可以试试小味推荐"
-       长期常驻显示（不做关闭按钮、不做过期隐藏），点它直接进 AI 助手
-       ============================================ -->
   <view class="xiaowei-tip" bindtap="onTapXiaoweiTip">
     <image class="xiaowei-tip-avatar" src="/assets/xiaowei/ui/xiaowei-pointing-sm.png" mode="aspectFit" />
     <view class="xiaowei-tip-text">
@@ -66,7 +49,8 @@
     <view wx:for="{{dishes}}" wx:key="id" class="dish-card" data-id="{{item.id}}" bindtap="onDishTap">
       <!-- 有图显示图，无图显示占位（项目内没有 default_dish.png，避免无效图片请求） -->
       <image wx:if="{{item.image_url}}" class="dish-img" src="{{item.image_url}}" mode="aspectFill" />
-      <view wx:else class="dish-img img-ph">🍽️</view>
+      <!-- 无图时用小味（为难表情）占位，比一个餐具 emoji 更有品牌感 -->
+            <image wx:else class="dish-img img-ph-img" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
       <view class="dish-info">
         <view class="dish-name-row">
           <view class="dish-name">{{item.name}}</view>
@@ -78,11 +62,7 @@
         <view class="dish-desc">{{item.description}}</view>
         <view class="dish-bottom">
           <text class="dish-price">¥{{item.price}}</text>
-          <!-- 按钮：加入购物车，绑定后端接口 POST /api/cart/add.php -->
-          <!-- 加入购物车：用 view 而非 button（button 自带块级默认宽度，容易溢出/占满整行） -->
-          <!-- 用 catchtap 而非 bindtap：阻止冒泡到卡片，否则会同时跳转详情页 -->
-          <!-- 售罄时换成不可点的「已售完」，与菜品详情页保持一致：
-               否则顾客要一路点到结算才会被"库存不足"拦下 -->
+  <!-- 售罄时直接禁用，不要等结算才拦 -->
           <view
             wx:if="{{item.stock > 0}}"
             class="add-cart-btn"
@@ -96,12 +76,11 @@
       </view>
     </view>
   </view>
-
-  <!-- 加载失败：必须和「空结果」区分开，
-       否则网络一断用户看到的是「该分类下暂时没有菜品」，会以为店里没菜 -->
+  <!-- 失败态必须排在空结果前面，否则断网时会被误认为"店里没菜" -->
   <view wx:if="{{loadError}}" class="dish-empty">
-    <view class="dish-empty-icon">⚠️</view>
-    <view class="dish-empty-text">{{loadError}}</view>
+    <image class="dish-empty-img" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
+    <view class="dish-empty-text">加载失败</view>
+    <view class="dish-empty-sub">{{loadError}}</view>
     <view
       class="dish-empty-btn"
       hover-class="dish-empty-btn-hover"
@@ -109,10 +88,7 @@
       bindtap="onRetryLoad"
     >重新加载</view>
   </view>
-
-  <!-- 空结果提示 -->
-  <!-- 要区分「搜不到」和「这个分类下本来就没菜」两种情况，
-       否则用户面对一片空白，不知道是自己搜错了还是店里确实没有 -->
+  <!-- 区分「搜不到」与「该分类下没菜」两种情况 -->
   <view wx:elif="{{!loadingDishes && dishes.length === 0}}" class="dish-empty">
     <view class="dish-empty-icon">🔍</view>
     <view class="dish-empty-text">
@@ -127,27 +103,4 @@
     >清空搜索</view>
   </view>
 
-  <!-- AI推荐弹窗 -->
-  <view wx:if="{{showRecommend}}" class="recommend-modal">
-    <view class="modal-content">
-      <view class="modal-header">
-        <text>AI推荐结果</text>
-        <text class="close-btn" bindtap="onCloseRecommend">✕</text>
-      </view>
-      <!-- 推荐项也可以点进详情 -->
-      <view
-        wx:for="{{recommendDishes}}"
-        wx:key="id"
-        class="recommend-item"
-        hover-class="recommend-item-hover"
-        hover-stay-time="80"
-        data-id="{{item.id}}"
-        bindtap="onDishTap"
-      >
-        <text class="rec-name">{{item.name}}</text>
-        <text class="rec-price">¥{{item.price}}</text>
-        <text class="rec-reason">{{item.ai_reason}}</text>
-      </view>
-    </view>
-  </view>
 </view>

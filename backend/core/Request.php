@@ -2,25 +2,9 @@
 /**
  * 请求入参读取
  *
- * ============================================
- * 【为什么要它】
- *   在它出现之前，每个接口都自己写这几句：
- *
- *       $input = json_decode(file_get_contents('php://input'), true);
- *       $message = isset($input['message']) ? trim($input['message']) : '';
- *       $page    = isset($_GET['page']) ? intval($_GET['page']) : 0;
- *       if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
- *           Response::error('仅支持POST请求');
- *       }
- *
- *   全项目这样的样板有 20+ 处。问题不只是啰嗦：
- *     - 有的地方 trim 了、有的没 trim；有的做了范围夹取、有的没做
- *     - 有人写 intval()、有人写 (int)，负数不校验
- *     - 「仅支持GET请求」这类判断分散在 20 个文件里，措辞还不完全一致
- *   换句话说，**同一个入参在不同接口里的行为可能不一样**，
- *   而这种不一致没有任何地方会提醒你。
- *
- *   收进这里之后，所有接口的取参行为就统一了：
+ * 原先每个接口各自写 json_decode + trim + intval + 请求方法判断，全项目 20+ 处，
+ * 而且行为不一致（有的 trim 有的不 trim、有的夹取范围有的不夹），
+ * 同一个入参在不同接口里的表现可能不同。收进这里后取参行为统一：
  *   字符串一律 trim、整数一律夹到指定范围、非法的值一律退回默认值。
  * ============================================
  *
@@ -35,18 +19,12 @@ class Request
     /** JSON 请求体缓存：多次取值只解析一次 */
     private static $jsonBody = null;
 
-    // ------------------------------------------------------------------
     // 请求体（POST JSON）
-    // ------------------------------------------------------------------
 
     /**
      * 解析并缓存 JSON 请求体
-     *
-     * 缓存是有意义的：一个接口里往往要取好几个字段，
-     * 每次都 file_get_contents('php://input') 会把 php://input 读空
-     * （它是只读一次的数据流），也白白多解析几次。
-     *
-     * @return array 解析失败或不是 JSON 时返回空数组（不报错）
+     * php://input 只能读一次，缓存避免多次读取读空、也少解析几次
+     * @return array 解析失败或非 JSON 时返回空数组（不报错）
      */
     public static function json()
     {
@@ -62,11 +40,7 @@ class Request
 
     /**
      * 从请求体取字符串
-     *
-     * @param string   $key
-     * @param string   $default
-     * @param int|null $maxLen 超长时截断（防止有人塞一兆字节的文本进去）
-     * @return string
+     * @param int|null $maxLen 超长截断（防止塞入超大文本）
      */
     public static function str($key, $default = '', $maxLen = null)
     {
@@ -76,15 +50,7 @@ class Request
         return self::cleanString($value, $maxLen);
     }
 
-    /**
-     * 从请求体取整数（非数字一律退回默认值）
-     *
-     * @param string   $key
-     * @param int      $default
-     * @param int|null $min 下限，超出则夹到下限
-     * @param int|null $max 上限，超出则夹到上限
-     * @return int
-     */
+    /** 从请求体取整数（非数字退回默认值，可夹取上下限） */
     public static function int($key, $default = 0, $min = null, $max = null)
     {
         $body = self::json();
@@ -93,14 +59,9 @@ class Request
     }
 
     /**
-     * 取**原始值**，不做任何转换；参数不存在时返回 null
-     *
-     * 什么时候需要它：有些接口必须区分「没传这个参数」和「传了 0」。
-     * 例如购物车改数量：没传 quantity 应当报参数错误，
-     * 而 quantity=0 是「移除这条记录」——两者含义完全不同。
-     * 如果直接用 Request::int()，非数字的 "abc" 会被静默当成 0，
-     * 结果就是**一次手滑的请求把用户的购物车记录删掉**。
-     * 这种场景请用 raw() 自己判断，不要图省事。
+     * 取原始值，不做任何转换；不存在时返回 null
+     * 用于必须区分「没传」和「传了 0」的接口：购物车改数量时没传 quantity 应报参数错误，
+     * 而 quantity=0 是移除记录。用 int() 会把 "abc" 静默当成 0，等于误删用户的购物车记录
      */
     public static function raw($key)
     {
@@ -109,12 +70,7 @@ class Request
         return isset($body[$key]) ? $body[$key] : null;
     }
 
-    /**
-     * 参数是否存在
-     *
-     * 注意：JSON 里显式写的 null 也视为「不存在」——
-     * 这与 PHP 的 isset() 语义一致，也是调用方最不容易误解的行为。
-     */
+    /** 参数是否存在（JSON 里显式写 null 也视为不存在，与 isset() 语义一致） */
     public static function has($key)
     {
         $body = self::json();
@@ -122,11 +78,7 @@ class Request
         return isset($body[$key]);
     }
 
-    /**
-     * 从请求体取数组（例如 AI 对话的 history）
-     *
-     * @return array 不是数组时返回空数组
-     */
+    /** 从请求体取数组（如 AI 对话的 history），非数组返回空数组 */
     public static function arr($key)
     {
         $body  = self::json();
@@ -135,9 +87,7 @@ class Request
         return is_array($value) ? $value : [];
     }
 
-    // ------------------------------------------------------------------
     // 查询串（GET）
-    // ------------------------------------------------------------------
 
     /** 从查询串取字符串 */
     public static function queryStr($key, $default = '', $maxLen = null)
@@ -153,9 +103,7 @@ class Request
         return self::toInt(isset($_GET[$key]) ? $_GET[$key] : null, $default, $min, $max);
     }
 
-    // ------------------------------------------------------------------
     // 请求方法
-    // ------------------------------------------------------------------
 
     public static function isPost()
     {
@@ -167,10 +115,7 @@ class Request
         return isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'GET';
     }
 
-    /**
-     * 要求 POST，否则直接返回错误并终止
-     * （替换原来散在 20 个文件里的三行判断）
-     */
+    /** 要求 POST，否则返回错误并终止 */
     public static function requirePost()
     {
         if (!self::isPost()) {
@@ -186,9 +131,7 @@ class Request
         }
     }
 
-    // ------------------------------------------------------------------
     // 内部工具
-    // ------------------------------------------------------------------
 
     /** trim + 可选截断 */
     private static function cleanString($value, $maxLen)

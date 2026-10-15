@@ -31,11 +31,8 @@ export interface ApiLikeError {
 }
 
 /**
- * 从错误对象里取一句能展示给用户的话
- *
- * 优先级：后端 msg → 网络 errMsg → 兜底文案。
- * 后端刻意不会把内部错误细节（SQL 报错、文件路径）发给客户端，
- * 所以这里拿到的一定是可以直接展示的内容。
+ * 从错误对象取一句可展示的话（后端 msg → 网络 errMsg → 兜底文案）
+ * 后端不会把 SQL 报错、文件路径这类细节发给客户端，拿到的都能直接展示
  */
 export function errorMessage(err: any, fallback: string = '操作失败，请稍后重试'): string {
   if (!err) {
@@ -52,12 +49,7 @@ export function errorMessage(err: any, fallback: string = '操作失败，请稍
   return msg ? String(msg) : fallback;
 }
 
-/**
- * 统一写日志
- *
- * 带上场景名，方便在开发者工具的控制台里按关键词筛选
- * （散落的 console.error 混在一起时基本没法查）。
- */
+/** 统一写日志：带场景名，方便在控制台按关键词筛选 */
 export function logError(context: string, err: any): void {
   console.error('[' + context + ']', err);
 }

@@ -2,9 +2,9 @@
 /**
  * 管理后台退出登录
  *
- * 只接受 POST + CSRF 令牌。
  * 如果允许 GET，别人只要在任意页面放一张 <img src=".../logout.php">，
  * 管理员一浏览就被踢下线（CSRF 注销攻击）。
+ * 只接受 POST + CSRF 令牌。
  */
 define('TW_ADMIN', true);
 require_once __DIR__ . '/lib/bootstrap.php';

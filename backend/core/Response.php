@@ -1,15 +1,8 @@
 <?php
-/**
- * 统一API返回格式类
- * 所有接口返回数据统一使用此类封装
- */
+/** 统一返回格式：{code, msg, data} */
 class Response
 {
-    /**
-     * 成功返回
-     * @param mixed $data    返回数据
-     * @param string $msg    提示信息
-     */
+    /** 成功返回 */
     public static function success($data = null, $msg = 'ok')
     {
         self::json([
@@ -19,11 +12,7 @@ class Response
         ]);
     }
 
-    /**
-     * 失败返回
-     * @param string $msg    错误信息
-     * @param int $code      错误码
-     */
+    /** 失败返回 */
     public static function error($msg = 'error', $code = 400)
     {
         self::json([
@@ -35,24 +24,10 @@ class Response
 
     /**
      * 服务器内部错误（500）的统一响应
+     * 不直接返回 $e->getMessage()：异常里常含 SQL 报错、列名、约束名，等于泄露表结构。
+     * 完整细节始终写错误日志；只在请求来自本机回环地址时才回传细节
      *
-     * ============================================
-     * 【为什么不能直接把 $e->getMessage() 返回给客户端】
-     *   原来的写法是每个接口自己写一句：
-     *       Response::error('下单失败：' . $e->getMessage(), 500);
-     *   而异常信息里经常带有内部细节，例如：
-     *       SQLSTATE[42S22]: Column not found: 1054 Unknown column 'xxx' in 'where clause'
-     *   这等于把**表结构、列名、甚至约束名**告诉调用方，
-     *   既是信息泄露，也帮攻击者省了探测成本。
-     *
-     *   现在的做法：
-     *     - 完整细节**始终**写进服务器错误日志（排查靠它）
-     *     - 对外只在「请求来自本机回环地址」时才带上细节
-     *       （和 security.php 里 allow_dev_openid_login 的本地调试通道同一套思路：
-     *        不新增配置项，但默认对外部请求不泄露内部信息）
-     * ============================================
-     *
-     * @param string    $context 面向用户的场景说明，例如「下单失败」
+     * @param string    $context 面向用户的场景说明，如「下单失败」
      * @param Exception $e
      */
     public static function serverError($context, $e)
@@ -70,15 +45,8 @@ class Response
 
     /**
      * 写一条服务器错误日志
-     *
-     * 用 error_log() 而不自己写文件：不带目标时它会进入 SAPI 的日志
-     * （Apache 下就是 Apache 的 error.log），零配置、不会因为目录不可写而失败。
-     * phpstudy 下日志位置：Extensions\Apache2.4.39\logs\error.log
-     *
-     * 注意：需要 php.ini 里 log_errors = On（phpstudy 默认是开的）。
-     *
-     * @param string         $context
-     * @param Exception|null $e
+     * 用 error_log()（不带目标即进 Apache 的 error.log），零配置且不会因目录不可写失败；
+     * 需要 php.ini 里 log_errors = On
      */
     public static function log($context, $e = null)
     {
@@ -99,13 +67,8 @@ class Response
     }
 
     /**
-     * 请求是否来自本机回环地址
-     *
-     * 用来决定要不要把内部错误细节返回给调用方（本地调试需要，上线不需要）。
-     *
-     * 公开出来是因为流式接口（core/../api/ai/chat_stream.php）没法用
-     * serverError() —— 它已经进入 SSE 输出，只能用 error 事件告知，
-     * 但同样需要按这个判断决定要不要带上细节。
+     * 请求是否来自本机回环地址（决定要不要返回内部错误细节）
+     * 公开是因为流式接口已进入 SSE 输出、用不了 serverError()，也需要按它判断
      */
     public static function isLocalRequest()
     {
@@ -116,17 +79,8 @@ class Response
 
     /**
      * 是否让 HTTP 状态码与业务码保持一致
-     *
-     * ============================================
-     * 【为什么敢这么做】微信小程序的 wx.request 对非 2xx 响应**仍然走 success 回调**
-     *   （fail 只用于网络层失败：超时、域名不合法、连不上等），
-     *   所以前端「读 body 里的 code」的逻辑完全不受影响。
-     *   浏览器端同理：fetch/axios 之外的裸 XMLHttpRequest 也能拿到 4xx 的响应体。
-     *
-     * 【退路】万一在某个客户端上发现业务错误被误判成「网络异常」，
-     *   把这里改成 false 就会恢复成「一律返回 200 + body 里带 code」的老行为，
-     *   前端不需要任何改动。
-     * ============================================
+     * wx.request 对非 2xx 仍走 success 回调，所以前端读 body.code 的逻辑不受影响；
+     * 若某个客户端把业务错误误判为网络异常，改成 false 即恢复「一律 200」的老行为
      */
     public static $mirrorHttpStatus = true;
 
@@ -135,13 +89,8 @@ class Response
      */
     private static function json($data)
     {
-        // 让 HTTP 状态码与业务码一致。
-        //
-        // 原来一律返回 200，代价是 HTTP 这一层的信息完全失效：
-        //   - 监控/告警按状态码统计错误时永远是 0
-        //   - 反向代理、CDN、网关无法按状态码做缓存与重试策略
-        //   - 服务器访问日志里全是 200，出了问题看不出哪些请求失败了
-        // body 结构保持不变（仍是 {code,msg,data}），所以前端无需改动。
+        // HTTP 状态码与业务码一致：否则监控按状态码统计永远是 0、代理无法按状态码重试、
+        // 访问日志里全是 200 看不出哪些请求失败。body 结构不变，前端无需改动。
         if (self::$mirrorHttpStatus && isset($data['code'])) {
             $status = (int) $data['code'];
 

@@ -1,21 +1,8 @@
 /**
  * AI 对话流式客户端（SSE over wx.request 分块传输）
- *
- * ============================================
- * 【为什么不用原生 EventSource】
- *   微信小程序里没有 EventSource，wx.request 也不会自动解析 SSE。
- *   可行路径是 wx.request({ enableChunked: true }) + onChunkReceived，
- *   服务端仍然按标准 SSE 输出，客户端自己按「空行分隔事件」解析。
- *   所以本模块要把两件事拼起来：
- *       字节分块 → 文本（utils/utf8.ts）
- *       文本     → 事件（utils/sseParser.ts）
- *   两者都是独立可测的纯逻辑，这里只负责把它们接到网络上。
- * ============================================
- *
- * 【兼容性】enableChunked 需要基础库 ≥ 2.20.2。
- *   调用方应先用 supportsChunked() 判断，不支持就走非流式接口
- *   （pages/aiChat 里就是这么做的）。
- * ============================================
+ * 小程序没有 EventSource，只能用 wx.request({ enableChunked: true }) + onChunkReceived，
+ * 再把「字节分块→文本」(utils/utf8.ts) 与「文本→事件」(utils/sseParser.ts) 接到网络上。
+ * enableChunked 需基础库 ≥ 2.20.2，调用方先用 supportsChunked() 判断
  */
 import { BASE_URL, getToken } from './api';
 import { createUtf8StreamDecoder } from './utf8';
@@ -45,9 +32,7 @@ export interface StreamTask {
 
 /**
  * 当前基础库是否支持分块接收
- *
- * enableChunked 从 2.20.2 开始支持，低于这个版本不会触发 onChunkReceived，
- * 请求会退化成「等全部内容返回」——那样还不如直接走非流式接口。
+ * 低于 2.20.2 不会触发 onChunkReceived，请求会退化成等全部返回，不如走非流式接口
  */
 export function supportsChunked(): boolean {
   try {
@@ -64,10 +49,7 @@ export function supportsChunked(): boolean {
   }
 }
 
-/**
- * 比较基础库版本号
- * @return 负数表示 v1 < v2，0 表示相等，正数表示 v1 > v2
- */
+/** 比较版本号：负数 v1<v2，0 相等，正数 v1>v2 */
 function compareVersion(v1: string, v2: string): number {
   const a = v1.split('.');
   const b = v2.split('.');

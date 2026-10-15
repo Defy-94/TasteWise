@@ -62,7 +62,7 @@
             <!-- 菜品图片 -->
             <!-- 有图显示图，无图显示占位（项目内没有 default_dish.png） -->
             <image wx:if="{{dish.image_url}}" class="dish-img" src="{{dish.image_url}}" mode="aspectFill" />
-            <view wx:else class="dish-img img-ph">🍽️</view>
+            <image wx:else class="dish-img img-ph-img" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
 
             <!-- 菜品信息 -->
             <view class="dish-info">
@@ -138,7 +138,6 @@
       confirm-type="send"
       bindconfirm="onSend"
     />
-    <!-- 按钮：发送，绑定后端接口 POST /api/ai/chat.php -->
     <button class="send-btn" bindtap="onSend" disabled="{{sending}}">{{sending ? '回复中' : '发送'}}</button>
   </view>
 </view>

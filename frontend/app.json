@@ -11,13 +11,13 @@
     ],
     "window": {
       "backgroundTextStyle": "light",
-      "navigationBarBackgroundColor": "#5b93f2",
+      "navigationBarBackgroundColor": "#11B3D4",
       "navigationBarTitleText": "AI点餐",
       "navigationBarTextStyle": "white"
     },
     "tabBar": {
       "color": "#999999",
-      "selectedColor": "#5b93f2",
+      "selectedColor": "#11B3D4",
       "backgroundColor": "#ffffff",
       "borderStyle": "black",
       "list": [

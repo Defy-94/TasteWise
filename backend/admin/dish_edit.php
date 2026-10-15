@@ -3,18 +3,7 @@
  * 管理后台 - 新增 / 编辑菜品
  *
  * 同一个页面承担新增与编辑两件事，由 URL 上的 id 决定：
- *   dish_edit.php        新增
- *   dish_edit.php?id=3   编辑 #3
- *
- * 【为什么图片地址要校验协议】
- *   image_url 会在两个地方作为 <img>/<image> 的 src 输出：
- *   后台菜品列表，以及小程序端菜品卡片。
- *   如果允许任意字符串，就可以填 javascript: 这类伪协议。
- *   这里只放行 http/https，从源头挡掉。
- *
- * 【价格用字符串写库】
- *   DECIMAL 列用 sprintf('%.2f') 转成字符串再存，
- *   避免浮点数在传输/转换过程中出现 28.000000000000004 这种脏值。
+ * dish_edit.php        新增
  */
 define('TW_ADMIN', true);
 require_once __DIR__ . '/lib/bootstrap.php';

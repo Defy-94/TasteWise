@@ -1,12 +1,7 @@
 /**
- * AI助手页面 - DeepSeek 智能点餐助手对话
- * 功能：对话（流式输出）、推荐菜品卡片、快捷加入购物车
- *
- * 【接口说明】
- *   - /api/ai/chat_stream.php 流式版（SSE），基础库 ≥ 2.20.2 时优先使用
- *   - /api/ai/chat.php        非流式版，作为不支持分块接收时的回退
- *   - 两者都用同一个 AI 额度，限流也是同一套（见 core/AiRateLimit.php）
- *   - 「加入购物车」需要登录，未登录时会由请求层统一跳转登录页
+ * AI 助手对话页
+ * 接口：/api/ai/chat_stream.php（SSE 流式，优先）、/api/ai/chat.php（不支持分块接收时回退）
+ * 两者共用同一套 AI 额度与限流（core/AiRateLimit.php）
  */
 import { post } from '../../utils/api';
 import { ChatMessageExtended, ChatMessage, AIChatResult, RecommendDish } from '../../utils/types';
@@ -35,20 +30,16 @@ const QUICK_QUESTIONS = [
 ];
 
 /**
- * 流式输出的刷新间隔（毫秒）
- *
- * 为什么要节流：AI 可能每几十毫秒就吐一个词，如果每来一个字就 setData 一次，
- * 一次回复会触发上百次视图更新，在低端机上会明显卡顿。
- * 合并成每 80ms 刷新一次，肉眼看上去依旧是"逐字蹦出来"的连续效果。
+ * 流式输出刷新间隔（毫秒）
+ * 每个字都 setData 会让一次回复触发上百次视图更新，低端机明显卡顿；
+ * 合并成 80ms 一次，观感上仍是逐字蹦出来。
  */
 const STREAM_FLUSH_MS = 80;
 
 /**
- * 最多携带多少条历史消息（一问一答算 2 条）
- *
- * 为什么要有上限：第 N 轮请求要把前面 N-1 轮的内容全部重发一遍，
- * 成本是 O(N²)，而且迟早会超出模型的上下文窗口、请求直接失败。
- * 服务端也会再洗一遍（不能只信客户端），这里截断主要是为了少传数据。
+ * 最多携带的历史消息条数（一问一答算 2 条）
+ * 第 N 轮要重发前 N-1 轮，成本 O(N²)，且迟早超出模型上下文窗口。
+ * 服务端还会再洗一遍，这里截断主要是少传数据。
  */
 const MAX_HISTORY_MESSAGES = 12;
 
@@ -86,15 +77,8 @@ Page({
 
   /**
    * 切换小味的表情状态
-   *
-   * 状态名与素材文件一一对应（components/xiaowei-stage/index.js 里有完整表）：
-   *   greeting 首次招呼 / thinking 思考 / happy 开心（有推荐或加购成功）
-   *   sorry 出错 / goodbye 道谢 / idle 待命
-   *   注：searching（翻菜单）、proud（得意）两个状态已按需求删除，
-   *       点餐场景响应快，不需要"长时间翻菜单"，加购成功直接用 happy 表达。
-   *
-   * 组件内部还有"最短展示时长"保护，所以这里可以放心地连续调用，
-   * 不会出现 thinking 一闪而过的情况。
+   * 可用值：idle / greeting / thinking / happy / sorry / goodbye
+   * （状态表见 components/xiaowei-stage/index.js）
    */
   setStageState(state: string) {
     if (this.data.stageState !== state) {
@@ -147,12 +131,7 @@ Page({
     await this.sendText(text);
   },
 
-  /**
-   * 发送一条消息并获取 AI 回复
-   *
-   * 优先走流式接口（回复逐字蹦出来），
-   * 基础库不支持分块接收时自动回退到非流式接口 —— 功能完全一样，只是没有逐字效果。
-   */
+  /** 发送消息并获取回复：优先流式，不支持分块接收时回退非流式 */
   async sendText(text: string) {
     // 上一条还在回复中：忽略这次发送，避免并发请求
     if (this.data.sending || this.data.streamingText) return;
@@ -196,10 +175,8 @@ Page({
 
   /**
    * 流式获取回复
-   *
-   * 增量文本先写进 data.streamingText（单个字符串），结束后再作为一条正式消息追加。
-   * 不每次重建 messages 数组的原因：那会把整段对话反复发给视图层，
-   * 一次回复下来开销很大，低端机上明显卡。
+   * 增量文本先写进 streamingText，结束后才追加成正式消息；
+   * 每次重建 messages 会把整段对话反复发给视图层，开销大。
    */
   streamReply(text: string, history: ChatMessage[]): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -262,10 +239,7 @@ Page({
     });
   },
 
-  /**
-   * 非流式回退：一次拿到完整回复
-   * 接口：POST /api/ai/chat.php
-   */
+  /** 非流式回退：POST /api/ai/chat.php */
   async requestReply(text: string, history: ChatMessage[]) {
     const result = await post<AIChatResult>('/api/ai/chat.php', {
       message: text,
@@ -302,10 +276,8 @@ Page({
   },
 
   /**
-   * 失败时的收尾：结束「正在输入」，并给用户一句明确的话，避免界面一直转圈
-   *
-   * 限流（429）、AI 服务异常这类后端已经给出可读原因的，直接转达；
-   * 其余情况用一句兜底话术，不把技术细节抛给顾客。
+   * 失败收尾：结束「正在输入」并给一句明确的话，避免界面一直转圈
+   * 后端给了可读原因（如限流）就直接转达，否则用兜底话术。
    */
   failReply(err?: any) {
     const raw = err ? String((err && err.message) || (err && err.msg) || '') : '';

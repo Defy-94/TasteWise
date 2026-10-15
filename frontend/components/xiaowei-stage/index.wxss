@@ -24,7 +24,7 @@
   align-items: center;
   justify-content: center;
   /* 冷蓝到近白的过渡底：和项目蓝色主色衔接，只留一点点暖调避免发灰 */
-  background: linear-gradient(180deg, #EDF2FF 0%, #F4F7FF 60%, #FCFAF8 100%);
+  background: linear-gradient(180deg, #E8F7FB 0%, #F2FAFD 60%, #FCFAF8 100%);
 }
 
 /* 常驻形态：固定高度，不参与挤压；键盘弹起时由 flex 布局自然压缩消息区 */
@@ -33,7 +33,7 @@
   height: 46vw;
   min-height: 280rpx;
   max-height: 380rpx;
-  border-bottom: 1rpx solid #EFF1F6;
+  border-bottom: 1rpx solid #EDF3F5;
 }
 
 /* 欢迎态：对话为空时放大，作为首屏主角 */
@@ -42,7 +42,7 @@
   height: 56vw;
   min-height: 340rpx;
   max-height: 480rpx;
-  background: linear-gradient(180deg, #E9EFFF 0%, #F3F7FF 50%, #FCFAF8 100%);
+  background: linear-gradient(180deg, #E6F6FA 0%, #F3F7FF 50%, #FCFAF8 100%);
 }
 
 /* 暖色光晕（放在角色身后，柔和不抢主体） */
@@ -164,9 +164,6 @@
   pointer-events: none;
 }
 
-/* ---------------- 动效 ---------------- */
-
-/* 呼吸 */
 @keyframes xw-breathe {
   0%, 100% { transform: scale(1) translateY(0); }
   50%      { transform: scale(1.014) translateY(-4rpx); }

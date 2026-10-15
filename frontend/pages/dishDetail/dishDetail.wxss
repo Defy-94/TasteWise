@@ -3,7 +3,7 @@
 /* 底部留出操作栏的高度，避免正文被固定定位的操作栏盖住 */
 .page {
     min-height: 100vh;
-    background: #f6f7fb;
+    background: #F6F8F9;
     padding-bottom: 160rpx;
     box-sizing: border-box;
   }
@@ -83,8 +83,8 @@
   }
   
   .tag-rec {
-    background: #f1f6ff;
-    color: #5b93f2;
+    background: #ECF9FC;
+    color: #11B3D4;
   }
   
   .tag-out {
@@ -102,7 +102,7 @@
   .price {
     font-size: 44rpx;
     font-weight: bold;
-    color: #5b93f2;
+    color: #11B3D4;
   }
   
   .sold {
@@ -226,7 +226,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 36rpx;
-    background: #5b93f2;
+    background: #11B3D4;
     color: #fff;
     font-size: 30rpx;
     font-weight: bold;
@@ -234,7 +234,7 @@
   }
   
   .add-btn-hover {
-    background: #e55a2b;
+    background: #0E93B0;
   }
   
   .add-btn-disabled {
@@ -272,14 +272,14 @@
     align-items: center;
     justify-content: center;
     border-radius: 38rpx;
-    background: #5b93f2;
+    background: #11B3D4;
     color: #fff;
     font-size: 30rpx;
     box-sizing: border-box;
   }
   
   .state-btn-hover {
-    background: #e55a2b;
+    background: #0E93B0;
   }
   
   .state-btn-plain {
@@ -287,4 +287,24 @@
     background: #fff;
     color: #666;
     border: 1rpx solid #ddd;
+  }
+
+  /* 加载失败时的小味立绘 */
+  .state-img {
+    width: 320rpx;
+    height: 320rpx;
+  }
+  
+  /* 失败原因（标题下方的小字） */
+  .state-sub {
+    font-size: 24rpx;
+    color: #bbb;
+    margin-top: 12rpx;
+    text-align: center;
+    line-height: 1.6;
+  }
+  
+  /* 顶部大图无图时的占位：小味立绘 */
+  .hero-ph-img {
+    background: #f4f6f8;
   }

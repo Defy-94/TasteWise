@@ -2,25 +2,12 @@
 /**
  * AI 接口限流
  *
- * ============================================
- * 【为什么要做这件事】
- *   ai/chat.php 与 dish/recommend.php 每次调用都会真实消耗 DeepSeek 的额度。
- *   这两个接口原本是免登录的、也没有任何次数限制 —— 意味着任何人写个循环
- *   就能把 API Key 的余额刷光，属于「成本失控」而不是「数据泄露」类风险，
- *   但后果同样严重（账单）。
- * ============================================
+ * AI 接口每次调用都真实消耗 DeepSeek 额度，且免登录、原本无次数限制 ——
+ * 任何人写个循环就能把余额刷光，属于「成本失控」类风险。
  *
- * ============================================
- * 【限流模型】固定窗口计数，三层同时生效
- *
- *   1. 身份 · 每分钟   —— 挡住瞬时连点与脚本高速轰炸
- *   2. 身份 · 每天     —— 挡住「细水长流」式的持续消耗
- *   3. 全站 · 每天     —— 最后一道保险：无论怎么绕过前面两层，
- *                        当天的总消耗都不会超过这个数
- *
- *   「身份」的判定：带了有效登录令牌就按用户ID，否则按 IP。
- *   （这两个接口本身免登录，所以游客也会被按 IP 限流。）
- * ============================================
+ * 固定窗口计数，三层同时生效：
+ *   身份·每分钟（挡瞬时轰炸）/ 身份·每天（挡持续消耗）/ 全站·每天（兜底总量）
+ * 身份判定：带有效令牌按用户 ID，否则按 IP（接口免登录，游客也按 IP 限流）
  *
  * ============================================
  * 【窗口怎么算】以 Unix 时间戳对齐的固定窗口
@@ -96,11 +83,7 @@ class AiRateLimit
     const GC_KEEP_SECONDS = 172800;
 
     /**
-     * 检查并消费一次配额
-     *
-     * 通过时返回剩余额度信息，同时会设置若干响应头供客户端参考；
-     * 超限时抛 AiRateLimitException（调用方应当返回 429）。
-     *
+     * 检查并消费一次配额（通过时返回剩余额度并设置响应头；超限抛异常，调用方返回 429）
      * @return array ['kind'=>'user|anon','minute_left'=>int,'day_left'=>int]
      * @throws AiRateLimitException
      */
@@ -174,11 +157,7 @@ class AiRateLimit
         return $result;
     }
 
-    /**
-     * 输出 429 并终止请求（供接口层在 catch 里调用）
-     *
-     * 单独抽出来是为了让三个接口的 catch 分支都只有一行，不会各写各的。
-     */
+    /** 输出 429 并终止请求（供接口层在 catch 里调用，避免每个接口各写一遍） */
     public static function rejectResponse(AiRateLimitException $e)
     {
 
@@ -187,14 +166,7 @@ class AiRateLimit
         Response::error($e->getMessage(), 429);
     }
 
-    /**
-     * 安全地发送响应头
-     *
-     * 加 headers_sent() 判断有两个作用：
-     *   1. 命令行下（测试脚本直接调用 enforce()）header() 会刷一堆
-     *      "Cannot modify header information" 警告，把这个函数一包就干净了；
-     *   2. 万一将来有人在已经输出内容之后才调用限流，也不会再产生警告噪音。
-     */
+    /** 发送响应头（带 headers_sent 判断，避免命令行或已输出内容时刷警告） */
     private static function sendHeader($line)
     {
         if (!headers_sent()) {
@@ -203,13 +175,10 @@ class AiRateLimit
     }
 
     /**
-     * 原子自增并读回当前窗口的计数
-     *
-     * 用 INSERT ... ON DUPLICATE KEY UPDATE 一条语句完成「不存在就插入、存在就 +1」，
-     * 靠 (bucket_key, window_start) 的唯一索引保证并发安全 ——
-     * 换成「先 SELECT 判断再 UPDATE」在并发下会漏计数。
-     *
-     * @return int 自增后的计数
+     * 原子自增并读回当前窗口计数
+     * 用 INSERT ... ON DUPLICATE KEY UPDATE 一条语句完成，靠唯一索引保证并发安全
+     * （先 SELECT 再 UPDATE 在并发下会漏计数）
+     * @return int
      */
     private static function hit($db, $key, $windowStart)
     {
@@ -229,12 +198,8 @@ class AiRateLimit
     }
 
     /**
-     * 判定请求身份
-     *
-     * 带有效令牌 → 按用户；否则按 IP。
-     * 这两个 AI 接口是免登录的，所以这里用 currentUser()（允许校验失败）而不是
-     * requireLogin() —— 游客也应该能用 AI，只是额度更低。
-     *
+     * 判定请求身份：带有效令牌按用户，否则按 IP
+     * 接口免登录，所以用 currentUser()（允许校验失败）而不是 requireLogin()
      * @return array ['kind'=>'user|anon','key'=>string,'uid'=>int]
      */
     private static function identity()
@@ -263,9 +228,8 @@ class AiRateLimit
 
     /**
      * 概率性清理过期计数
-     *
-     * 不做成定时任务，是因为这个项目跑在 phpstudy 上，没有 cron 的保证；
-     * 用「平均每 N 次请求清一次」的方式最省事，而且清理失败绝不能影响主流程。
+     * 项目跑在 phpstudy 上没有可靠的 cron，所以用「平均每 N 次请求清一次」；
+     * 清理失败不影响主流程
      */
     private static function maybeGc($db, $now)
     {

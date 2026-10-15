@@ -2,25 +2,12 @@
 /**
  * 菜品查询的统一入口
  *
- * ============================================
- * 【为什么要专门建这个类】
- *   在它出现之前，「哪些菜算在售」这条规则散落在 6 个地方：
- *     api/dish/list.php、api/dish/detail.php、api/dish/recommend.php、
- *     api/ai/chat.php、api/ai/chat_stream.php、core/DeepSeek.php
- *   而且已经**出现了不一致**：
- *     - 多数地方写的是「上架」（is_on_sale = 1）
- *     - 只有两处额外加了「有库存」（stock > 0）
- *   于是 AI 推荐接口会把已经售完的菜推给顾客 —— 因为那一处漏了库存条件。
- *   这类「同一条业务规则被抄了多份、然后各自跑偏」的问题很难靠读代码发现，
- *   所以统一到这里。
- * ============================================
+ * 「哪些菜算在售」原本散落在 6 个文件里并且已经出现不一致（多数只判上架，
+ * 两处多判了库存），导致 AI 推荐会把售完的菜推给顾客。所以统一到这里。
  *
- * ============================================
- * 【两种「在售」是不同的规则，不要混用】
- *
- *   1. 顾客可见（condVisible）= 上架
- *      - 用于：菜品列表、菜品详情
- *      - 为什么不排除售完：库存为 0 的菜仍要展示、只是标成「已售完」。
+ * 两种「在售」是不同的规则，不要混用：
+ *   1. 顾客可见（condVisible）= 上架 —— 用于列表与详情；
+ *      不排除售完：库存为 0 的菜仍要展示，只是标成「已售完」。
  *        整道菜突然消失会让顾客以为店里没这道菜。
  *
  *   2. 可出售（condSellable）= 上架 且 有库存
@@ -39,28 +26,19 @@ class DishRepo
     const COLUMNS = 'id, category_id, name, price, image_url, description, spiciness, is_recommend, stock';
 
     /**
-     * 条件模板：{t} 是表别名的占位符，由 condXxx($alias) 替换
-     *
-     * 之所以用模板而不是直接写字符串，是因为有些查询要 JOIN
-     * （例如取分类名），那时列名必须带别名前缀，否则字段重名会报
-     * 「Column 'is_on_sale' in where clause is ambiguous」。
+     * 条件模板：{t} 由 condXxx($alias) 替换成表别名前缀
+     * 用模板是因为 JOIN 查询（如取分类名）必须带别名，否则重名字段会报 ambiguous
      */
     const T_VISIBLE  = '{t}is_on_sale = 1';
     const T_SELLABLE = '{t}is_on_sale = 1 AND {t}stock > 0';
 
-    /**
-     * 规则 1：顾客可见的条件（含已售完）
-     * @param string $alias 表别名，不传表示不带前缀
-     */
+    /** 规则 1：顾客可见（含已售完） */
     public static function condVisible($alias = '')
     {
         return str_replace('{t}', self::prefix($alias), self::T_VISIBLE);
     }
 
-    /**
-     * 规则 2：可出售的条件（上架 且 有库存）
-     * @param string $alias 表别名，不传表示不带前缀
-     */
+    /** 规则 2：可出售（上架且有库存） */
     public static function condSellable($alias = '')
     {
         return str_replace('{t}', self::prefix($alias), self::T_SELLABLE);
@@ -68,12 +46,7 @@ class DishRepo
 
     /**
      * 顾客可见的菜品列表（含已售完）
-     *
-     * @param array $filters 支持：
-     *                       - category_id (int)  按分类筛选，0 或不传表示全部
-     *                       - keyword (string)   关键词，同时匹配菜名与描述
-     *
-     * @return array
+     * @param array $filters category_id（0 或不传为全部）、keyword（匹配菜名与描述）
      */
     public static function visibleList(array $filters = [])
     {
@@ -103,11 +76,8 @@ class DishRepo
         $params[] = $like;
         $params[] = $like;
 
-        // 菜名命中的排前面：搜「汤」时「番茄蛋汤」应该比
-        // 「描述里顺带提到汤」的菜更靠前，否则最相关的结果可能藏在后面。
-        //
-        // ⚠️ 这个占位符出现在 WHERE 之后，所以它的参数必须追加在数组最后 ——
-        //    PDO 是按位置绑定参数的，顺序错了会把关键词绑到错误的 ? 上。
+        // 菜名命中排前面（最相关的结果不该藏在后面）。
+        // 该占位符在 WHERE 之后，参数必须追加在数组最后：PDO 按位置绑定，顺序错了会绑错。
         $sql .= ' ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, id';
         $params[] = $like;
 
@@ -115,13 +85,8 @@ class DishRepo
     }
 
     /**
-     * 单个顾客可见菜品，并带上所属分类名
-     *
-     * 详情页需要分类名，所以在 SQL 里直接 JOIN 出来，
-     * 避免调用方为了一个分类名再查一次库。
-     *
-     * @param int $dishId
-     * @return array|false 不存在或已下架时返回 false
+     * 单个顾客可见菜品（带分类名，用 JOIN 取出，避免调用方再查一次）
+     * @return array|false 不存在或已下架返回 false
      */
     public static function findVisibleWithCategory($dishId)
     {
@@ -138,13 +103,7 @@ class DishRepo
         );
     }
 
-    /**
-     * 可出售的菜品（上架 且 有库存）
-     *
-     * 供 AI 推荐、菜单注入、回复卡片识别使用 —— 这些场景都不该出现「点不了的菜」。
-     *
-     * @return array
-     */
+    /** 可出售的菜品（上架且有库存）：供 AI 推荐、菜单注入、卡片识别使用 */
     public static function sellableList()
     {
         $db = DB::getInstance();
@@ -154,10 +113,7 @@ class DishRepo
         );
     }
 
-    /**
-     * 把别名变成前缀
-     * @return string 传 'd' 返回 'd.'，传空串返回 ''
-     */
+    /** 别名转前缀：'d' -> 'd.'，空串 -> '' */
     private static function prefix($alias)
     {
         $alias = trim((string) $alias);

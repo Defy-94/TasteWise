@@ -1,9 +1,6 @@
 /**
- * 购物车页面
- * 功能：购物车列表、调整数量、移除商品、填写备注、结算下单
- * 
- * 【鉴权说明】请求自动携带登录令牌（见 utils/api.ts），
- *            用户身份由令牌决定，因此不再向接口传 user_id。
+ * 购物车页面：列表、调整数量、移除、备注、结算下单
+ * 请求自动携带登录令牌，用户身份由令牌决定，不传 user_id
  */
 import { get, post, getToken } from '../../utils/api';
 import { CartItem } from '../../utils/types';
@@ -16,7 +13,6 @@ Page({
     totalPrice: 0,
     isEmpty: true,
     needLogin: false,     // 未登录时显示登录提示
-    updating: false,      // 数量调整中：防止快速连点导致并发请求乱序
     remark: '',           // 订单备注（结算时提交给后端）
     loadError: '',        // 加载失败原因（非空时显示错误态而不是"购物车为空"）
   },
@@ -38,10 +34,7 @@ Page({
     this.loadCart();
   },
 
-  /**
-   * 加载购物车
-   * 接口：GET /api/cart/list.php（用户身份由令牌决定）
-   */
+  /** 加载购物车：GET /api/cart/list.php */
   async loadCart() {
     this.setData({ loadError: '' });
 
@@ -77,11 +70,7 @@ Page({
     this.loadCart();
   },
 
-  /**
-   * 删除购物车项
-   * 接口：POST /api/cart/remove.php
-   * 说明：后端会同时校验该记录是否属于当前登录用户（防越权删除他人数据）
-   */
+  /** 删除购物车项：POST /api/cart/remove.php（后端校验记录归属） */
   async onRemove(e: any) {
     const cartId = e.currentTarget.dataset.id;
     
@@ -108,14 +97,8 @@ Page({
   },
 
   /**
-   * 调整数量（− / + 按钮）
-   * 接口：POST /api/cart/update.php
-   * 
-   * 设计说明：后端采用「绝对设置」语义，目标数量由按钮的 data-num 算好传入；
-   *          num 为 0 时后端会移除该条记录（此处先弹窗确认）。
-   * 
-   * ⚠️ 为什么要 updating 开关：用户快速连点会发出多个请求，
-   *    而响应返回顺序不确定（后发的可能先回），最终数量会和用户预期不一致。
+   * 调整数量：POST /api/cart/update.php
+   * 后端是「绝对设置」语义，目标数量由按钮的 data-num 算好传入，num 为 0 即移除
    */
   async onChangeQty(e: any) {
     const cartId = Number(e.currentTarget.dataset.id);
@@ -163,11 +146,7 @@ Page({
     this.setData({ remark: e.detail.value });
   },
 
-  /**
-   * 结算下单
-   * 接口：POST /api/order/create.php
-   * 说明：下单后订单状态为「待支付」，可在订单页继续支付
-   */
+  /** 结算下单：POST /api/order/create.php（下单后为待支付状态） */
   async onCheckout() {
     if (this.data.cartList.length === 0) {
       wx.showToast({ title: '购物车为空', icon: 'none' });
@@ -190,10 +169,7 @@ Page({
       
       wx.showToast({ title: '下单成功', icon: 'success' });
       
-      // 跳转到订单页完成支付
-      // ⚠️ myOrders 不是 tabBar 页面，必须用 navigateTo。
-      //    原来用的是 switchTab，它只能跳 tabBar 页面（首页/购物车/AI助手/我的），
-      //    跳非 tab 页会静默失败（无任何提示），表现为"点了结算没反应"。
+      // myOrders 不是 tabBar 页面，只能用 navigateTo（switchTab 会静默失败）
       setTimeout(() => {
         wx.navigateTo({
           url: '/pages/myOrders/myOrders?status=0',   // 直接定位到"待支付"
@@ -218,5 +194,10 @@ Page({
   /** 跳转登录页 */
   onGoLogin() {
     wx.navigateTo({ url: '/pages/login/login' });
+  },
+
+  /** 空购物车里的「去首页挑菜」：首页是 tabBar 页面，只能用 switchTab */
+  onGoHome() {
+    wx.switchTab({ url: '/pages/index/index' });
   },
 });

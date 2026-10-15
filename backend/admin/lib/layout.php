@@ -4,8 +4,6 @@
  *
  * 没有引入任何模板引擎，直接用 PHP 函数输出 —— 后台页面只有几个，
  * 引入模板引擎反而增加理解成本。
- *
- * 所有动态内容都必须用 e() 转义后再输出。
  */
 
 if (!defined('TW_ADMIN')) {
@@ -37,7 +35,8 @@ function admin_header($title, $active = '', $subtitle = '')
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand" href="index.php">
-      <span class="brand-mark">🍽️</span>
+      <!-- 品牌形象：小味（头像副本放在 admin/assets/，后台目录之外访问不到小程序素材） -->
+      <img class="brand-mark" src="assets/xiaowei-avatar.png" alt="智味">
       <span class="brand-text">TasteWise<em>管理后台</em></span>
     </a>
 
