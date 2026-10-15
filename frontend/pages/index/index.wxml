@@ -34,6 +34,19 @@
     <button class="ai-btn" bindtap="onAIRecommend">AI推荐</button>
   </view>
 
+  <!-- ============================================
+       小味浮窗：提示"可以试试小味推荐"
+       长期常驻显示（不做关闭按钮、不做过期隐藏），点它直接进 AI 助手
+       ============================================ -->
+  <view class="xiaowei-tip" bindtap="onTapXiaoweiTip">
+    <image class="xiaowei-tip-avatar" src="/assets/xiaowei/ui/xiaowei-pointing-sm.png" mode="aspectFit" />
+    <view class="xiaowei-tip-text">
+      <text class="xiaowei-tip-title">可以试试小味推荐</text>
+      <text class="xiaowei-tip-sub">说说口味，我来帮你挑</text>
+    </view>
+    <view class="xiaowei-tip-arrow">›</view>
+  </view>
+
   <!-- 分类导航 -->
   <scroll-view class="category-scroll" scroll-x="true">
     <view 
@@ -55,7 +68,13 @@
       <image wx:if="{{item.image_url}}" class="dish-img" src="{{item.image_url}}" mode="aspectFill" />
       <view wx:else class="dish-img img-ph">🍽️</view>
       <view class="dish-info">
-        <view class="dish-name">{{item.name}}</view>
+        <view class="dish-name-row">
+          <view class="dish-name">{{item.name}}</view>
+          <!-- 供应情况：只用两档措辞，不显示具体份数 -->
+          <view class="supply {{item.supplyLabel === '供应紧张' ? 'supply-tight' : (item.supplyLabel === '已售完' ? 'supply-out' : 'supply-ok')}}">
+            {{item.supplyLabel}}
+          </view>
+        </view>
         <view class="dish-desc">{{item.description}}</view>
         <view class="dish-bottom">
           <text class="dish-price">¥{{item.price}}</text>

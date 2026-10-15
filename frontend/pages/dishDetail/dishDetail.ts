@@ -17,6 +17,7 @@ import { get, post } from '../../utils/api';
 import { DishDetail } from '../../utils/types';
 import { refreshCartBadge } from '../../utils/cartBadge';
 import { errorMessage, logError } from '../../utils/error';
+import { supplyLevel, supplyLabel, supplyDesc } from '../../utils/supply';
 
 /** 辣度文字：0 不显示，1-5 显示对应数量的辣椒 */
 function buildSpicyText(level: number): string {
@@ -37,6 +38,10 @@ Page({
     quantity: 1,                           // 本次要加入购物车的份数
     loading: true,                         // 是否正在加载
     loadError: '',                         // 加载失败原因（非空时显示错误态）
+    // 供应情况：后端给的是份数，对外只呈现「充足 / 紧张 / 已售完」两档措辞
+    supplyText: '',                        // 供应充足 / 供应紧张 / 已售完
+    supplyDesc: '',                        // 面板里的一句说明
+    supplyLevel: 'ok' as 'ok' | 'tight' | 'out',
   },
 
   onLoad(options: Record<string, string | undefined>) {
@@ -70,6 +75,10 @@ Page({
         // 免得 28 显示成「¥28」而 28.5 显示成「¥28.5」，一行里价格长短不一
         priceText: '¥' + dish.price.toFixed(2),
         spicyText: buildSpicyText(dish.spiciness),
+        // 份数不展示给顾客，只转成供应档位（见 utils/supply.ts）
+        supplyText: supplyLabel(Number(dish.stock)),
+        supplyDesc: supplyDesc(Number(dish.stock)),
+        supplyLevel: supplyLevel(Number(dish.stock)),
       });
 
       // 把导航栏标题换成菜名，比一直显示"菜品详情"信息量大

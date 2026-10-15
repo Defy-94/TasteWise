@@ -1,7 +1,7 @@
 /* 购物车页面样式 */
 .container {
     min-height: 100vh;
-    background: #f5f5f5;
+    background: #f6f7fb;
     padding-bottom: 120rpx;
   }
   
@@ -10,7 +10,19 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 200rpx;
+    padding-top: 120rpx;
+  }
+  
+  /* 空态的小味指引立绘：手指朝右上，正好指向"去首页挑菜"这句话 */
+  .empty-pointing {
+    width: 340rpx;
+    height: 340rpx;
+    animation: empty-pointing-in 480ms cubic-bezier(0.22, 1.12, 0.36, 1) 1 both;
+  }
+  
+  @keyframes empty-pointing-in {
+    0%   { opacity: 0; transform: translateY(40rpx) scale(0.9); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
   }
   
   .empty-icon {
@@ -32,7 +44,7 @@
   /* 未登录时的去登录按钮 */
   .login-btn {
     margin-top: 40rpx;
-    background: #FF6B35;
+    background: #5b93f2;
     color: #fff;
     font-size: 30rpx;
     padding: 15rpx 60rpx;
@@ -84,7 +96,7 @@
   }
   
   .item-price {
-    color: #FF6B35;
+    color: #5b93f2;
     font-size: 28rpx;
   }
   
@@ -108,8 +120,8 @@
     line-height: 46rpx;
     text-align: center;
     font-size: 34rpx;
-    color: #FF6B35;
-    border: 1px solid #FF6B35;
+    color: #5b93f2;
+    border: 1px solid #5b93f2;
     border-radius: 50%;
     background: #fff;
   }
@@ -171,13 +183,13 @@
   }
   
   .total-price {
-    color: #FF6B35;
+    color: #5b93f2;
     font-size: 36rpx;
     font-weight: bold;
   }
   
   .checkout-btn {
-    background: #FF6B35;
+    background: #5b93f2;
     color: #fff;
     font-size: 30rpx;
     padding: 15rpx 40rpx;

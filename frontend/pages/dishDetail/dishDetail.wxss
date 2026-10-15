@@ -3,7 +3,7 @@
 /* 底部留出操作栏的高度，避免正文被固定定位的操作栏盖住 */
 .page {
     min-height: 100vh;
-    background: #f5f5f5;
+    background: #f6f7fb;
     padding-bottom: 160rpx;
     box-sizing: border-box;
   }
@@ -14,6 +14,21 @@
     width: 100%;
     height: 440rpx;
     background: #eee;
+    position: relative;   /* 给小味指引图做定位参照 */
+  }
+  
+  /* 小味指引：压在图片左下角，手指朝右指向菜名与信息区。
+     底部略微超出图片下沿，形成"从图里探出来指路"的层次感 */
+  .hero-pointing {
+    position: absolute;
+    left: 6rpx;
+    bottom: -26rpx;
+    width: 210rpx;
+    height: 240rpx;
+    z-index: 2;
+    /* 图片本身是透明底 PNG，不加背景；这里只加一点极淡的投影让它从菜品图上浮起来 */
+    filter: drop-shadow(0 6rpx 12rpx rgba(40, 70, 140, 0.18));
+    pointer-events: none;   /* 不要挡住大图本身的点击（如未来加预览） */
   }
   
   .hero-img {
@@ -68,8 +83,8 @@
   }
   
   .tag-rec {
-    background: #fff1ea;
-    color: #FF6B35;
+    background: #f1f6ff;
+    color: #5b93f2;
   }
   
   .tag-out {
@@ -87,7 +102,7 @@
   .price {
     font-size: 44rpx;
     font-weight: bold;
-    color: #FF6B35;
+    color: #5b93f2;
   }
   
   .sold {
@@ -113,16 +128,40 @@
     line-height: 1.7;
   }
   
-  .stock {
-    font-size: 28rpx;
+  /* ---------- 供应情况 ---------- */
+  
+  .supply-line {
+    display: flex;
+    align-items: center;
+    gap: 14rpx;
   }
   
-  .stock-ok {
-    color: #2f9e5f;
+  .supply-tag {
+    flex-shrink: 0;
+    font-size: 24rpx;
+    line-height: 1;
+    padding: 10rpx 18rpx;
+    border-radius: 22rpx;
   }
   
-  .stock-out {
-    color: #d94a4a;
+  .supply-ok {
+    color: #2f9e6b;
+    background: #eaf7f0;
+  }
+  
+  .supply-tight {
+    color: #d08a1e;
+    background: #fdf4e3;
+  }
+  
+  .supply-out {
+    color: #999;
+    background: #f0f0f0;
+  }
+  
+  .supply-desc {
+    font-size: 26rpx;
+    color: #666;
   }
   
   /* ---------- 底部操作栏 ---------- */
@@ -187,7 +226,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 36rpx;
-    background: #FF6B35;
+    background: #5b93f2;
     color: #fff;
     font-size: 30rpx;
     font-weight: bold;
@@ -233,7 +272,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 38rpx;
-    background: #FF6B35;
+    background: #5b93f2;
     color: #fff;
     font-size: 30rpx;
     box-sizing: border-box;

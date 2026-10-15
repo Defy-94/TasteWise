@@ -1,0 +1,29 @@
+<!-- 小味舞台区：上舞台区（小味差分）+ 底部渐隐，与下方消息区衔接 -->
+<view class="stage {{variant === 'empty' ? 'stage--empty' : 'stage--dock'}}">
+  <!-- 背景光晕：让冷蓝的小味和暖色系界面过渡得自然些 -->
+  <view class="stage-glow"></view>
+
+  <!-- 外层：负责呼吸动效；内层：负责入场 + 点击弹性 -->
+  <view class="stage-inner">
+    <!-- 弹性动画走内联 style 轮换 animation-name：不经过样式编译器，且每次点击都从头播 -->
+    <view
+      class="pop {{enterClass}}"
+      style="{{popStyle}}"
+      bindtap="onTap"
+      bindanimationend="onAnimationEnd"
+    >
+      <image
+        wx:if="{{imgSrc}}"
+        class="stage-img"
+        src="{{imgSrc}}"
+        mode="aspectFit"
+        bindload="onImgLoad"
+        binderror="onImgError"
+      />
+      <view wx:else class="stage-placeholder">🐳</view>
+    </view>
+  </view>
+
+  <!-- 底部渐隐：欢迎态铺满时，让角色下缘自然融进消息区 -->
+  <view wx:if="{{variant === 'empty'}}" class="stage-fade"></view>
+</view>

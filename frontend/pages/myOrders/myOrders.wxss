@@ -10,7 +10,7 @@
   
   .container {
     min-height: 100vh;
-    background: #f5f5f5;
+    background: #f6f7fb;
     padding: 0 0 20rpx;
   }
   
@@ -34,7 +34,7 @@
   }
   
   .filter-active {
-    color: #FF6B35;
+    color: #5b93f2;
     font-weight: bold;
   }
   
@@ -47,7 +47,7 @@
     transform: translateX(-50%);
     width: 44rpx;
     height: 6rpx;
-    background: #FF6B35;
+    background: #5b93f2;
     border-radius: 3rpx;
   }
   
@@ -77,7 +77,7 @@
   
   .login-btn {
     margin-top: 40rpx;
-    background: #FF6B35;
+    background: #5b93f2;
     color: #fff;
     font-size: 30rpx;
     padding: 15rpx 60rpx;
@@ -112,7 +112,7 @@
   }
   
   .status-0 {
-    color: #FF6B35;   /* 待支付 */
+    color: #5b93f2;   /* 待支付 */
   }
   
   .status-1 {
@@ -172,7 +172,7 @@
   }
   
   .total-price {
-    color: #FF6B35;
+    color: #5b93f2;
     font-size: 34rpx;
     font-weight: bold;
   }
@@ -212,7 +212,7 @@
   
   /* 主要操作（去支付 / 确认完成） */
   .btn-primary {
-    background: #FF6B35;
+    background: #5b93f2;
     color: #fff;
   }
   

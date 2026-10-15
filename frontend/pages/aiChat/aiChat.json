@@ -1,4 +1,6 @@
 {
-    "navigationBarTitleText": "AI智能助手",
-    "usingComponents": {}
+  "navigationBarTitleText": "AI智能助手",
+  "usingComponents": {
+    "xiaowei-stage": "/components/xiaowei-stage/index"
   }
+}

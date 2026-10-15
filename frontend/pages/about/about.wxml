@@ -2,7 +2,8 @@
 <view class="about-container">
   <!-- Logo区域 -->
   <view class="logo-section">
-    <view class="logo-icon">🍽️</view>
+    <!-- 用小味头像替代原来的餐具 emoji，品牌形象统一 -->
+    <image class="logo-icon" src="/assets/xiaowei/ui/xiaowei-avatar.png" mode="aspectFit" />
     <text class="app-name">{{appName}}</text>
     <text class="version">v{{version}}</text>
   </view>
@@ -11,6 +12,23 @@
   <view class="desc-section">
     <text class="section-title">📖 产品简介</text>
     <text class="desc-text">{{description}}</text>
+  </view>
+
+  <!-- 小味表情差分展示：横向滑动（纯展示，不支持点开大图） -->
+  <view class="gallery-section">
+    <text class="section-title">🐳 小味表情</text>
+    <text class="gallery-tip">左右滑动看看她的不同状态</text>
+    <scroll-view class="gallery-scroll" scroll-x="true" enhanced="{{true}}" show-scrollbar="{{false}}">
+      <view class="gallery-track">
+        <view wx:for="{{expressionList}}" wx:key="file" class="gallery-item">
+          <view class="gallery-thumb">
+            <image class="gallery-img" src="{{item.src}}" mode="aspectFit" lazy-load="{{true}}" />
+          </view>
+          <text class="gallery-label">{{item.label}}</text>
+          <text class="gallery-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </scroll-view>
   </view>
 
   <!-- 技术栈区域 -->
@@ -43,6 +61,6 @@
 
   <!-- 版权信息 -->
   <view class="footer">
-    <text>© 2026 AI点餐 All Rights Reserved</text>
+    <text>© 2026 智味 All Rights Reserved</text>
   </view>
 </view>

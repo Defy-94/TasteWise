@@ -1,0 +1,175 @@
+/* ============================================================
+   小味舞台区（components/xiaowei-stage）
+   方案 A 的常驻舞台区 + 方案 B 的欢迎态，共用同一套节点，
+   只靠 .stage--dock / .stage--empty 改尺寸与层次。
+
+   【尺寸逻辑·改这里之前先读】
+     1. 差分图是 600x600 方图，角色在方图里横向占 82%、纵向占 94%。
+     2. 微信 <image mode="aspectFit"> 是按"容器较小的那一维"等比缩放的：
+        容器很宽很矮时，图片会被缩到 = 容器高度。
+        所以这里统一用「让舞台高度 == 图片显示边长」的思路：
+        图片 width/height 都写 100%，舞台高度决定小味多大。
+     3. 分档高度用 vw 而不是固定 rpx，保证在 320px 小屏和 430px 大屏上都占同样比例。
+        dock  = 46vw  → 375px 屏上约 173px，角色约 79px 高
+        empty = 56vw  → 约 210px，角色约 96px
+        想让小味更大/更小，只改这两个 height（以及 max-height 上限）。
+   ============================================================ */
+
+.stage {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 冷蓝到近白的过渡底：和项目蓝色主色衔接，只留一点点暖调避免发灰 */
+  background: linear-gradient(180deg, #EDF2FF 0%, #F4F7FF 60%, #FCFAF8 100%);
+}
+
+/* 常驻形态：固定高度，不参与挤压；键盘弹起时由 flex 布局自然压缩消息区 */
+.stage--dock {
+  flex: 0 0 auto;
+  height: 46vw;
+  min-height: 280rpx;
+  max-height: 380rpx;
+  border-bottom: 1rpx solid #EFF1F6;
+}
+
+/* 欢迎态：对话为空时放大，作为首屏主角 */
+.stage--empty {
+  flex: 0 0 auto;
+  height: 56vw;
+  min-height: 340rpx;
+  max-height: 480rpx;
+  background: linear-gradient(180deg, #E9EFFF 0%, #F3F7FF 50%, #FCFAF8 100%);
+}
+
+/* 暖色光晕（放在角色身后，柔和不抢主体） */
+.stage-glow {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 78%;
+  height: 78%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 68%);
+  pointer-events: none;
+}
+
+/* 外层：呼吸动效（scale 幅度很小，只为「活着」的感觉，不干扰阅读）
+   用 absolute + inset 撑满舞台，这样内层的高度就是舞台高度 */
+.stage-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: xw-breathe 3.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* 内层：图片容器 + 点击弹性 / 入场动画 */
+.pop {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: 50% 62%;   /* 以胸口偏下为缩放中心，弹起来更像「跳一下」 */
+  will-change: transform;
+  transition: transform 220ms ease-out;
+  /* 长按不要弹系统菜单 */
+  -webkit-touch-callout: none;
+}
+
+/* 图片必须有确定的宽高，否则 <image> 在 aspectFit 下会把缩放算成 0（图会整个不显示） */
+.stage-img {
+  width: 100%;
+  height: 100%;
+}
+
+/* ------------------------------------------------------------
+   点击弹一下：放大 → 过冲回弹 → 归位
+
+   这里只提供"动画内容"，不负责"什么时候播" ——
+   播与重播由 JS 写内联 style 轮换 animation-name 来控制
+   （xw-pop-a / -b / -c / -d 内容相同，轮换只为强制从头播；
+     内联 style 不经过样式编译器，比动态类名可靠）。
+   注意：不要另外写 .pop:active { transform: scale(...) } 做"按下反馈"——
+   CSS 动画播放期间会覆盖普通 transform 声明，那个 :active 会被吃掉。
+   ------------------------------------------------------------ */
+@keyframes xw-pop-a {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.14); }
+  60%  { transform: scale(0.975); }
+  80%  { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+
+@keyframes xw-pop-b {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.14); }
+  60%  { transform: scale(0.975); }
+  80%  { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+
+@keyframes xw-pop-c {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.14); }
+  60%  { transform: scale(0.975); }
+  80%  { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+
+@keyframes xw-pop-d {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.14); }
+  60%  { transform: scale(0.975); }
+  80%  { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+
+/* 欢迎态入场：从下方淡入 + 轻微放大落定（走固定类名，已验证可用） */
+.pop--enter {
+  animation: xw-enter-a 520ms cubic-bezier(0.22, 1.12, 0.36, 1) 1 both;
+}
+
+@keyframes xw-enter-a {
+  0%   { opacity: 0; transform: translateY(56rpx) scale(0.88); }
+  60%  { opacity: 1; transform: translateY(0) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 图片彻底加载失败时的占位 */
+.stage-placeholder {
+  font-size: 96rpx;
+  line-height: 1;
+  opacity: 0.5;
+}
+
+/* 欢迎态底部的白色渐隐，让角色下缘与消息区自然衔接 */
+.stage-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 90rpx;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #FFFFFF 100%);
+  pointer-events: none;
+}
+
+/* ---------------- 动效 ---------------- */
+
+/* 呼吸 */
+@keyframes xw-breathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50%      { transform: scale(1.014) translateY(-4rpx); }
+}
+
+

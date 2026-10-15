@@ -16,6 +16,16 @@ import { streamChat, supportsChunked, StreamTask } from '../../utils/sse';
 // 开场白
 const WELCOME = '您好！我是 AI 点餐助手「小味」，可以帮您推荐菜品、解答食材口味问题。试试说「推荐几道辣菜」吧~';
 
+// 小味头像路径（将来图片搬去 CDN，只改这一行）
+const AVATAR_SRC = '/assets/xiaowei/ui/xiaowei-avatar.png';
+
+/** 「道谢」「抱歉」这类收尾表情停留多久后收回 idle */
+const GOODBYE_HOLD_MS = 2400;
+const SORRY_HOLD_MS = 2600;
+
+/** 用户话里出现这些词，认为是结束语 */
+const GOODBYE_WORDS = ['再见', '拜拜', '谢谢', '多谢', '感谢', 'bye', 'thanks', 'thank you'];
+
 // 快捷提问（仅在对话刚开始时显示，点一下即发送）
 const QUICK_QUESTIONS = [
   '推荐几道辣菜',
@@ -50,17 +60,74 @@ Page({
     sending: false,                 // 等待 AI 首个响应（显示"正在输入"三点动画）
     streamingText: '',              // 流式输出中的文本（非空时优先显示它）
     quickQuestions: QUICK_QUESTIONS,
+
+    // ---- 小味舞台区 ----
+    avatarSrc: AVATAR_SRC,          // 消息头像 / 顶部信息条头像
+    avatarFailed: false,            // 头像加载失败 → 回落成占位表情
+    stageState: 'greeting',         // 舞台区状态：见 components/xiaowei-stage
   },
 
   onLoad() {
     this.setData({
       messages: [{ role: 'assistant', content: WELCOME }],
+      stageState: 'greeting',       // 首次进入先举手打招呼
     });
   },
 
   onUnload() {
     // 离开页面时中断流式请求，避免后台还在拉数据、回调打到已销毁的页面上
     this.abortStream();
+    this.clearStageTimers();
+  },
+
+  /* ============================================================
+     小味舞台区状态机
+     ============================================================ */
+
+  /**
+   * 切换小味的表情状态
+   *
+   * 状态名与素材文件一一对应（components/xiaowei-stage/index.js 里有完整表）：
+   *   greeting 首次招呼 / thinking 思考 / happy 开心（有推荐或加购成功）
+   *   sorry 出错 / goodbye 道谢 / idle 待命
+   *   注：searching（翻菜单）、proud（得意）两个状态已按需求删除，
+   *       点餐场景响应快，不需要"长时间翻菜单"，加购成功直接用 happy 表达。
+   *
+   * 组件内部还有"最短展示时长"保护，所以这里可以放心地连续调用，
+   * 不会出现 thinking 一闪而过的情况。
+   */
+  setStageState(state: string) {
+    if (this.data.stageState !== state) {
+      this.setData({ stageState: state });
+    }
+  },
+
+  /** 延迟把表情收回 idle（收尾类表情用） */
+  holdStageState(state: string, ms: number) {
+    this.setStageState(state);
+    if (this.stageRevertTimer) clearTimeout(this.stageRevertTimer);
+    this.stageRevertTimer = setTimeout(() => {
+      this.stageRevertTimer = null;
+      // 期间如果又发起了新请求，就不要把状态抢回来
+      if (!this.data.sending && !this.data.streamingText) {
+        this.setStageState('idle');
+      }
+    }, ms);
+  },
+
+  /** 清理舞台区的计时器（离开页面、开始新一轮请求时调用） */
+  clearStageTimers() {
+    if (this.stageRevertTimer) {
+      clearTimeout(this.stageRevertTimer);
+      this.stageRevertTimer = null;
+    }
+  },
+
+  /** 头像加载失败：所有头像位一起回落成占位表情 */
+  onAvatarError() {
+    if (!this.data.avatarFailed) {
+      this.setData({ avatarFailed: true });
+    }
   },
 
   /** 点击「发送」按钮 / 键盘发送 */
@@ -102,6 +169,11 @@ Page({
       }));
 
     const userMsg: ChatMessageExtended = { role: 'user', content: text };
+
+    // ---- 小味表情：进入思考（点餐场景响应很快，不再切"翻菜单"状态）----
+    this.clearStageTimers();
+    const isFarewell = GOODBYE_WORDS.some((w) => text.toLowerCase().indexOf(w) >= 0);
+    this.setStageState(isFarewell ? 'goodbye' : 'thinking');
 
     this.setData({
       messages: [...this.data.messages, userMsg],
@@ -219,6 +291,14 @@ Page({
       streamingText: '',
       scrollToView: 'msg-' + (newMessages.length - 1),
     });
+
+    // ---- 小味表情：有推荐就开心，普通回答回到待命 ----
+    this.clearStageTimers();
+    if (dishes && dishes.length > 0) {
+      this.holdStageState('happy', 2000);
+    } else {
+      this.setStageState('idle');
+    }
   },
 
   /**
@@ -240,6 +320,9 @@ Page({
       explainable ? raw : '抱歉，我这边出了点小问题，请稍后再试一次~',
       []
     );
+
+    // ---- 小味表情：道歉一下再收回待命 ----
+    this.holdStageState('sorry', SORRY_HOLD_MS);
   },
 
   /** 中断当前流式请求（离开页面时调用） */
@@ -279,9 +362,12 @@ Page({
         quantity: 1,
       });
 
-      wx.showToast({ title: `「${dishName}」已加入购物车`, icon: 'success' });
+      // 菜名可能很长，toast 标题太长会被截断，这里只报一句固定的短提示
+      wx.showToast({ title: '已加入购物车', icon: 'success' });
       // 同步底部购物车角标
       refreshCartBadge();
+      // ---- 小味表情：推荐被采纳了，开心一下 ----
+      this.holdStageState('happy', 2000);
     } catch (err) {
       console.error('加入购物车失败：', err);
     }

@@ -22,6 +22,15 @@
     <view class="hero">
       <image wx:if="{{dish.image_url}}" class="hero-img" src="{{dish.image_url}}" mode="aspectFill" />
       <view wx:else class="hero-img hero-ph">🍽️</view>
+
+      <!-- 小味指引：压在图片左下角，手指方向指向右侧的菜名与信息 -->
+      <image
+        class="hero-pointing"
+        src="/assets/xiaowei/ui/xiaowei-pointing.png"
+        mode="aspectFit"
+        lazy-load="{{true}}"
+        fade-in="{{true}}"
+      />
     </view>
 
     <!-- 基本信息 -->
@@ -29,7 +38,7 @@
       <view class="name-row">
         <text class="dish-name">{{dish.name}}</text>
         <view wx:if="{{dish.is_recommend === 1}}" class="tag tag-rec">推荐</view>
-        <view wx:if="{{dish.stock <= 0}}" class="tag tag-out">已售完</view>
+        <view wx:if="{{supplyLevel === 'out'}}" class="tag tag-out">已售完</view>
       </view>
 
       <view class="price-row">
@@ -50,14 +59,12 @@
       <view class="desc">{{dish.description ? dish.description : '店家暂未填写介绍'}}</view>
     </view>
 
-    <!-- 供应情况 -->
+    <!-- 供应情况：不展示具体份数，只给两档措辞（见 utils/supply.ts） -->
     <view class="panel">
       <view class="panel-title">供应情况</view>
-      <view wx:if="{{dish.stock > 0}}" class="stock stock-ok">
-        现货 {{dish.stock}} 份，可正常下单
-      </view>
-      <view wx:else class="stock stock-out">
-        已售完，暂时无法下单
+      <view class="supply-line">
+        <view class="supply-tag supply-{{supplyLevel}}">{{supplyText}}</view>
+        <text class="supply-desc">{{supplyDesc}}</text>
       </view>
     </view>
   </block>

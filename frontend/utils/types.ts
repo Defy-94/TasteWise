@@ -22,8 +22,15 @@ export interface Category {
     description: string;
     spiciness: number;       // 辣度0-5
     is_recommend: number;    // 是否推荐 0/1
-    stock: number;           // 库存
+    stock: number;           // 库存（份数，仅用于后端校验，不直接展示给顾客）
     ai_reason?: string;      // AI推荐理由（可选）
+    /**
+     * 供应情况短标签：供应充足 / 供应紧张 / 已售完
+     *
+     * 由 utils/supply.ts 从 stock 换算出来，只在视图层使用
+     * （顾客不该看到"还剩 999 份"这种内部数字，见 supply.ts 里的说明）
+     */
+    supplyLabel?: string;
   }
 
   /**

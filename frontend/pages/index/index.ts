@@ -6,6 +6,7 @@ import { get, post } from '../../utils/api';
 import { Category, Dish, AIRecommendResult } from '../../utils/types';
 import { refreshCartBadge } from '../../utils/cartBadge';
 import { errorMessage, logError } from '../../utils/error';
+import { supplyLabel } from '../../utils/supply';
 
 /**
  * 搜索输入的防抖时间（毫秒）
@@ -48,6 +49,16 @@ Page({
   },
 
   /**
+   * 点击小味浮窗：进 AI 助手页
+   *
+   * 浮窗是长期常驻的提示（不做关闭、不做过期隐藏），
+   * 也就是说它天然承担了"AI 推荐入口"的角色，点击直接跳转即可。
+   */
+  onTapXiaoweiTip() {
+    wx.switchTab({ url: '/pages/aiChat/aiChat' });
+  },
+
+  /**
    * 加载分类列表
    * 接口：GET /api/category/list.php
    */
@@ -87,7 +98,14 @@ Page({
       // silentError：加载失败时本页会渲染「加载失败 + 重新加载」的错误态，
       // 请求层再弹一次 toast 就是同一件事提示两遍
       const dishes = await get<Dish[]>('/api/dish/list.php', params, { silentError: true });
-      this.setData({ dishes, activeCategoryId: categoryId, loadingDishes: false });
+
+      // 给每道菜补一个「供应充足 / 供应紧张 / 已售完」短标签，
+      // 视图层只显示这个措辞，不暴露具体份数（见 utils/supply.ts 的说明）
+      this.setData({
+        dishes: (dishes || []).map((d) => ({ ...d, supplyLabel: supplyLabel(Number(d.stock)) })),
+        activeCategoryId: categoryId,
+        loadingDishes: false,
+      });
     } catch (err) {
       logError('加载菜品失败', err);
 

@@ -2,13 +2,13 @@
 
 .container {
     min-height: 100vh;
-    background: #f5f5f5;
+    background: #f6f7fb;
     padding-bottom: 60rpx;
   }
   
   /* ========== 顶部用户卡（渐变） ========== */
   .hero {
-    background: linear-gradient(135deg, #FF8A5B 0%, #FF6B35 100%);
+    background: linear-gradient(135deg, #79a6f5 0%, #5b93f2 100%);
     padding: 50rpx 40rpx 70rpx;
     border-radius: 0 0 40rpx 40rpx;
   }
@@ -61,7 +61,7 @@
   .hero-btn {
     flex-shrink: 0;
     font-size: 24rpx;
-    color: #FF6B35;
+    color: #5b93f2;
     background: #fff;
     padding: 12rpx 28rpx;
     border-radius: 30rpx;
@@ -102,7 +102,7 @@
   
   .card-more {
     font-size: 26rpx;
-    color: #FF6B35;
+    color: #5b93f2;
   }
   
   /* ========== 订单概览：各状态数量 ========== */
@@ -135,7 +135,7 @@
   }
   
   /* 待支付用主色突出，其余按语义着色 */
-  .stat-pending { color: #FF6B35; }
+  .stat-pending { color: #5b93f2; }
   .stat-paid { color: #2d8cf0; }
   .stat-completed { color: #19be6b; }
   .stat-cancelled { color: #bbb; }
@@ -151,7 +151,7 @@
   }
   
   /* 订单状态配色：0待支付 1已支付 2已完成 3已取消 */
-  .status-0 { color: #FF6B35; }
+  .status-0 { color: #5b93f2; }
   .status-1 { color: #2d8cf0; }
   .status-2 { color: #19be6b; }
   .status-3 { color: #999; }
@@ -170,7 +170,7 @@
   .latest-total {
     font-size: 34rpx;
     font-weight: bold;
-    color: #FF6B35;
+    color: #5b93f2;
   }
   
   .latest-time {
@@ -185,7 +185,7 @@
     display: flex;
     align-items: center;
     padding: 24rpx 0;
-    border-bottom: 1px solid #f5f5f5;
+    border-bottom: 1px solid #f6f7fb;
   }
   
   .info-row-last {
@@ -229,12 +229,12 @@
   }
   
   .save-btn {
-    background: #FF6B35;
+    background: #5b93f2;
     color: #fff;
   }
   
   .cancel-btn {
-    background: #f5f5f5;
+    background: #f6f7fb;
     color: #666;
   }
   
@@ -248,7 +248,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 32rpx 0;
-    border-bottom: 1px solid #f5f5f5;
+    border-bottom: 1px solid #f6f7fb;
   }
   
   .menu-item-last {
@@ -262,6 +262,16 @@
   .menu-text {
     font-size: 30rpx;
     color: #333;
+  }
+  
+  /* 关于我们这行右侧的小味头像：纯装饰。
+     用 margin-left:auto 把它和箭头一起推到最右，箭头仍然顶到边 */
+  .menu-avatar {
+    width: 52rpx;
+    height: 52rpx;
+    margin-left: auto;
+    margin-right: 12rpx;
+    flex-shrink: 0;
   }
   
   .arrow {

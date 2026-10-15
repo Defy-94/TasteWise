@@ -2,12 +2,23 @@
 <view class="container">
   <!-- 顶部助手信息条 -->
   <view class="ai-header">
-    <view class="ai-header-avatar">🤖</view>
+    <image class="ai-header-avatar" src="{{avatarSrc}}" mode="aspectFit" binderror="onAvatarError" />
     <view class="ai-header-info">
       <text class="ai-header-name">小味 · AI 点餐助手</text>
       <text class="ai-header-desc">{{sending ? '正在输入…' : '推荐菜品 · 解答口味问题'}}</text>
     </view>
   </view>
+
+  <!-- ============================================
+       小味舞台区
+       empty：对话为空时铺满（方案 B 欢迎态）
+       dock ：进入对话后收成固定高度的常驻舞台区（方案 A）
+       点击小味会弹一下（放大后弹回）
+       ============================================ -->
+  <xiaowei-stage
+    state="{{stageState}}"
+    variant="{{messages.length <= 1 ? 'empty' : 'dock'}}"
+  />
 
   <!-- 对话列表 -->
   <scroll-view
@@ -22,8 +33,17 @@
       id="msg-{{index}}"
       class="msg-item {{item.role === 'assistant' ? 'ai-msg' : 'user-msg'}}"
     >
-      <!-- AI头像（仅AI消息显示） -->
-      <view wx:if="{{item.role === 'assistant'}}" class="ai-avatar">🤖</view>
+      <!-- AI头像（仅AI消息显示）：用小味头像，加载失败回落成鲸鱼占位 -->
+      <view wx:if="{{item.role === 'assistant'}}" class="ai-avatar">
+        <image
+          wx:if="{{!avatarFailed}}"
+          class="ai-avatar-img"
+          src="{{avatarSrc}}"
+          mode="aspectFit"
+          binderror="onAvatarError"
+        />
+        <text wx:else>🐳</text>
+      </view>
 
       <view class="msg-body">
         <!-- 文本气泡：用 text 组件以保留换行，user-select 允许长按选中复制 -->
@@ -76,7 +96,16 @@
     <!-- 「正在输入」/「流式输出中」气泡：替代模态 loading，聊天期间界面不会被遮罩锁住
          有 streamingText 时直接显示正在生成的文字，否则显示三点动画 -->
     <view wx:if="{{sending || streamingText}}" id="msg-typing" class="msg-item ai-msg">
-      <view class="ai-avatar">🤖</view>
+      <view class="ai-avatar">
+        <image
+          wx:if="{{!avatarFailed}}"
+          class="ai-avatar-img"
+          src="{{avatarSrc}}"
+          mode="aspectFit"
+          binderror="onAvatarError"
+        />
+        <text wx:else>🐳</text>
+      </view>
       <view class="msg-body">
         <text wx:if="{{streamingText}}" class="msg-bubble" user-select="true">{{streamingText}}</text>
         <view wx:else class="msg-bubble typing">

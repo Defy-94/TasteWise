@@ -15,9 +15,14 @@
     <button class="login-btn" bindtap="onRetryLoad">重新加载</button>
   </view>
 
-  <!-- 空购物车提示 -->
+  <!-- 空购物车提示：小味来指个路，别让这一页光秃秃的 -->
   <view wx:elif="{{isEmpty}}" class="empty-cart">
-    <text class="empty-icon">🛒</text>
+    <image
+      class="empty-pointing"
+      src="/assets/xiaowei/ui/xiaowei-pointing.png"
+      mode="aspectFit"
+      fade-in="{{true}}"
+    />
     <text class="empty-text">购物车空空如也</text>
     <text class="empty-hint">快去首页挑选美食吧</text>
   </view>

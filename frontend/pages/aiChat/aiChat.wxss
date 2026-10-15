@@ -3,8 +3,9 @@
 .container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    background: #f5f5f5;
+    /* 高度交给文件末尾的 .container { height: 100% } 统一定义：
+       这里不写 100vh —— 小程序里 vh 包含 tabBar 区域，会把输入栏顶到 tabBar 下面 */
+    background: #f6f7fb;
     /* 下面两条写出来是为了自包含：默认值就是它们，
        显式声明可以防止将来全局样式又加入居中/分散布局影响本页 */
     align-items: stretch;
@@ -28,12 +29,15 @@
     width: 72rpx;
     height: 72rpx;
     border-radius: 50%;
-    background: #FFF1EA;
+    background: #f1f6ff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 40rpx;
     flex-shrink: 0;
+    /* 小味头像是透明底 PNG，加一点内边距免得贴边 */
+    padding: 6rpx;
+    box-sizing: border-box;
   }
   
   .ai-header-info {
@@ -92,7 +96,19 @@
   }
   
   .user-avatar {
-    background: #FF6B35;
+    background: #5b93f2;
+  }
+  
+  /* 小味头像图：透明底 PNG，容器是白圆，加内边距防止贴边 */
+  .ai-avatar {
+    padding: 5rpx;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  
+  .ai-avatar-img {
+    width: 100%;
+    height: 100%;
   }
   
   /* 消息主体 */
@@ -115,7 +131,7 @@
   }
   
   .user-msg .msg-bubble {
-    background: #FF6B35;
+    background: #5b93f2;
     color: #fff;
     border-bottom-right-radius: 5rpx;
   }
@@ -141,7 +157,7 @@
     width: 14rpx;
     height: 14rpx;
     border-radius: 50%;
-    background: #FFB695;
+    background: #c2d7fa;
     animation: typing-blink 1.2s infinite ease-in-out;
   }
   
@@ -244,7 +260,7 @@
   
   .dish-price {
     font-size: 30rpx;
-    color: #FF6B35;
+    color: #5b93f2;
     font-weight: bold;
   }
   
@@ -264,7 +280,7 @@
     font-size: 24rpx;
     line-height: 1;
     border-radius: 26rpx;
-    background: #FF6B35;
+    background: #5b93f2;
     color: #fff;
     box-sizing: border-box;
   }
@@ -288,8 +304,8 @@
   
   .quick-item {
     font-size: 24rpx;
-    color: #FF6B35;
-    background: #FFF1EA;
+    color: #5b93f2;
+    background: #f1f6ff;
     border-radius: 30rpx;
     padding: 12rpx 26rpx;
   }
@@ -320,7 +336,7 @@
     border-radius: 36rpx;
     padding: 0 28rpx;
     font-size: 28rpx;
-    background: #f5f5f5;
+    background: #f6f7fb;
     box-sizing: border-box;
   }
   
@@ -334,11 +350,36 @@
     margin: 0;
     border-radius: 36rpx;
     font-size: 28rpx;
-    background: #FF6B35;
+    background: #5b93f2;
     color: #fff;
   }
   
   .send-btn[disabled] {
-    background: #ffc4ac;
+    background: #c6d9fa;
     color: #fff;
   }
+  
+  /* ============================================
+     页面容器：让 .container 的 100% 高度真正生效
+     
+     原来 .container 用的是 height: 100vh，但小程序页面里 vh 含 tabBar 区域，
+     加了舞台区之后会出现「输入栏被 tabBar 压住」的问题。
+     改成 page 占满可视区、容器用 100%，再由 flex 分配：
+       舞台区（固定/可伸缩） + 消息区（flex:1 滚动） + 输入栏（固定）
+     这样键盘弹起时高度变化也会被 flex 正确吸收。
+     ============================================ */
+  page {
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  .container {
+    height: 100%;
+  }
+  
+  /* 消息区要能被子元素撑开并内部滚动，必须允许收缩 */
+  .chat-list {
+    min-height: 0;
+    overflow: hidden;
+  }
+

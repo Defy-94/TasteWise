@@ -106,6 +106,13 @@
     </view>
     <view class="menu-item menu-item-last" bindtap="onGoAbout">
       <text class="menu-text">ℹ️ 关于我们</text>
+      <!-- 小味头像：纯装饰，不拦截点击（parent 的 bindtap 照常响应） -->
+      <image
+        class="menu-avatar"
+        src="/assets/xiaowei/ui/xiaowei-avatar.png"
+        mode="aspectFit"
+        aria-hidden="{{true}}"
+      />
       <text class="arrow">></text>
     </view>
   </view>
