@@ -70,4 +70,11 @@
       <text wx:else>没有更多了</text>
     </view>
   </view>
+
+  <!-- 状态变化后的小味反馈：点一下可提前收起 -->
+  <view wx:if="{{feedback}}" class="xw-feedback" bindtap="onFeedbackTap">
+    <image class="xw-feedback-img" src="/assets/xiaowei/diffs/{{feedback.file}}" mode="aspectFit" />
+    <text class="xw-feedback-title">{{feedback.title}}</text>
+    <text class="xw-feedback-desc">{{feedback.desc}}</text>
+  </view>
 </view>

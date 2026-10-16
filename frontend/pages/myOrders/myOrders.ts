@@ -15,6 +15,33 @@ const STATUS_CANCELLED = 3;   // 已取消
 /** 每页加载多少条订单（上拉加载时按这个粒度追加） */
 const PER_PAGE = 10;
 
+/**
+ * 订单状态变化时小味的反馈：file 对应 assets/xiaowei/diffs 里的差分素材
+ * 三种状态分别用 开心 / 为难 / 致谢，与对话页那套是同一批图
+ */
+const STATUS_FEEDBACK: Record<string, { file: string; title: string; desc: string; toast?: string }> = {
+  pay: {
+    file: 'xiaowei-happy.png',
+    title: '收到啦',
+    desc: '已经帮你记下这单，后厨马上开始做',
+  },
+  cancel: {
+    file: 'xiaowei-sorry.png',
+    title: '订单已取消',
+    desc: '库存已经还回去了，随时可以重新点',
+    toast: '订单已取消',
+  },
+  complete: {
+    file: 'xiaowei-goodbye.png',
+    title: '用餐愉快',
+    desc: '期待下次再见到你',
+    toast: '订单已完成',
+  },
+};
+
+/** 反馈卡片停留时长（毫秒） */
+const FEEDBACK_MS = 2000;
+
 /** 筛选标签：用 -1 表示「全部」而不是 null（data-* 里 null 会变成空字符串） */
 const FILTERS = [
   { label: '全部',   value: -1 },
@@ -43,6 +70,7 @@ Page({
     hasMore: true,                    // 是否还有下一页（触底时据此决定要不要继续加载）
     loadingMore: false,               // 是否正在上拉加载（防止重复触发）
     loadError: '',                    // 加载失败原因（非空时显示错误态而不是"还没有订单"）
+    feedback: null as null | { file: string; title: string; desc: string },  // 小味的操作反馈
   },
 
   /** 支持带状态进入：/pages/myOrders/myOrders?status=0 */
@@ -52,6 +80,14 @@ Page({
       if (!isNaN(s) && s >= 0 && s <= 3) {
         this.setData({ activeStatus: s });
       }
+    }
+  },
+
+  onUnload() {
+    // 离开页面时清掉反馈计时器，避免回调打到已销毁的页面上
+    if (this.feedbackTimer) {
+      clearTimeout(this.feedbackTimer);
+      this.feedbackTimer = null;
     }
   },
 
@@ -159,13 +195,22 @@ Page({
     });
   },
 
-  /** 执行订单状态流转：pay / cancel / complete */
-  async doAction(url: string, orderId: number, successText: string) {
+  /**
+   * 执行订单状态流转：pay / cancel / complete
+   * @param action 与 STATUS_FEEDBACK 的键对应，成功后的提示与小味表情都由它决定
+   */
+  async doAction(url: string, orderId: number, action: string) {
     wx.showLoading({ title: '处理中...', mask: true });
     try {
       await post(url, { order_id: orderId });
       wx.hideLoading();
-      wx.showToast({ title: successText, icon: 'success' });
+
+      // 支付只由小味卡片反馈（toast 说的是同一件事，重复且多余）；
+      // 取消/完成仍保留 toast，提醒更明确
+      const toast = STATUS_FEEDBACK[action] && STATUS_FEEDBACK[action].toast;
+      if (toast) wx.showToast({ title: toast, icon: 'success' });
+
+      this.showFeedback(action);
     } catch (err) {
       // 错误提示已由请求层统一处理（如状态冲突、越权）
       wx.hideLoading();
@@ -185,7 +230,7 @@ Page({
     const ok = await this.confirm('确认支付', '确定要支付该订单吗？');
     if (!ok) return;
 
-    await this.doAction('/api/order/pay.php', orderId, '支付成功');
+    await this.doAction('/api/order/pay.php', orderId, 'pay');
   },
 
   /** 取消订单：POST /api/order/cancel.php（已扣减的库存会自动恢复） */
@@ -196,7 +241,7 @@ Page({
     const ok = await this.confirm('确认取消', '取消后订单不可恢复，确定要取消吗？');
     if (!ok) return;
 
-    await this.doAction('/api/order/cancel.php', orderId, '订单已取消');
+    await this.doAction('/api/order/cancel.php', orderId, 'cancel');
   },
 
   /** 确认订单完成：POST /api/order/complete.php */
@@ -207,7 +252,30 @@ Page({
     const ok = await this.confirm('确认完成', '确认已取餐/收货完成吗？');
     if (!ok) return;
 
-    await this.doAction('/api/order/complete.php', orderId, '订单已完成');
+    await this.doAction('/api/order/complete.php', orderId, 'complete');
+  },
+
+  /** 状态变化后弹一下小味的反馈，2 秒自动收起 */
+  showFeedback(action: string) {
+    const conf = STATUS_FEEDBACK[action];
+    if (!conf) return;
+
+    this.setData({ feedback: { file: conf.file, title: conf.title, desc: conf.desc } });
+
+    if (this.feedbackTimer) clearTimeout(this.feedbackTimer);
+    this.feedbackTimer = setTimeout(() => {
+      this.feedbackTimer = null;
+      this.setData({ feedback: null });
+    }, FEEDBACK_MS);
+  },
+
+  /** 点一下提前收掉反馈 */
+  onFeedbackTap() {
+    if (this.feedbackTimer) {
+      clearTimeout(this.feedbackTimer);
+      this.feedbackTimer = null;
+    }
+    this.setData({ feedback: null });
   },
 
   /** 去点餐（空状态时的引导） */

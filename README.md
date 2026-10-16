@@ -1,4 +1,4 @@
-# 🍽️ TasteWise 智味 · AI 点餐微信小程序
+# <img src="frontend/assets/xiaowei/ui/xiaowei-avatar.png" width="32" alt="小味"> TasteWise 智味 · AI 点餐微信小程序
 
 一个集 **智能推荐** 与 **AI 客服** 于一体的微信点餐小程序，前端使用微信小程序原生框架（TypeScript），后端使用 PHP + MySQL，并深度集成 DeepSeek 大模型，实现「AI 推荐菜品」「AI 点餐助手对话」等特色功能。
 
@@ -6,28 +6,7 @@
 
 ---
 
-## 📸 界面预览
-
-> 截图存放目录：`assets/screenshots/`。把图片按下面的文件名放进去即可自动显示，替换掉方括号里的说明文字。
-
-| 首页 | 菜品详情 |
-| --- | --- |
-| ![首页](assets/screenshots/home.png) | ![菜品详情](assets/screenshots/dish-detail.png) |
-| 分类导航 · 搜索 · 供应情况标签 · **小味浮窗** | 大图 · 介绍 · 份数加购 · **小味指引立绘** |
-
-| AI 助手对话 | 购物车 | 用户中心 |
-| --- | --- | --- |
-| ![AI 助手](assets/screenshots/ai-chat.png) | ![购物车](assets/screenshots/cart.png) | ![用户中心](assets/screenshots/user-center.png) |
-| **小味舞台区** · 流式回复 · 推荐卡片 | 数量调整 · 结算下单 | 订单概览 · 资料编辑 |
-
-| 管理后台 | 关于页 |
-| --- | --- |
-| ![管理后台](assets/screenshots/admin.png) | ![关于](assets/screenshots/about.png) |
-| 订单管理 · 菜品上下架 · 数据总览 | 品牌形象 · 技术栈 |
-
-> 📷 **截图换取指南**：建议用微信开发者工具的模拟器（iPhone 6/7/8，375×667）逐页截图，PNG 格式、宽度 750px 左右；文件名与上表一致即可，无需改动 README。暂时没有的图会显示为破图占位，补上即可。
-
-## 🐳 品牌形象：小味
+## <img src="frontend/assets/xiaowei/diffs/xiaowei-greeting.png" width="44" alt="打招呼的小味"> 品牌形象：小味
 
 项目内置了一位贯穿小程序的 AI 点餐助手形象「**小味**」——一位戴着鲸鱼厨师帽的 Q 版少女。她不只是装饰：**她的表情会跟着对话状态变化**，也会在合适的时机出现提示你。（形象素材位于 `frontend/assets/xiaowei/`，由 AI 生成后经抠图、统一对齐与压缩处理）
 
@@ -59,7 +38,6 @@
 | 关于页 · 小味表情 | 全部素材 | 横向滑动展示全套差分，点开可看大图 |
 | 底部 TabBar | `xiaowei-tab.png` | 中间透明的描边轮廓，未选中态与其它图标统一染色 |
 
-> 素材规格：透明底 PNG，差分图统一 600×600 并按内容包围盒对齐（切换状态时人物不会跳动），单张 ≤ 62KB，8 张素材合计约 490KB。详见 [frontend/assets/xiaowei/README.txt](frontend/assets/xiaowei/README.txt)。
 
 ## ✨ 功能特性
 
@@ -75,7 +53,7 @@
 | 🔐 登录鉴权 | 微信 `code2Session` 换取 openid + HMAC-SHA256 登录令牌，**防越权、防账号伪造** |
 | 🛠️ 管理后台 | 独立的 PHP 后台（`/admin/`）：订单管理（筛选/改状态/看明细）、菜品管理（增删改查、**上架下架**、行内改库存价格）、数据总览；**会话登录 + CSRF 防护 + 登录失败锁定** |
 
-## 🧰 技术栈
+## <img src="frontend/assets/xiaowei/diffs/xiaowei-thinking.png" width="44" alt="思考的小味"> 技术栈
 
 - **前端**：微信小程序原生框架（WXML / WXSS / TypeScript）、`miniprogram-api-typings`
 - **后端**：PHP 7.3+（原生 PHP，无框架）、PDO 预处理防注入
@@ -85,7 +63,7 @@
 - **AI 能力**：DeepSeek API（`deepseek-chat` 模型，支持切换 `deepseek-reasoner`）
 - **本地环境**：phpstudy_pro（Apache + MySQL + PHP）
 
-## 📁 项目结构
+## <img src="frontend/assets/xiaowei/ui/xiaowei-pointing.png" width="44" alt="指引的小味"> 项目结构
 
 ```
 TasteWise/
@@ -119,7 +97,7 @@ TasteWise/
 │   ├── app.ts / app.json / app.wxss
 │   └── project.config.json    #   开发者工具项目配置
 ├── backend/                   # PHP 后端服务
-│   ├── api/                   # RESTful 接口（20 个）
+│   ├── api/                   # RESTful 接口
 │   │   ├── category/          #   分类
 │   │   ├── dish/              #   菜品列表 / 详情 / AI 推荐
 │   │   ├── cart/              #   购物车（列表/加入/移除/改数量）
@@ -237,13 +215,13 @@ Windows 下更方便的方式：**双击项目根目录的 `启动管理后台.b
 
 > 注意：本仓库未提交 `project.private.config.json`（微信开发者工具私有配置），clone 后首次打开会自动生成。
 
-## 📚 文档导航
+## <img src="frontend/assets/xiaowei/ui/xiaowei-pointing-sm.png" width="44" alt="指引的小味"> 文档导航
 
 | 文档 | 说明 |
 | --- | --- |
 | [docs/README.md](docs/README.md) | 文档目录总览 |
 | [docs/architecture.md](docs/architecture.md) | 系统架构、鉴权设计、订单状态机与并发一致性 |
-| [docs/api.md](docs/api.md) | 全部 20 个接口的详细文档（含鉴权说明、AI 限流与 SSE 事件格式） |
+| [docs/api.md](docs/api.md) | 全部接口的详细文档（含鉴权说明、AI 限流与 SSE 事件格式） |
 | [docs/database.md](docs/database.md) | 数据库表结构设计 |
 | [docs/deployment.md](docs/deployment.md) | 本地部署与上线指南 |
 | [docs/git-guide.md](docs/git-guide.md) | Git/GitHub 仓库创建与上传指引 |
@@ -271,7 +249,7 @@ Windows 下更方便的方式：**双击项目根目录的 `启动管理后台.b
   9. 按实际用户量评估**待支付订单超时时间**（`core/OrderExpiry.php` 的 `TIMEOUT_MINUTES`，默认 15 分钟）；
   10. 启用 HTTPS。
 
-## 📄 License
+## <img src="frontend/assets/xiaowei/diffs/xiaowei-goodbye.png" width="44" alt="告别的小味"> License
 
 本项目采用**自定义授权**：允许学习、参考与二次开发，**禁止商业用途**，且不提供任何担保。
 完整条款见 [LICENSE](LICENSE)。
@@ -286,47 +264,16 @@ Windows 下更方便的方式：**双击项目根目录的 `启动管理后台.b
 
 > 项目中的菜品图片来自公开网络，仅作演示用途；品牌形象「小味」由 AI 生成后处理，随项目一同按上述条款授权。
 
-
 ---
 
 ## 更新记录
 
-> 这里记录**已经落地**的改动。只写结果，不写过程。
-
-### 品牌与形象
-
-| 改动 | 说明 |
-| --- | --- |
-| 品牌命名 | 小程序与应用名统一为「**智味**」（TasteWise），AI 助手名为「**小味**」 |
-| 助手形象 | 新增 AI 点餐助手「小味」的完整形象体系（6 张状态差分 + 头像 + 指引立绘 + TabBar 轮廓图） |
-| 状态联动 | 对话页新增舞台区组件，小味的表情跟随对话状态切换：招呼 / 思考 / 开心 / 抱歉 / 道谢 / 待命 |
-| 交互反馈 | 点击小味会弹一下并立刻切换为开心表情，2 秒后收回原状态；支持连点重播 |
-| 形象露出 | 首页常驻推荐浮窗、菜品详情页指引立绘、空购物车引导、用户中心与关于页头像 |
-| 品牌配色 | 全站主色统一为 **#11B3D4**（小程序 + 管理后台），TabBar 图标同步重制；菜品价格等食欲相关信息保留暖色 |
-
-### 功能调整
-
-| 改动 | 说明 |
-| --- | --- |
-| 供应情况 | 不再展示具体份数，改为「**供应充足 / 供应紧张 / 已售完**」两档措辞（阈值见 `frontend/utils/supply.ts`） |
-| 首页 AI 推荐 | 移除「输入口味偏好 + AI 推荐按钮 + 结果弹窗」链路，改为常驻浮窗直接进入 AI 助手对话页 |
-| 关于页 | 新增「小味表情」横向滑动展示区块；顶部 logo 换为小味头像 |
-| 加载失败提示 | 图片与数据加载失败时统一使用小味形象 + 「加载失败」标题 + 具体原因 |
-| 登录页 | 顶部 logo 换为小味头像 |
-| 后台 | 顶栏与登录卡片加上小味头像；配色跟随品牌蓝 |
-
 ### 接口调整
 
-| 改动 | 说明 |
+| 接口 | 说明 |
 | --- | --- |
 | `POST /api/dish/recommend.php` | 已删除。首页推荐链路移除后前端不再调用；AI 对话页仍会通过 `core/AiCards.php` 兜底调用 `DeepSeek::recommend()`，推荐能力不受影响 |
 | `POST /api/user/login_phone.php` | 已删除。原实现仅凭手机号即可登录（账号接管风险），且前端一直未接入 |
 | `POST /api/user/register.php` | 已删除。改为微信一键登录，首次登录自动建号，不需要注册流程 |
 
-### 工程
-
-| 改动 | 说明 |
-| --- | --- |
-| 授权 | 新增 [LICENSE](LICENSE)：允许学习/参考/二次开发，禁止商业使用 |
-| 素材规范 | 小味素材统一 600×600 透明底 PNG，按内容包围盒对齐，单张 ≤ 62KB |
-| 死代码清理 | 移除未被引用的类型、字段与接口，收敛不再使用的导出 |
+> 其余历史改动见 Git 提交记录。
