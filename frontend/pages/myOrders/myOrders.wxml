@@ -19,7 +19,7 @@
   </view>
   <!-- 失败态必须排在空订单前面，否则断网时会被误认为"订单丢了" -->
   <view wx:elif="{{loadError}}" class="empty">
-    <image class="empty-fail" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
+    <image class="empty-fail" src="/assets/xiaowei/diffs/xiaowei-sorry.png" mode="aspectFit" />
     <text class="empty-text">加载失败</text>
     <text class="empty-hint">{{loadError}}</text>
     <view class="empty-btn" bindtap="onRetryLoad">重新加载</view>
@@ -74,7 +74,9 @@
   <!-- 状态变化后的小味反馈：点一下可提前收起 -->
   <view wx:if="{{feedback}}" class="xw-feedback" bindtap="onFeedbackTap">
     <image class="xw-feedback-img" src="/assets/xiaowei/diffs/{{feedback.file}}" mode="aspectFit" />
-    <text class="xw-feedback-title">{{feedback.title}}</text>
-    <text class="xw-feedback-desc">{{feedback.desc}}</text>
+    <view class="xw-feedback-text">
+      <text class="xw-feedback-title">{{feedback.title}}</text>
+      <text class="xw-feedback-desc">{{feedback.desc}}</text>
+    </view>
   </view>
 </view>

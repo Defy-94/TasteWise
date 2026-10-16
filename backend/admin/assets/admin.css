@@ -60,9 +60,6 @@ a:hover {
   text-decoration: none;
 }
 
-.brand-mark {
-  font-size: 20px;
-}
 
 .brand-text em {
   font-style: normal;
@@ -564,29 +561,6 @@ table.list td.actions {
   font-size: 14px;
 }
 
-.timeline {
-  border-left: 3px solid #e3e6ea;
-  padding-left: 14px;
-  margin: 4px 0;
-}
-
-.timeline-item {
-  position: relative;
-  padding: 2px 0;
-  font-size: 13px;
-  color: #4a5058;
-}
-
-.timeline-item::before {
-  content: "";
-  position: absolute;
-  left: -21px;
-  top: 9px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #0E93B0;
-}
 
 /* ---------- 登录页 ---------- */
 
@@ -611,10 +585,6 @@ table.list td.actions {
 .login-brand {
   text-align: center;
   margin-bottom: 24px;
-}
-
-.login-brand .mark {
-  font-size: 34px;
 }
 
 .login-brand h1 {

@@ -47,15 +47,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>登录 · TasteWise 管理后台</title>
-<link rel="stylesheet" href="assets/admin.css">
+<?php /* 带文件修改时间做版本号：改完 CSS 浏览器不会再用旧缓存 */ ?>
+<link rel="stylesheet" href="assets/admin.css?v=<?php echo @filemtime(__DIR__ . '/assets/admin.css') ?: 1; ?>">
 </head>
 <body class="login-page">
 
 <div class="login-card">
   <div class="login-brand">
-    <div class="mark">🍽️</div>
     <img class="login-avatar" src="assets/xiaowei-avatar.png" alt="智味">
-      <h1>TasteWise 管理后台</h1>
+    <h1>TasteWise 管理后台</h1>
     <p>智味 · AI 点餐系统运营入口</p>
   </div>
 

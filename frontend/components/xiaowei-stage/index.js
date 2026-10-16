@@ -11,8 +11,15 @@
  */
 
 const STAGE_BASE = '/assets/xiaowei/diffs/';
-const AVATAR_SRC = '/assets/xiaowei/ui/xiaowei-avatar.png';
-const FALLBACK_SRC = '/assets/xiaowei/ui/xiaowei-fallback.png';
+
+/**
+ * 兜底图直接复用 sorry 差分（为难苦笑）
+ *
+ * 原来单独有一张 ui/xiaowei-fallback.png，但它和 sorry 表达的是同一件事
+ * （"出问题了"），留着两张只会让包体积变大、也没人分得清该用哪张。
+ * 现在统一用 sorry：变量由 STAGE_BASE 拼出来，避免将来路径改动时漂移。
+ */
+const FALLBACK_SRC = STAGE_BASE + 'xiaowei-sorry.png';
 
 /** 点击后切到开心表情，并保持这么久再收回（毫秒） */
 const TAP_HAPPY_MS = 2000;
@@ -76,6 +83,8 @@ Component({
   data: {
     shown: 'idle',
     imgSrc: STAGE_BASE + 'xiaowei-idle.png',
+    /** 供模板兜底用：imgSrc 为空时渲染它（不硬编码在 wxml 里） */
+    fallbackSrc: FALLBACK_SRC,
     failed: false,
     popKey: 0,
     popStyle: '',

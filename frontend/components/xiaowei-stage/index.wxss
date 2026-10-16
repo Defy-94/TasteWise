@@ -146,13 +146,6 @@
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* 图片彻底加载失败时的占位 */
-.stage-placeholder {
-  font-size: 96rpx;
-  line-height: 1;
-  opacity: 0.5;
-}
-
 /* 欢迎态底部的白色渐隐，让角色下缘与消息区自然衔接 */
 .stage-fade {
   position: absolute;

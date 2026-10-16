@@ -20,7 +20,15 @@
         bindload="onImgLoad"
         binderror="onImgError"
       />
-      <view wx:else class="stage-placeholder">🐳</view>
+      <!-- imgSrc 正常都有值；为空时兜底也用同一张 sorry，不再用鲸鱼 emoji -->
+      <image
+        wx:else
+        class="stage-img"
+        src="{{fallbackSrc}}"
+        mode="aspectFit"
+        bindload="onImgLoad"
+        binderror="onImgError"
+      />
     </view>
   </view>
 

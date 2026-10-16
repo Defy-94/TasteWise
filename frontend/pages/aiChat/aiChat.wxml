@@ -29,8 +29,9 @@
   >
     <view
       wx:for="{{messages}}"
+      wx:for-index="mi"
       wx:key="index"
-      id="msg-{{index}}"
+      id="msg-{{mi}}"
       class="msg-item {{item.role === 'assistant' ? 'ai-msg' : 'user-msg'}}"
     >
       <!-- AI头像（仅AI消息显示）：用小味头像，加载失败回落成鲸鱼占位 -->
@@ -54,6 +55,7 @@
           <view
             wx:for="{{item.recommendDishes}}"
             wx:for-item="dish"
+            wx:for-index="di"
             wx:key="id"
             class="dish-card"
             data-id="{{dish.id}}"
@@ -61,8 +63,18 @@
           >
             <!-- 菜品图片 -->
             <!-- 有图显示图，无图显示占位（项目内没有 default_dish.png） -->
-            <image wx:if="{{dish.image_url}}" class="dish-img" src="{{dish.image_url}}" mode="aspectFill" />
-            <image wx:else class="dish-img img-ph-img" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
+            <!-- binderror：图挂了就清掉 image_url，让下面的 wx:else 兜底图接管。
+                 卡片嵌在消息里，所以要 mi（第几条消息）+ di（第几张卡）两级定位 -->
+            <image
+              wx:if="{{dish.image_url}}"
+              class="dish-img"
+              src="{{dish.image_url}}"
+              mode="aspectFill"
+              binderror="onCardImgError"
+              data-mi="{{mi}}"
+              data-di="{{di}}"
+            />
+            <image wx:else class="dish-img img-ph-img" src="/assets/xiaowei/diffs/xiaowei-sorry.png" mode="aspectFit" />
 
             <!-- 菜品信息 -->
             <view class="dish-info">

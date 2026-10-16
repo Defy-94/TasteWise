@@ -202,4 +202,24 @@ Page({
     }
   },
 
+  /**
+   * 菜品图加载失败：清掉这一项的 image_url，让模板的 wx:else 兜底图接管
+   *
+   * 菜品图是第三方 CDN 的热链，随时可能失效；没有这一步就是一块空白。
+   * 不用路径式 setData（'dishes[0].image_url'）：本项目 typings 把 setData
+   * 限成 Partial<TData>，路径 key 会被判为类型错误 —— 这是刻意的，
+   * 因为微信里 setData 写错 key 不会报错、只是静默不生效，很难排查。
+   */
+  onDishImgError(e: any) {
+    const index = Number(e.currentTarget.dataset.index);
+    const list  = this.data.dishes;
+
+    // 已经清过就不再重复 setData，避免图片反复报错时抖动
+    if (isNaN(index) || !list[index] || !list[index].image_url) return;
+
+    const dishes = list.slice();
+    dishes[index] = { ...dishes[index], image_url: '' };
+    this.setData({ dishes });
+  },
+
 });

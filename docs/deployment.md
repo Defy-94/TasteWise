@@ -174,9 +174,9 @@ Windows 下更省事的方式是**双击项目根目录的 `启动管理后台.b
 | 接口返回 401 | 未登录或令牌过期：重新登录；确认请求头带了 `token`；刚改过 `security.php` 密钥时需重新登录 |
 | AI 回复报错 | 检查 `config/apikey.php` 的 Key 是否有效、是否欠费 |
 | AI 回复提示「请求太频繁」或「今天的 AI 使用次数已用完」 | 触发了 AI 接口限流（见 [architecture.md](architecture.md) 第 10 节）。限额常量在 `core/AiRateLimit.php` 顶部，本地调试嫌严可以调大；计数表是 `ai_rate_limit`，清空该表可立即重置额度 |
-| 流式输出没有「逐字」效果，而是等几秒整段蹦出来 | **Apache + mod_fcgid 的响应缓冲导致的**，不是代码问题。在 Apache 配置里加 `FcgidOutputBufferSize 0` 并重启 Apache。详见 [architecture.md](architecture.md) 第 11 节（phpstudy 用的是 mod_fcgid，默认缓冲 64KB） |
+| 流式输出表现为等待数秒后整段输出 | **Apache + mod_fcgid 的响应缓冲导致**。在 Apache 配置里加 `FcgidOutputBufferSize 0` 并重启 Apache。详见 [architecture.md](architecture.md) 第 11 节（phpstudy 用的是 mod_fcgid，默认缓冲 64KB） |
 | 流式输出的中文变成乱码 | 检查是否有人改坏了 `frontend/utils/utf8.ts`（它负责把跨分块的半个汉字拼回来），或服务端是否被中间层二次压缩 |
-| 待支付订单过一会儿自己变成「已取消」 | **这是设计行为，不是 bug**：下单会立即扣库存，若不付款也不取消，那份库存会被永久占用。所以待支付超过 `core/OrderExpiry.php` 的 `TIMEOUT_MINUTES`（默认 15 分钟）会自动取消并把库存还回去，备注里会留下「（超时未支付，系统自动取消）」。后台订单管理页有「立刻清理」按钮可手动触发 |
+| 待支付订单过一会儿自己变成「已取消」 | **属于设计行为**：下单会立即扣库存，若不付款也不取消，那份库存会被永久占用。所以待支付超过 `core/OrderExpiry.php` 的 `TIMEOUT_MINUTES`（默认 15 分钟）会自动取消并把库存还回去，备注里会留下「（超时未支付，系统自动取消）」。后台订单管理页有「立刻清理」按钮可手动触发 |
 | 库存数量和预期对不上 | 按顺序排查：① 是否有超时未支付订单被自动取消后又下单（属正常）；② 后台菜品页可以直接看/改库存，确认没被人手动改过；③ 用「订单明细合计」对账 —— 后台订单详情页会自动比对明细合计与订单金额，不一致会给出警告 |
 | 小程序请求失败 | 确认 `BASE_URL` 可达；真机调试需关闭域名校验或配置合法域名 |
 | 注册报错「表不存在」 | 未执行过 `backend/sql/init.sql`（该脚本已包含 `user_id_counter` 表），请检查库结构 |

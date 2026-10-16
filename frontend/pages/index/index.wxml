@@ -48,9 +48,18 @@
     <!-- 点卡片任意位置进菜品详情页 -->
     <view wx:for="{{dishes}}" wx:key="id" class="dish-card" data-id="{{item.id}}" bindtap="onDishTap">
       <!-- 有图显示图，无图显示占位（项目内没有 default_dish.png，避免无效图片请求） -->
-      <image wx:if="{{item.image_url}}" class="dish-img" src="{{item.image_url}}" mode="aspectFill" />
+      <!-- binderror：图挂了就清掉 image_url，让下面的 wx:else 兜底图接管，
+           否则外链失效时这里是一块空白 -->
+      <image
+        wx:if="{{item.image_url}}"
+        class="dish-img"
+        src="{{item.image_url}}"
+        mode="aspectFill"
+        binderror="onDishImgError"
+        data-index="{{index}}"
+      />
       <!-- 无图时用小味（为难表情）占位，比一个餐具 emoji 更有品牌感 -->
-            <image wx:else class="dish-img img-ph-img" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
+            <image wx:else class="dish-img img-ph-img" src="/assets/xiaowei/diffs/xiaowei-sorry.png" mode="aspectFit" />
       <view class="dish-info">
         <view class="dish-name-row">
           <view class="dish-name">{{item.name}}</view>
@@ -78,7 +87,7 @@
   </view>
   <!-- 失败态必须排在空结果前面，否则断网时会被误认为"店里没菜" -->
   <view wx:if="{{loadError}}" class="dish-empty">
-    <image class="dish-empty-img" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
+    <image class="dish-empty-img" src="/assets/xiaowei/diffs/xiaowei-sorry.png" mode="aspectFit" />
     <view class="dish-empty-text">加载失败</view>
     <view class="dish-empty-sub">{{loadError}}</view>
     <view

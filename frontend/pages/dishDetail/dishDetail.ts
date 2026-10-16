@@ -158,4 +158,17 @@ Page({
       this.loadDish(dishId);
     }
   },
+
+  /**
+   * 主图加载失败：清掉 image_url，让模板的 wx:else 兜底图接管
+   *
+   * 菜品图是第三方 CDN 的热链，随时可能失效；没有这一步就是一块空白。
+   */
+  onHeroImgError() {
+    const dish = this.data.dish;
+
+    if (!dish || !dish.image_url) return;
+
+    this.setData({ dish: { ...dish, image_url: '' } });
+  },
 });

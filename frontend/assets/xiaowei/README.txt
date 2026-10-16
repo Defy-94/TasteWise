@@ -1,6 +1,6 @@
 小味（智能点餐助手形象）素材目录
 ================================================
-状态：图片已处理完毕（白底抠透明 + 统一尺寸 + 压缩），等待接入代码
+状态：图片已处理完毕（白底抠透明 + 统一尺寸 + 压缩），已接入代码
 
 一、目录结构
 ------------------------------------------------
@@ -13,8 +13,8 @@ E:\TasteWise\
 │  └─ *.py                         处理脚本（png_utils / batch / rebuild_two 等）
 └─ frontend\                        【小程序根目录 miniprogramRoot = ""】
    ├─ assets\xiaowei\
-   │  ├─ diffs\                    ★ 8 张状态差分（600x600 透明 PNG）
-   │  └─ ui\                       头像 / 兜底图 / tab 图标源图
+   │  ├─ diffs\                    ★ 6 张状态差分（600x600 透明 PNG），也是全站兜底图
+   │  └─ ui\                       头像 / 指引立绘 / tab 图标源图
    └─ images\                      tabBar 实际引用的图标
 
 二、最终文件清单与体积
@@ -39,13 +39,18 @@ frontend\assets\xiaowei\ui\
   xiaowei-pointing-sm.png  15.8 KB   240x240 指引立绘小图（首页小味浮窗）
   xiaowei-tab-active.png   10.4 KB   162x162 彩色头像（tab 选中态源图）
   xiaowei-tab.png           1.3 KB   162x162 中间透明的灰色轮廓（tab 未选中态）
-  xiaowei-fallback.png     14.4 KB   240x240 兜底图（图加载失败时回落）
+  5 张合计                 约 185 KB
+
+  【兜底图已合并】原先还有一张 ui\xiaowei-fallback.png（240x240 兜底图）。
+  它和 diffs\xiaowei-sorry.png 表达的是同一件事（"出问题了"），
+  两张并存只会让包体积变大、也没人分得清该用哪张，因此已删除，
+  全站统一用 diffs\xiaowei-sorry.png 作兜底（含组件的 FALLBACK_SRC）。
 
 frontend\images\                     tabBar 实际引用（app.json 写的是相对根目录路径）
   ai.png                   0.4 KB    81x81  浅灰剪影 = 未选中
   ai_active.png            3.8 KB    81x81  彩色头像 = 选中
 
-包内素材总计约 500 KB（主包上限 2MB，余量充足）
+包内素材总计约 550 KB（主包上限 2MB，余量充足）
 
 三、处理规格（已执行）
 ------------------------------------------------
@@ -59,15 +64,16 @@ frontend\images\                     tabBar 实际引用（app.json 写的是相
 ------------------------------------------------
   6 张差分全部为清晰版。三视图、废稿图已按要求不再保留。
   tab 未选中态由深蓝剪影重新着色为浅灰，匹配 tabBar 的 color: #999999；
-  tab 选中态用彩色头像，匹配 selectedColor（当前主色 #3A5BD9）。
+  tab 选中态用彩色头像，匹配 selectedColor（当前主色 #11B3D4，即 app.json 里的取色）。
 
 五、实现约定（已落地在 components/xiaowei-stage 与 pages/aiChat）
 ------------------------------------------------
   1. 路径统一走常量，便于将来换成 CDN：
        const STAGE_BASE = '/assets/xiaowei/diffs/';
-       const AVATAR_SRC = '/assets/xiaowei/ui/xiaowei-avatar.png';
-       const FALLBACK_SRC = '/assets/xiaowei/ui/xiaowei-fallback.png';
+       const AVATAR_SRC = '/assets/xiaowei/ui/xiaowei-avatar.png';   // 在 pages/aiChat/aiChat.ts
+       const FALLBACK_SRC = STAGE_BASE + 'xiaowei-sorry.png';        // 兜底统一用 sorry
   2. <image> 带 binderror 兜底，加载失败回落到 FALLBACK_SRC
+     （目前只落在小味自己的图上；菜品/购物车的外链图还没有 binderror）
   3. 状态切换有最短展示时长（dwell）与入场动画，避免闪烁
   4. 页面布局：方案 A（上舞台区 + 中消息区 + 下输入区），
      空对话时舞台区放大为欢迎态

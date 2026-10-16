@@ -13,6 +13,7 @@ Page({
     totalPrice: 0,
     isEmpty: true,
     needLogin: false,     // 未登录时显示登录提示
+    updating: false,      // 数量调整中：防止快速连点导致并发请求乱序
     remark: '',           // 订单备注（结算时提交给后端）
     loadError: '',        // 加载失败原因（非空时显示错误态而不是"购物车为空"）
   },
@@ -127,6 +128,26 @@ Page({
     } finally {
       this.setData({ updating: false });
     }
+  },
+
+  /**
+   * 条目图片加载失败：清掉这一项的 image_url，让模板的 wx:else 兜底图接管
+   *
+   * 菜品图是第三方 CDN 的热链，随时可能失效；没有这一步就是一块空白。
+   * 不用路径式 setData（'cartList[0].image_url'）：本项目 typings 把 setData
+   * 限成 Partial<TData>，路径 key 会被判为类型错误 —— 这是刻意的，
+   * 因为微信里 setData 写错 key 不会报错、只是静默不生效，很难排查。
+   */
+  onItemImgError(e: any) {
+    const index = Number(e.currentTarget.dataset.index);
+    const list  = this.data.cartList;
+
+    // 已经清过就不再重复 setData，避免图片反复报错时抖动
+    if (isNaN(index) || !list[index] || !list[index].image_url) return;
+
+    const cartList = list.slice();
+    cartList[index] = { ...cartList[index], image_url: '' };
+    this.setData({ cartList });
   },
 
   /** 减到 0 时的确认弹窗（Promise 化，便于 await） */

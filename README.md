@@ -6,6 +6,30 @@
 
 ---
 
+## 📸 界面预览
+
+> 截图位于 [`assets/screenshots/`](assets/screenshots/)，文件名与下表一致，放入即显示。
+
+| 首页 | 菜品详情 |
+| --- | --- |
+| ![首页](assets/screenshots/01-home.png) | ![菜品详情](assets/screenshots/02-dish-detail.png) |
+| 分类导航 · 关键词搜索 · 供应档位 · 小味浮窗 | 菜品大图 · 完整介绍 · 份数调节 · 小味指引 |
+
+| AI 助手 | 购物车 |
+| --- | --- |
+| ![AI 助手](assets/screenshots/03-ai-chat.png) | ![购物车](assets/screenshots/04-cart.png) |
+| 小味舞台区 · 流式回复 · 推荐卡片一键加购 | 数量调整 · 订单备注 · 结算下单 |
+
+| 我的订单 | 用户中心 |
+| --- | --- |
+| ![我的订单](assets/screenshots/05-orders.png) | ![用户中心](assets/screenshots/06-user-center.png) |
+| 状态筛选 · 订单明细 · 支付/取消/完成 | 订单状态概览 · 资料编辑 · 微信一键登录 |
+
+| 管理后台 · 订单 | 管理后台 · 菜品 |
+| --- | --- |
+| ![后台订单](assets/screenshots/07-admin-orders.png) | ![后台菜品](assets/screenshots/08-admin-dishes.png) |
+| 数据总览 · 筛选 · 一键改状态 | 上架下架 · 行内改库存 · 设为推荐 |
+
 ## <img src="frontend/assets/xiaowei/diffs/xiaowei-greeting.png" width="44" alt="打招呼的小味"> 品牌形象：小味
 
 项目内置了一位贯穿小程序的 AI 点餐助手形象「**小味**」——一位戴着鲸鱼厨师帽的 Q 版少女。她不只是装饰：**她的表情会跟着对话状态变化**，也会在合适的时机出现提示你。（形象素材位于 `frontend/assets/xiaowei/`，由 AI 生成后经抠图、统一对齐与压缩处理）
@@ -229,7 +253,7 @@ Windows 下更方便的方式：**双击项目根目录的 `启动管理后台.b
 ## 🔒 安全说明
 
 - **接口鉴权**：除登录接口与公开数据接口外，所有接口都要求携带登录令牌；**用户身份一律取自令牌，客户端传的 `user_id` 会被忽略**，因此无法通过改参数操作他人购物车、订单或资料。资源类接口（改数量、删除购物车、订单支付/取消/完成）还会校验资源归属。
-- **管理后台独立鉴权**：后台不复用小程序令牌，而是独立的会话登录（专用 Cookie `TWSESSID`，HttpOnly + SameSite=Lax + 仅 `/admin` 路径有效）。密码以 bcrypt 哈希存储，登录成功与退出时都会更换会话 ID（防会话固定攻击），连续失败 5 次锁定 5 分钟（按 IP 计数，清 Cookie 无法绕过）。
+- **管理后台独立鉴权**：后台采用独立的会话登录（专用 Cookie `TWSESSID`，HttpOnly + SameSite=Lax + 仅 `/admin` 路径有效），与小程序令牌相互独立。密码以 bcrypt 哈希存储，登录成功与退出时都会更换会话 ID（防会话固定攻击），连续失败 5 次锁定 5 分钟（按 IP 计数，清 Cookie 无法绕过）。
 - **AI 接口限流**：`ai/chat.php`、`ai/chat_stream.php` 每次调用都真实消耗 DeepSeek 额度，因此做了三层限流（身份每分钟、身份每天、全站每天总量）。**先自增再判断**，被拒绝的请求也计数，攻击者无法靠重试绕过；计数用 `INSERT ... ON DUPLICATE KEY UPDATE` 原子自增，并发下不会漏计。
 - **AI 对话长度上限**：客户端传来的 `history` 会在服务端被清洗 —— **只放行 `user` / `assistant` 角色**（否则可以塞 `system` 消息覆盖「小味」的身份约束，属于提示词注入），并限制条数、单条长度与合计长度（第 N 轮要重发前 N-1 轮，成本是 O(N²)，不限制会让一次闲聊烧掉大量额度，而且迟早超出模型上下文窗口直接报错）。
 - **后台写操作防护**：所有改变数据的操作一律 POST + 一次性 CSRF 令牌校验；后台页面输出全部经过 HTML 转义（防存储型 XSS —— 菜品名、订单备注都可能被塞入脚本）。

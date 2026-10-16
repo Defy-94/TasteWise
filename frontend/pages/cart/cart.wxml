@@ -8,7 +8,7 @@
   </view>
   <!-- 失败态必须排在空购物车前面，否则断网时会被误认为"菜没了" -->
   <view wx:elif="{{loadError}}" class="empty-cart">
-    <image class="empty-fail" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
+    <image class="empty-fail" src="/assets/xiaowei/diffs/xiaowei-sorry.png" mode="aspectFit" />
     <text class="empty-text">加载失败</text>
     <text class="empty-hint">{{loadError}}</text>
     <button class="login-btn" bindtap="onRetryLoad">重新加载</button>
@@ -34,9 +34,17 @@
   <!-- 购物车列表 -->
   <view wx:else class="cart-list">
     <view wx:for="{{cartList}}" wx:key="cart_id" class="cart-item">
-  <!-- 无图时用小味占位（不要写死图片路径，那会产生无效请求） -->
-      <image wx:if="{{item.image_url}}" class="item-img" src="{{item.image_url}}" mode="aspectFill" />
-      <image wx:else class="item-img img-ph-img" src="/assets/xiaowei/ui/xiaowei-sorry.png" mode="aspectFit" />
+      <!-- 无图时用小味占位（不要写死图片路径，那会产生无效请求） -->
+      <!-- binderror：图挂了就清掉 image_url，让下面的 wx:else 兜底图接管 -->
+      <image
+        wx:if="{{item.image_url}}"
+        class="item-img"
+        src="{{item.image_url}}"
+        mode="aspectFill"
+        binderror="onItemImgError"
+        data-index="{{index}}"
+      />
+      <image wx:else class="item-img img-ph-img" src="/assets/xiaowei/diffs/xiaowei-sorry.png" mode="aspectFit" />
       <view class="item-info">
         <text class="item-name">{{item.name}}</text>
         <text class="item-desc">{{item.description}}</text>

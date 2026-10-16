@@ -114,6 +114,30 @@ Page({
     }
   },
 
+  /**
+   * 推荐卡片图片加载失败：清掉那一项的 image_url，让模板的 wx:else 兜底图接管
+   *
+   * 推荐卡片嵌在消息里（messages[mi].recommendDishes[di]），所以要两级定位 ——
+   * 内层 wx:for 用 dish 作 item 名，但 index 会遮蔽外层的，因此两层都显式命名。
+   */
+  onCardImgError(e: any) {
+    const mi = Number(e.currentTarget.dataset.mi);
+    const di = Number(e.currentTarget.dataset.di);
+
+    const messages = this.data.messages;
+    const msg      = messages[mi];
+    const recs     = msg && msg.recommendDishes;
+
+    if (!recs || !recs[di] || !recs[di].image_url) return;
+
+    const newRecs = recs.slice();
+    newRecs[di] = { ...newRecs[di], image_url: '' };
+
+    const newMessages = messages.slice();
+    newMessages[mi] = { ...msg, recommendDishes: newRecs };
+    this.setData({ messages: newMessages });
+  },
+
   /** 点击「发送」按钮 / 键盘发送 */
   async onSend() {
     const text = this.data.inputText.trim();

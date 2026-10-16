@@ -28,7 +28,8 @@ function admin_header($title, $active = '', $subtitle = '')
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo e($title); ?> · <?php echo e($siteName); ?></title>
-<link rel="stylesheet" href="assets/admin.css">
+<?php /* 带文件修改时间做版本号：改完 CSS 浏览器不会再用旧缓存 */ ?>
+<link rel="stylesheet" href="assets/admin.css?v=<?php echo @filemtime(__DIR__ . '/assets/admin.css') ?: 1; ?>">
 </head>
 <body>
 
