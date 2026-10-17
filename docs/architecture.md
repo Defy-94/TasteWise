@@ -38,15 +38,15 @@
 | 模块 | 路径 | 职责 |
 | --- | --- | --- |
 | 全局入口 | `app.ts` / `app.json` / `app.wxss` | 应用生命周期、TabBar、全局样式 |
-| 首页 | `pages/index/` | 分类导航、菜品列表、AI 推荐弹窗、加入购物车、点卡片进详情 |
+| 首页 | `pages/index/` | 分类导航、菜品列表、AI 推荐入口（小味提示条）、加入购物车、点卡片进详情 |
 | 菜品详情 | `pages/dishDetail/` | 大图、完整介绍、辣度与已售份数、可调份数加购、售完/下架状态 |
-| 购物车 | `pages/cart/` | 购物车展示、删除、结算下单 |
+| 购物车 | `pages/cart/` | 购物车展示、数量调整、删除、结算下单 |
 | AI 助手 | `pages/aiChat/` | 对话界面、AI 推荐菜品卡片、快捷加购、点卡片进详情 |
 | 用户中心 | `pages/userCenter/` | 用户信息展示与编辑、订单入口 |
 | 我的订单 | `pages/myOrders/` | 订单列表、支付/取消/完成（状态流转）、状态色区分 |
 | 登录 | `pages/login/` | 微信一键登录（登录即注册，已无独立注册页） |
 | 关于 | `pages/about/` | 项目介绍 |
-| 工具层 | `utils/api.ts` `utils/types.ts` `utils/cartBadge.ts` | 请求封装（令牌注入 + 401 跳登录）、TS 类型定义、购物车角标同步 |
+| 工具层 | `utils/api.ts` `utils/types.ts` `utils/cartBadge.ts` `utils/supply.ts` `utils/error.ts` `utils/sse.ts` `utils/sseParser.ts` `utils/utf8.ts` | 请求封装（令牌注入 + 401 跳登录）、TS 类型、购物车角标、供应档位、错误文案、流式客户端与 SSE 解析 |
 
 ### 后端 `backend/`
 
@@ -61,15 +61,16 @@
 | 核心层 | `core/WeChat.php` | 微信 `code2Session` 封装（换取 openid） |
 | 核心层 | `core/DeepSeek.php` | AI 对话、菜品推荐、动态菜单注入、提示词管理 |
 | 核心层 | `core/AiReply.php` | 从 AI 回复文本中识别菜品名（生成推荐卡片），可单元测试 |
+| 核心层 | `core/` 其余类 | `bootstrap.php`（自动加载）、`Request.php`（入参）、`DishRepo.php`（菜品查询）、`AiRateLimit.php`（限流）、`AiCards.php`（推荐卡片）、`OrderExpiry.php`（超时清理）、`UserOrderHistory.php` / `OrderHistoryCards.php`（点餐历史） |
 | 配置层 | `config/` | 数据库连接、DeepSeek Key、令牌签名密钥、微信 AppSecret、后台账号（⚠️ 敏感，不提交） |
-| 数据库脚本 | `sql/init.sql` | 建库建表 + 测试数据 |
+| 数据库脚本 | `sql/init.sql` | 建库建表 + 演示数据 |
 
 ## 3. 请求流程（以「AI 点餐助手对话」为例）
 
 1. 顾客在小程序里说「推荐几道辣菜」→ 前端 `POST /api/ai/chat_stream.php`（SSE 流式），
    基础库不支持分块接收时回退到 `POST /api/ai/chat.php`
 2. 后端先做三层限流（`core/AiRateLimit.php`），再清洗 `history`（只放行 user/assistant 角色）
-3. `core/DeepSeek.php` 把**当日真实菜单**注入提示词（防止 AI 编造菜品），请求大模型流式返回
+3. `core/DeepSeek.php` 把**当前在售真实菜单**注入提示词（防止 AI 编造菜品），请求大模型流式返回
 4. 边收边转发给前端（逐字显示）；回复结束后 `core/AiCards.php`
    从文本中识别出菜品，必要时兜底调用 `DeepSeek::recommend()` 拿到结构化推荐
 5. 返回 `{"reply": "...", "recommend_dishes": [...]}` → 对话页把小味切成
@@ -186,7 +187,7 @@
   2. `CURLOPT_SSL_VERIFYPEER` 置回 `true`；
   3. CORS `Access-Control-Allow-Origin: *` 收紧为具体域名；
   4. 订单支付接入微信支付（当前为模拟支付）；
-  5. 接口限流（防止 AI 接口被刷导致费用失控）；
+  5. 按实际用户量重新评估 AI 限流阈值（见第 10 节）；
   6. 全站 HTTPS。
 
 ## 9. 管理后台设计（backend/admin/）
@@ -216,10 +217,13 @@ backend/admin/
     ├── AdminAuth.php          # 会话认证 + CSRF + 登录失败锁定
     ├── helpers.php            # 转义 e()、flash 提示、取参、格式化
     ├── layout.php             # 页面骨架（顶部导航 / 内容区 / 页脚 / 分页）
-    └── order_actions.php      # 把 OrderStatus 的异常转成给管理员看的一句话
+    ├── order_actions.php      # 把 OrderStatus 的异常转成给管理员看的一句话
+    └── queries/               # 订单 / 菜品的查询层（数据与展示分离）
 
 backend/tools/                 # 命令行工具（不在浏览器里用，URL 直访被拒）
-└── admin_passwd.php           # 改管理员密码：交互式输入 → 写回配置 → 回读校验
+├── admin_passwd.php           # 改管理员密码：交互式输入 → 写回配置 → 回读校验
+├── backup_db.php              # 数据库备份（导出后自检，保留最近 20 份）
+└── admin_launch.php           # 启动管理后台.bat 的 PHP 侧探测与输出
 ```
 
 ### 改密码为什么做成了命令行脚本 + 双击入口
@@ -272,7 +276,7 @@ phpstudy 安装路径写死了**，换台电脑就失效。改成仓库里的脚
 | Cookie 泄露 | 专用 Cookie 名 `TWSESSID`，`HttpOnly` + `SameSite=Lax` + `path=/admin`（接口请求不会带上它） |
 | 密码泄露 | 配置里只存 bcrypt 哈希（`password_hash` / `password_verify`），不存明文 |
 | 暴力破解 | 按 IP 统计失败次数，5 次锁定 5 分钟；失败时 `usleep` 延迟。计数写临时文件而非只存会话，**清 Cookie 无法绕过** |
-| CSRF | 所有写操作必须 POST + `_csrf` 一次性令牌（`hash_equals` 比较）；退出登录也走 POST |
+| CSRF | 所有写操作必须 POST + `_csrf` 会话级令牌（`hash_equals` 比较）；退出登录也走 POST |
 | 开放重定向 | 登录后跳回的地址必须是以 `/admin/` 开头的站内路径，挡掉 `//evil.com` 这类协议相对地址 |
 | 存储型 XSS | 所有动态输出经过 `e()` 转义 |
 | 源码被直接访问 | `lib/` 下每个文件开头 `if (!defined('TW_ADMIN')) { 403; exit; }`，**不依赖服务器配置**，Apache 与 nginx 下都有效；另加 `lib/.htaccess` 作为第二层 |
@@ -313,7 +317,7 @@ AI 接口的主要风险是「**费用失控**」：`ai/chat.php`、`ai/chat_str
 | 每天 | 身份 | 登录 100 次 / 游客 30 次 | 挡住「细水长流」式持续消耗 |
 | 每天 | 全站 | 3000 次 | 最后一道保险：前两层被绕过也有总上限 |
 
-身份判定：带有效令牌按 `uid:10004`，否则按 IP（`ip:1.2.3.4`）。
+身份判定：带有效令牌按 `uid:1`，否则按 IP（`ip:1.2.3.4`）。
 游客额度更低 —— 一个 IP 背后可能是很多人（校园网/公司出口），且游客没有账号成本、更容易被刷。
 
 ### 几个刻意的设计选择
@@ -325,7 +329,7 @@ AI 接口的主要风险是「**费用失控**」：`ai/chat.php`、`ai/chat_str
 | 窗口以 **Unix 时间戳对齐**（不按本地零点） | 行为完全可预测、便于测试；代价是天配额在北京时间早 8 点重置 |
 | 选**数据库** | 项目已有 MySQL，天然支持跨进程原子自增；文件锁容易写错，APCu 在 phpstudy 上不保证可用 |
 | 清理用**概率触发**而非定时任务 | phpstudy 环境没有可靠的 cron；「平均每 50 次请求清一次」最省事，且清理失败不影响主流程 |
-| 三个接口**共用同一套额度** | 它们烧的是同一份 API 额度，分开计数等于给了双倍配额 |
+| 两个接口**共用同一套额度** | 它们烧的是同一份 API 额度，分开计数等于给了双倍配额 |
 
 并发下读到的计数可能已包含别人的自增结果（只是让限制更严一点），方向是安全的，不会漏放。
 
@@ -454,7 +458,7 @@ FcgidOutputBufferSize 0
 所以 `OrderExpiry` 只负责「找出该清理哪些订单」，真正的流转交给 `OrderStatus`。
 
 并发下同一笔订单被两个请求同时清理是安全的：第二个会拿到 409（状态冲突）并被忽略，
-库存不会加回两次 —— 这一点有测试覆盖。
+库存不会加回两次 —— 这由 `OrderStatus` 的 CAS 与行锁保证；仓库暂未包含自动化测试。
 
 ### 一个容易写错的地方：不要用 PHP 算截止时间
 
@@ -476,7 +480,7 @@ $cutoff = date('Y-m-d H:i:s', time() - 15 * 60);
 
 ### 菜品在售规则原先分散在多处
 
-「哪些菜算在售」原本散落在 6 个地方，而且**已经出现了不一致**：
+「哪些菜算在售」原本散落在 5 个地方，而且**已经出现了不一致**：
 
 | 位置 | 原来的条件 | 问题 |
 | --- | --- | --- |
@@ -499,7 +503,7 @@ $cutoff = date('Y-m-d H:i:s', time() - 15 * 60);
 | **可出售** `condSellable()` | `is_on_sale = 1 AND stock > 0` | AI 推荐、菜单注入、卡片识别 | 这些场景是「向顾客推荐」，推荐无法下单的菜品会影响体验 |
 
 `DishRepo` 提供 `visibleList()` / `findVisibleWithCategory()` / `sellableList()`
-三个查询方法，6 处调用全部改成调它；条件本身用带别名占位符的模板定义，
+三个查询方法，5 处调用全部改成调它；条件本身用带别名占位符的模板定义，
 需要 JOIN 的场景（取分类名）传别名即可，避免 `Column 'is_on_sale' in where clause is ambiguous`。
 
 字段清单（`COLUMNS`）也统一在这里，避免出现「列表有图、卡片没图」这类缺字段问题。
@@ -657,8 +661,9 @@ $stats    = admin_order_stats();              // 顶部总览（不受筛选影�
 加了 `page` / `per_page` 之后有个**容易被忽略的细节**：排序必须是
 `ORDER BY created_at DESC, id DESC`。只按 `created_at` 排的话，
 同一秒创建的两笔订单顺序不固定，翻页时会出现「上一页出现过、下一页又出现一次」
-或整条被跳过。测试里专门造了同一秒的多笔订单来覆盖这一点
-（每页 3 条翻 5 页，验证无重复、无漏单）。
+或整条被跳过。验证方法：造几笔同一秒创建的订单，每页 3 条翻 5 页，
+检查无重复、无漏单（仓库暂未包含自动化测试）。
+
 ## 16. 点餐历史与「跟上次一样」/「我的常点」
 
 这两类提问都依赖顾客自己的历史订单，数据读取集中在两个类里：

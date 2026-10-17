@@ -4,18 +4,15 @@
 
 一、目录结构
 ------------------------------------------------
-E:\TasteWise\
-├─ assets\xiaowei\                  【包外·不参与小程序打包】
-│  └─ refs\                        参考图原图（三视图、鱼鳍特写）
-├─ .tmp_img\                        【包外·处理脚本与产物，可随时删除】
-│  ├─ originals\                   8 张差分 JPG 源图 + 头像/剪影 JPG 源图（归档）
-│  ├─ preview\                     棋盘格预览图，用来肉眼检查白边
-│  └─ *.py                         处理脚本（png_utils / batch / rebuild_two 等）
-└─ frontend\                        【小程序根目录 miniprogramRoot = ""】
-   ├─ assets\xiaowei\
-   │  ├─ diffs\                    ★ 6 张状态差分（600x600 透明 PNG），也是全站兜底图
-   │  └─ ui\                       头像 / 指引立绘 / tab 图标源图
-   └─ images\                      tabBar 实际引用的图标
+frontend/                          【小程序根目录 miniprogramRoot = ""】
+├─ assets/xiaowei/
+│  ├─ diffs/                      ★ 6 张状态差分（600x600 透明 PNG），也是全站兜底图
+│  └─ ui/                         头像 / 指引立绘 / tab 图标源图
+├─ images/                        tabBar 实际引用的图标
+└─ components/xiaowei-stage/      小味舞台区组件
+
+说明：早期的参考图、处理脚本与剪影源图不在小程序包内，也不随仓库提交；
+需要重新生成素材时，在本机临时目录处理即可。
 
 二、最终文件清单与体积
 ------------------------------------------------

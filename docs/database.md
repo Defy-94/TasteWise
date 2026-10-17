@@ -4,7 +4,7 @@
 - 字符集：`utf8mb4` / `utf8mb4_unicode_ci`
 - 初始化脚本：`backend/sql/init.sql`（建库 + 建表 + 演示数据）
 - 访问方式：全部通过 `backend/core/DB.php`（PDO 单例）操作，禁止直接写连接
-- ✅ **本脚本已与项目实际运行库结构同步**（8 张表逐字段校验通过）
+- ✅ **表结构以 `backend/sql/init.sql` 为准**（8 张表；字段与索引已按脚本核对）
 
 ## 表结构
 
@@ -22,7 +22,7 @@
 | created_at / updated_at | DATETIME | 创建 / 更新时间 |
 | extra_field1 / extra_field2 | VARCHAR(200) | 预留扩展字段 |
 
-**唯一索引**：`openid`、`idx_username`(username)、`idx_phone`(phone)，另有普通索引 `idx_openid`。
+**唯一索引**：`openid`、`idx_username`(username)、`idx_phone`(phone)。
 
 > ⚠️ 因为 `username` 与 `phone` 都有唯一索引、且列默认值是空字符串，
 > **插入用户时必须显式赋值**，否则第二个新用户会因 `Duplicate entry '' for key 'idx_phone'` 插入失败。
@@ -100,12 +100,12 @@
 | created_at / updated_at | DATETIME | 创建 / 更新时间 |
 | extra_field1 / extra_field2 | VARCHAR(200) | 预留扩展字段 |
 
-索引：`order_no` UNIQUE、`idx_user`、`idx_order_no`、`idx_user_id`、**`idx_status_created`(status, created_at)**；外键 `user_id → users.id ON DELETE CASCADE`
+索引：`order_no` UNIQUE、`idx_user_id`(user_id)、**`idx_status_created`(status, created_at)**；外键 `user_id → users.id ON DELETE CASCADE`
 
 > **`idx_status_created` 是给「超时未支付订单的懒清理」用的**：
 > 那个清理要按 `status = '0' AND created_at < 某时刻` 筛选（见 `core/OrderExpiry.php`），
 > 没有这个索引就是全表扫描；加上之后该查询走 `type=range`。
-> 单用户维度的清理还能同时用上 `idx_user`(user_id)。
+> 单用户维度的清理还能同时用上 `idx_user_id`(user_id)。
 
 **状态取值**：`0` 待支付 / `1` 已支付 / `2` 已完成 / `3` 已取消（状态流转见 [api.md](api.md)）
 
@@ -125,9 +125,9 @@
 | quantity | INT | 数量 |
 | extra_field1 / extra_field2 | VARCHAR(200) | 预留扩展字段 |
 
-索引：`idx_order`(order_id)；外键 `order_id → orders.id ON DELETE CASCADE`
+索引：`idx_order`(order_id)、`idx_dish`(dish_id)；外键 `order_id → orders.id ON DELETE CASCADE`
 
-### 7. user_id_counter（用户ID计数器表）
+### 7. user_id_counter（用户ID计数器表，历史遗留）
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
@@ -136,15 +136,16 @@
 | current_value | INT UNSIGNED | 当前值（初始 10000） |
 | updated_at | DATETIME | 更新时间 |
 
-- 建号时 `user/login.php` 用 `SELECT ... FOR UPDATE` 加锁后取最大值 + 1，从而保证 **10001 开头**的用户 ID，避免并发重复。
-- 初始数据：`('user_id', 10000)`，因此第一个登录建号的用户的 ID 为 10001。
+- 该表来自早期“注册时分配 10001 起用户 ID”的设计，**当前代码已不再使用它**。
+- 现在 `user/login.php` 直接 `INSERT INTO users`，用户 ID 由 `users.id` 的 `AUTO_INCREMENT` 生成；按 `init.sql` 新建库时从 **1** 开始。
+- 初始数据 `('user_id', 10000)` 仍保留在脚本中，但只是历史数据，不要依赖它分配 ID。
 
 ### 8. ai_rate_limit（AI 接口限流计数表）
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | id | INT UNSIGNED PK AI | 自增主键 |
-| bucket_key | VARCHAR(120) | 限流标识：`uid:10004` / `ip:1.2.3.4` / `global` |
+| bucket_key | VARCHAR(120) | 限流标识：`uid:1` / `ip:1.2.3.4` / `global` |
 | window_start | INT UNSIGNED | 窗口起点（Unix 时间戳，按窗口长度对齐） |
 | hits | INT UNSIGNED | 本窗口内累计请求次数 |
 | updated_at | DATETIME | 更新时间 |
@@ -173,7 +174,7 @@ users 1 ──── * cart  * ──── 1 dishes
   │                          └── * ──── 1 categories
   └── 1 ──── * orders 1 ──── * order_items
 
-user_id_counter ──（注册时分配 users.id，无外键）
+user_id_counter（历史遗留表，当前未参与业务，无外键）
 ```
 
 - `dishes.category_id → categories.id`
@@ -187,7 +188,7 @@ user_id_counter ──（注册时分配 users.id，无外键）
 - 菜品 **20 道**（含图片 URL 与描述，库存均为 999）：
   宫保鸡丁、麻婆豆腐、糖醋里脊、凉拌黄瓜、皮蛋豆腐、番茄蛋汤、酸辣汤、蛋炒饭、阳春面、冰镇柠檬水、
   鱼香肉丝、红烧茄子、口水鸡、凉拌木耳、玉米排骨汤、紫菜蛋花汤、牛肉炒饭、葱油拌面、酸梅汤、鲜榨西瓜汁
-- 用户ID计数器 1 条：`('user_id', 10000)`
+- 用户ID计数器 1 条：`('user_id', 10000)`（历史遗留，当前未使用）
 
 > 脚本**不包含**任何用户、订单、购物车数据（那是运行时业务数据，不应作为种子数据分发）。
 
@@ -197,8 +198,14 @@ user_id_counter ──（注册时分配 users.id，无外键）
 2. **`init.sql` 会 DROP 重建所有表**：仅在全新环境初始化时执行，已有数据的库请勿直接运行。
 3. **不要手工改 `orders.status` 的定义**：代码按数字 0-3 判断状态。
 4. **老库升级需要补 `dishes.is_on_sale`**：`init.sql` 是「全新初始化」脚本，不含 `ALTER`；
-   已经跑着的库执行下面这一句即可（幂等判断见下）：
+   已经跑着的库先确认字段不存在，再执行下面的 `ALTER`：
    ```sql
+   -- 返回 0 说明还没有该字段
+   SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = 'wechat_order'
+      AND TABLE_NAME = 'dishes'
+      AND COLUMN_NAME = 'is_on_sale';
+
    ALTER TABLE `dishes`
      ADD COLUMN `is_on_sale` tinyint(4) NOT NULL DEFAULT '1'
      COMMENT '是否上架(1上架0下架)' AFTER `stock`;

@@ -30,6 +30,11 @@
 | ![后台订单](assets/screenshots/07-admin-orders.png) | ![后台菜品](assets/screenshots/08-admin-dishes.png) |
 | 数据总览 · 筛选 · 一键改状态 | 上架下架 · 行内改库存 · 设为推荐 |
 
+| 关于 | 登录 |
+| --- | --- |
+| ![关于](assets/screenshots/09-about.png) | ![登录](assets/screenshots/10-login.png) |
+| 小味形象展示 · 素材一览 | 微信一键登录 · 登录即注册 |
+
 ## <img src="frontend/assets/xiaowei/diffs/xiaowei-greeting.png" width="44" alt="打招呼的小味"> 品牌形象：小味
 
 项目内置了一位贯穿小程序的 AI 点餐助手形象「**小味**」——一位戴着鲸鱼厨师帽的 Q 版少女。她不只是装饰：**她的表情会跟着对话状态变化**，也会在合适的时机出现提示你。（形象素材位于 `frontend/assets/xiaowei/`，由 AI 生成后经抠图、统一对齐与压缩处理）
@@ -71,11 +76,11 @@
 | 🍲 菜品详情 | 大图、完整介绍、辣度与**已售份数**、**可调份数加购**、售完/已下架友好提示 |
 | 🛒 购物车 | 购物车列表、加入/移除商品、**数量调整（− / +，减到 0 即移除）**、订单备注、结算下单（含库存校验与扣减）、TabBar 件数角标 |
 | 📦 订单系统 | 下单（事务保证 + **原子扣减防超卖**）、**订单状态流转**（待支付 → 已支付 → 已完成 / 已取消）、取消自动回滚库存、**按状态筛选订单** |
-| 🤖 AI 助手 | 与 DeepSeek 大模型实时对话，**流式输出（SSE，逐字显示，基础库不支持时自动回退）**，动态注入当日菜单防止编造菜品、推荐结果生成可点击菜品卡片、**快捷提问**与「正在输入」提示；支持**「跟上次一样」整单再来一单**与**「我的常点」**（基于已完成订单，下架或售完的菜自动过滤） |
+| 🤖 AI 助手 | 与 DeepSeek 大模型实时对话，**流式输出（SSE，逐字显示，基础库不支持时自动回退）**，动态注入当前在售菜单防止编造菜品、推荐结果生成可点击菜品卡片、**快捷提问**与「正在输入」提示；支持**「跟上次一样」整单再来一单**与**「我的常点」**（基于已完成订单，下架或售完的菜自动过滤） |
 | 🛡️ 接口防护 | AI 接口**三层限流**（身份每分钟 / 身份每天 / 全站每天总量），防止 API Key 被刷导致费用失控；超限返回 `429` + `Retry-After`，成功时带剩余额度响应头 |
 | 👤 用户中心 | **微信一键登录**（首次登录自动建号，无需注册）、**订单各状态数量概览（点击直达筛选）**、个人信息编辑、最近订单 |
 | 🔐 登录鉴权 | 微信 `code2Session` 换取 openid + HMAC-SHA256 登录令牌，**防越权、防账号伪造** |
-| 🛠️ 管理后台 | 独立的 PHP 后台（`/admin/`）：订单管理（筛选/改状态/看明细）、菜品管理（增删改查、**上架下架**、行内改库存价格）、数据总览；**会话登录 + CSRF 防护 + 登录失败锁定** |
+| 🛠️ 管理后台 | 独立的 PHP 后台（`/admin/`）：订单管理（筛选/改状态/看明细）、菜品管理（增删改查、**上架下架**、行内改库存）、数据总览；**会话登录 + CSRF 防护 + 登录失败锁定** |
 
 ## <img src="frontend/assets/xiaowei/diffs/xiaowei-thinking.png" width="44" alt="思考的小味"> 技术栈
 
@@ -93,6 +98,7 @@
 TasteWise/
 ├── 启动管理后台.bat           # 双击即打开管理后台（Windows 一键入口脚本）
 ├── 修改后台密码.bat           # 双击即改管理员密码（会自己找到 PHP）
+├── 备份数据库.bat             # 双击备份数据库（导出后自检，保留最近 20 份）
 ├── frontend/                  # 微信小程序前端
 │   ├── pages/                 # 页面（8 个）
 │   │   ├── index/             #   首页：分类 + 菜品 + AI推荐
@@ -110,15 +116,19 @@ TasteWise/
 │   │   ├── sseParser.ts       #   SSE 文本流分帧（纯逻辑，可单测）
 │   │   ├── utf8.ts            #   跨分块的增量 UTF-8 解码（纯逻辑，可单测）
 │   │   ├── cartBadge.ts       #   购物车 TabBar 角标同步
+│   │   ├── supply.ts          #   供应档位（充足 / 紧张 / 已售完）
 │   │   └── types.ts           #   全局 TS 类型定义
 │   ├── assets/
 │   │   └── xiaowei/           #   🐳 小味形象素材（透明底 PNG，见该目录 README.txt）
 │   │       ├── diffs/         #     6 张状态差分（600x600，已对齐）
-│   │       └── ui/            #     头像 / 指引立绘 / TabBar 轮廓 / 兜底图
+│   │       └── ui/            #     头像 / 指引立绘 / TabBar 图标
 │   ├── components/
 │   │   └── xiaowei-stage/     #   🐳 小味舞台区组件（状态 → 差分映射 + 动效 + 兜底）
 │   ├── images/                #  TabBar 图标等静态资源
 │   ├── app.ts / app.json / app.wxss
+│   ├── typings/               #   微信小程序 API 类型声明
+│   ├── package.json / tsconfig.json
+│   ├── sitemap.json           #   小程序页面索引配置
 │   └── project.config.json    #   开发者工具项目配置
 ├── backend/                   # PHP 后端服务
 │   ├── api/                   # RESTful 接口
@@ -135,11 +145,13 @@ TasteWise/
 │   │   ├── order.php          #   订单详情与状态流转
 │   │   ├── dishes.php         #   菜品管理（上下架 / 改库存 / 删除）
 │   │   ├── dish_edit.php      #   新增 / 编辑菜品
-│   │   ├── lib/               #   认证、布局、助手函数（URL 直访被拒）
+│   │   ├── account.php        #   账号与安全（只读）
+│   │   ├── lib/               #   认证、布局、助手、查询层（URL 直访被拒）
 │   │   └── assets/admin.css   #   后台样式
 │   ├── tools/                 # 🧰 命令行工具（不在浏览器里用，URL 直访被拒）
 │   │   ├── admin_passwd.php   #   改管理员密码：交互式输入 → 写回配置 → 回读校验
-│   │   └── backup_db.php      #   数据库备份（导出后自检，保留最近 20 份）
+│   │   ├── backup_db.php      #   数据库备份（导出后自检，保留最近 20 份）
+│   │   └── admin_launch.php   #   启动管理后台.bat 的 PHP 侧探测与输出
 │   ├── core/                  # 核心封装层
 │   │   ├── bootstrap.php      #   自动加载注册（入口只需引它一行）
 │   │   ├── DB.php             #   PDO 单例数据库操作类 + LIKE 转义
@@ -161,9 +173,10 @@ TasteWise/
 │   │   ├── database.php       #   ⚠️ 数据库连接（不提交，见 database.example.php）
 │   │   ├── security.php       #   ⚠️ 令牌签名密钥（不提交，见 security.example.php）
 │   │   ├── wechat.php         #   ⚠️ 小程序 AppSecret（不提交，见 wechat.example.php）
-│   │   └── admin.php          #   ⚠️ 管理员账号与密码哈希（不提交，见 admin.example.php）
+│   │   ├── admin.php          #   ⚠️ 管理员账号与密码哈希（不提交，见 admin.example.php）
+│   │   └── *.example.php      #   配置模板（复制为上面的真实配置）
 │   ├── sql/init.sql           #   建库建表 + 演示数据
-│   └── error/                 #   HTTP 错误页（被 Apache ErrorDocument 引用）
+│   └── error/                 #   HTTP 错误页（默认未接线，可在站点配置中用 ErrorDocument 指向）
 ├── docs/                      # 📚 项目文档
 ├── assets/                    # 🖼️ 仓库级素材（README 截图等，不参与小程序打包）
 │   └── screenshots/           #   界面截图（文件名见「界面预览」一节）
@@ -259,7 +272,7 @@ Windows 下更方便的方式：**双击项目根目录的 `启动管理后台.b
 - **管理后台独立鉴权**：后台采用独立的会话登录（专用 Cookie `TWSESSID`，HttpOnly + SameSite=Lax + 仅 `/admin` 路径有效），与小程序令牌相互独立。密码以 bcrypt 哈希存储，登录成功与退出时都会更换会话 ID（防会话固定攻击），连续失败 5 次锁定 5 分钟（按 IP 计数，清 Cookie 无法绕过）。
 - **AI 接口限流**：`ai/chat.php`、`ai/chat_stream.php` 每次调用都真实消耗 DeepSeek 额度，因此做了三层限流（身份每分钟、身份每天、全站每天总量）。**先自增再判断**，被拒绝的请求也计数，攻击者无法靠重试绕过；计数用 `INSERT ... ON DUPLICATE KEY UPDATE` 原子自增，并发下不会漏计。
 - **AI 对话长度上限**：客户端传来的 `history` 会在服务端被清洗 —— **只放行 `user` / `assistant` 角色**（否则可以塞 `system` 消息覆盖「小味」的身份约束，属于提示词注入），并限制条数、单条长度与合计长度（第 N 轮要重发前 N-1 轮，成本是 O(N²)，不限制会让一次闲聊烧掉大量额度，而且迟早超出模型上下文窗口直接报错）。
-- **后台写操作防护**：所有改变数据的操作一律 POST + 一次性 CSRF 令牌校验；后台页面输出全部经过 HTML 转义（防存储型 XSS —— 菜品名、订单备注都可能被塞入脚本）。
+- **后台写操作防护**：所有改变数据的操作一律 POST + 会话级 CSRF 令牌校验；后台页面输出全部经过 HTML 转义（防存储型 XSS —— 菜品名、订单备注都可能被塞入脚本）。
 - **错误信息不泄露内部细节**：500 响应走 `Response::serverError()` —— 完整细节（含 SQL 报错、文件路径）**始终写入服务器错误日志**，但只对**本机回环地址**的请求回传；外部请求只得到一句通用提示。避免把表结构、列名这类信息告诉调用方。
 - **敏感配置**：`backend/config/` 下的 `apikey.php`（DeepSeek 密钥）、`database.php`（数据库密码）、`security.php`（令牌签名密钥）、`wechat.php`（小程序 AppSecret）、`admin.php`（管理员账号）均已加入 `.gitignore` **不会上传**；仓库中提供对应的 `.example` 模板，克隆后自行填写。
 - `frontend/project.private.config.json`（开发者工具私有配置）同样被忽略。

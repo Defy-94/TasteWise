@@ -11,7 +11,7 @@
 --   已有数据的库请勿执行，否则数据将被清空！
 --
 -- 【结构说明】本脚本与项目实际运行库结构保持一致，包含：
---   1) user_id_counter 用户ID计数器表（注册时用于分配 10001 起的用户ID）
+--   1) user_id_counter 用户ID计数器表（历史遗留，当前未使用）
 --   2) users 表含 username 字段，且 openid / username / phone 均为唯一索引
 --   3) orders.status 为 varchar(20)，取值为数字字符串 0/1/2/3
 --      （0待支付 1已支付 2已完成 3已取消，代码按数字比较）
@@ -55,7 +55,7 @@ CREATE TABLE `ai_rate_limit` (
   KEY `idx_window` (`window_start`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 接口限流计数（按窗口计数，过期行定期清理）';
 
--- ---------- user_id_counter：用户ID计数器表（注册时生成 10001 起的用户ID，配合行锁防并发） ----------
+-- ---------- user_id_counter：用户ID计数器表（历史遗留；当前 users.id 使用 AUTO_INCREMENT） ----------
 CREATE TABLE `user_id_counter` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `counter_name` varchar(50) NOT NULL COMMENT '计数器名称',
@@ -63,7 +63,7 @@ CREATE TABLE `user_id_counter` (
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `counter_name` (`counter_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户ID计数器';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户ID计数器（历史遗留，当前未使用）';
 
 -- ---------- users：用户表（openid / username / phone 均为唯一索引） ----------
 CREATE TABLE `users` (
@@ -202,5 +202,5 @@ INSERT INTO `dishes` (`id`, `category_id`, `name`, `price`, `image_url`, `descri
 (19, 5, '酸梅汤', '8.00', 'https://ts1.tc.mm.bing.net/th/id/R-C.e8cd649211857195d30032e0922586e1?rik=90wP2DewcXt5zg&riu=http%3a%2f%2fn.sinaimg.cn%2fsinacn10111%2f194%2fw593h401%2f20200218%2f58c0-iprtayz2048995.jpg&ehk=h4p4NiIa1iiMVJdkRi9xTpA1j8fpK8G5U229YnDii9o%3d&risl=&pid=ImgRaw&r=0', '酸甜解腻，冰镇更佳', 0, 1, 999),
 (20, 5, '鲜榨西瓜汁', '15.00', 'https://p1.ssl.qhimg.com/t014a335b42aadb93dc.png', '新鲜西瓜现榨，清甜解暑', 0, 0, 999);
 
--- ---------- 用户ID计数器初始值（注册后第一个用户ID为 10001） ----------
+-- ---------- 用户ID计数器初始值（历史遗留数据；当前未使用，users.id 从 1 自增） ----------
 INSERT INTO `user_id_counter` (`counter_name`, `current_value`) VALUES ('user_id', 10000);

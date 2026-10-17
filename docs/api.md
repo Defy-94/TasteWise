@@ -39,7 +39,7 @@
 {
   "code": 200,
   "msg": "登录成功",
-  "data": { "id": 10001, "openid": "...", "nickname": "...", "token": "eyJ1aWQiOjEwMDAxfQ.xxxx" }
+  "data": { "id": 1, "openid": "...", "nickname": "...", "token": "eyJ1aWQiOjF9.xxxx" }
 }
 ```
 
@@ -285,7 +285,7 @@ Authorization: Bearer <令牌>
 - **入参**：`{"remark": "少放辣"}`
 - **返回 data**：
 ```json
-{ "order_id": 10, "order_no": "202401011200001234", "total_price": "56.00", "status": 0 }
+{ "order_id": 10, "order_no": "202401011200001234", "total_price": 56, "status": 0 }
 ```
 - **说明**：在事务内锁定当前用户的购物车 → 读取明细并计算总价 → 写入 `orders` + `order_items`
   → **原子扣减库存**（`UPDATE dishes SET stock = stock - ? WHERE id = ? AND stock >= ?`）
@@ -478,7 +478,7 @@ data: [DONE]                                ← 结束标记（与 OpenAI 风格
     "label": "上次的订单",
     "order_no": "TWS20261017001",
     "ordered_at": "2026-10-17 12:30:00",
-    "dishes": [ { "id": 2, "name": "麻婆豆腐", "price": 18, "quantity": 1 } ],
+    "dishes": [ { "id": 2, "name": "麻婆豆腐", "price": "18.00", "quantity": 1 } ],
     "total": 18,
     "total_text": "18.00",
     "count": 1,
@@ -508,13 +508,13 @@ DeepSeek 额度**，因此都经过统一限流（`backend/core/AiRateLimit.php`
 | 每天 | 身份 | 登录用户 100 次 / 游客 30 次 | 挡住「细水长流」式的持续消耗 |
 | 每天 | 全站 | 3000 次 | 最后一道保险：无论怎么绕过前两层，当天总消耗都有上限 |
 
-**身份怎么判定**：带了有效登录令牌就按用户ID（`uid:10004`），否则按 IP（`ip:1.2.3.4`）。
-这三个接口本身免登录，所以游客也能用 AI，只是额度更低。
+**身份怎么判定**：带了有效登录令牌就按用户ID（`uid:1`），否则按 IP（`ip:1.2.3.4`）。
+这两个接口本身免登录，所以游客也能用 AI，只是额度更低。
 
 **超限时**返回：
 
 ```
-HTTP/1.1 200（本项目统一用 200 包壳，业务码在 body 里）
+HTTP/1.1 429 Too Many Requests
 Retry-After: 37
 
 { "code": 429, "msg": "请求太频繁了，请稍等一会儿再问", "data": null }
@@ -530,7 +530,7 @@ X-RateLimit-Remaining-Day: 99
 ```
 
 > 限额常量在 `core/AiRateLimit.php` 顶部，改限额不需要动数据库。
-> 三个接口共用同一套额度 —— 它们烧的是同一份 API 额度，分开计数等于给了双倍配额。
+> 两个接口共用同一套额度 —— 它们烧的是同一份 API 额度，分开计数等于给了双倍配额。
 
 ---
 
