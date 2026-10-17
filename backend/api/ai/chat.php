@@ -19,6 +19,10 @@ if (empty($message)) {
     Response::error('参数错误：message必填');
 }
 
+// 当前用户（可能未登录：AI 对话本身免登录，登录了才有历史可用）
+$user = Auth::currentUser();
+$userId = ($user && !empty($user['uid'])) ? (int) $user['uid'] : 0;
+
 // 限流检查放在参数校验之后、调用 AI 之前：
 // 参数错的请求不该消耗额度，但一旦要花 AI 的额度就必须先过闸。
 try {
@@ -32,7 +36,10 @@ try {
     // 1. 调用 DeepSeek 获取 AI 回复
     // ============================================
     $deepseek = new DeepSeek();
-    $result   = $deepseek->chat($message, $history);
+
+    // 顾客点餐历史（可选）：登录了才有，让「跟上次一样」这类提问能被理解
+    $userContext = $userId > 0 ? UserOrderHistory::promptContext($userId) : '';
+    $result      = $deepseek->chat($message, $history, $userContext);
 
     if (isset($result['error'])) {
         Response::error('AI服务异常：' . $result['error'], 500);
@@ -52,6 +59,25 @@ try {
     // ============================================
     $recommendDishes = AiCards::fromReply($reply, $message, $deepseek);
 
+    // 「跟上次一样 / 我的常点」：菜品由后端按历史查出，AI 只负责说话
+    $repeatOrder = null;
+    $histIntent  = OrderHistoryCards::detectIntent($message);
+    if ($userId > 0 && $histIntent !== '') {
+        if ($histIntent === 'regular') {
+            // 我的常点不是固定搭配：取点单次数前 4 道，用推荐卡片让顾客自己挑
+            $cards = OrderHistoryCards::regularCards($userId);
+            if (!empty($cards)) {
+                $recommendDishes = $cards;
+            }
+        } else {
+            // 跟上次一样：整单预览 + 一键下单，此时不再叠加推荐卡片
+            $repeatOrder = OrderHistoryCards::build($userId, 'last');
+            if ($repeatOrder !== null) {
+                $recommendDishes = [];
+            }
+        }
+    }
+
     // ============================================
     // 3. 返回统一格式
     // ============================================
@@ -59,6 +85,7 @@ try {
         'reply'            => $reply,
         'recommend_dishes' => $recommendDishes,          // 推荐菜品列表（可能为空）
         'has_recommend'    => !empty($recommendDishes),
+        'repeat_order'     => $repeatOrder,              // 确认点餐卡片数据（可能为 null）
     ]);
 
 } catch (Exception $e) {

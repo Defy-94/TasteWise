@@ -99,6 +99,56 @@
             </view>
           </view>
         </view>
+
+        <!-- 确认点餐卡片：完整预览上次/常点的整单，可在此直接下单到购物车 -->
+        <view wx:if="{{item.repeatOrder}}" class="repeat-card">
+          <view class="repeat-head">
+            <view class="repeat-head-main">
+              <text class="repeat-title">{{item.repeatOrder.label}}</text>
+              <text wx:if="{{item.repeatOrder.ordered_at}}" class="repeat-meta">{{item.repeatOrder.ordered_at}}</text>
+            </view>
+            <text class="repeat-count">{{item.repeatOrder.dishes.length}} 道 · {{item.repeatOrder.count}} 份</text>
+          </view>
+
+          <!-- 菜品多时内部滚动，保证上一单的所有菜都能看到，不做任何截断 -->
+          <scroll-view class="repeat-list" scroll-y="{{item.repeatOrder.dishes.length > 4}}">
+            <view wx:for="{{item.repeatOrder.dishes}}" wx:for-item="rd" wx:key="id" class="repeat-row">
+              <image
+                wx:if="{{rd.image_url}}"
+                class="repeat-thumb"
+                src="{{rd.image_url}}"
+                mode="aspectFill"
+              />
+              <image wx:else class="repeat-thumb" src="/assets/xiaowei/diffs/xiaowei-sorry.png" mode="aspectFit" />
+              <view class="repeat-info">
+                <text class="repeat-name">{{rd.name}}</text>
+                <text wx:if="{{rd.times}}" class="repeat-times">点过 {{rd.times}} 次</text>
+              </view>
+              <text class="repeat-qty">x{{rd.quantity}}</text>
+              <text class="repeat-price">¥{{rd.price}}</text>
+            </view>
+          </scroll-view>
+
+          <view wx:if="{{item.repeatOrder.dishes.length > 4}}" class="repeat-tip">
+            <text>上下滑动可查看全部 {{item.repeatOrder.dishes.length}} 道菜</text>
+          </view>
+
+          <view wx:if="{{item.repeatOrder.skipped > 0}}" class="repeat-warn">
+            有 {{item.repeatOrder.skipped}} 道菜已下架，未计入本次预点
+          </view>
+
+          <view class="repeat-total">
+            <text class="repeat-total-label">合计</text>
+            <text class="repeat-total-price">¥{{item.repeatOrder.total_text}}</text>
+          </view>
+
+          <view class="repeat-actions">
+            <view class="repeat-btn repeat-btn-ghost" hover-class="repeat-btn-ghost-hover" hover-stay-time="60"
+                  data-mi="{{mi}}" bindtap="onRepeatOrderDismiss">再看看</view>
+            <view class="repeat-btn repeat-btn-primary" hover-class="repeat-btn-primary-hover" hover-stay-time="60"
+                  data-mi="{{mi}}" bindtap="onRepeatOrderAdd">确认下单到购物车</view>
+          </view>
+        </view>
       </view>
 
       <!-- 用户头像（仅用户消息显示） -->

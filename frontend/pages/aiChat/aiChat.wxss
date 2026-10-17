@@ -387,3 +387,172 @@
   .img-ph-img {
     background: #f4f6f8;
   }
+
+  /* ============================================
+     确认点餐卡片（跟上次一样 / 我的常点）
+     与推荐卡片区分：用主色左边框 + 顶部来源标签，
+     让用户一眼看出这是"整单一键下单"，而不是单道菜推荐。
+     ============================================ */
+  .repeat-card {
+    margin-top: 16rpx;
+    padding: 22rpx 22rpx 18rpx;
+    background: #fff;
+    border-radius: 18rpx;
+    border-left: 8rpx solid #11B3D4;
+    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  }
+
+  .repeat-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12rpx;
+    padding-bottom: 14rpx;
+    border-bottom: 1rpx dashed #eef2f7;
+  }
+
+  .repeat-head-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .repeat-title {
+    font-size: 28rpx;
+    font-weight: bold;
+    color: #333;
+  }
+
+  .repeat-meta {
+    font-size: 20rpx;
+    color: #bbb;
+  }
+
+  .repeat-count {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 22rpx;
+    color: #11B3D4;
+  }
+
+  /* 菜品超过 4 道时内部滚动，卡住最大高度，不把整条消息撑到看不见 */
+  .repeat-list {
+    padding: 10rpx 0 4rpx;
+    max-height: 520rpx;
+  }
+
+  .repeat-row {
+    display: flex;
+    align-items: center;
+    gap: 14rpx;
+    padding: 10rpx 0;
+  }
+
+  .repeat-thumb {
+    width: 64rpx;
+    height: 64rpx;
+    border-radius: 10rpx;
+    background: #f4f6f8;
+    flex-shrink: 0;
+  }
+
+  .repeat-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .repeat-name {
+    font-size: 26rpx;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .repeat-times {
+    font-size: 20rpx;
+    color: #bbb;
+    margin-top: 2rpx;
+  }
+
+  .repeat-qty {
+    font-size: 22rpx;
+    color: #999;
+  }
+
+  .repeat-price {
+    font-size: 24rpx;
+    color: #11B3D4;
+    min-width: 90rpx;
+    text-align: right;
+  }
+
+  .repeat-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 10rpx;
+    padding: 12rpx 0 16rpx;
+    border-top: 1rpx dashed #eef2f7;
+  }
+
+  .repeat-total-label {
+    font-size: 24rpx;
+    color: #999;
+  }
+
+  .repeat-total-price {
+    font-size: 32rpx;
+    font-weight: bold;
+    color: #11B3D4;
+  }
+
+  .repeat-actions {
+    display: flex;
+    gap: 16rpx;
+  }
+
+  .repeat-btn {
+    flex: 1;
+    height: 68rpx;
+    line-height: 68rpx;
+    text-align: center;
+    border-radius: 34rpx;
+    font-size: 27rpx;
+  }
+
+  .repeat-btn-ghost {
+    background: #f4f6f8;
+    color: #888;
+  }
+
+  .repeat-btn-ghost-hover {
+    background: #e8ecf1;
+  }
+
+  .repeat-btn-primary {
+    background: #11B3D4;
+    color: #fff;
+  }
+
+  .repeat-btn-primary-hover {
+    background: #0E93B0;
+  }
+
+  .repeat-tip {
+    text-align: center;
+    font-size: 20rpx;
+    color: #b9c4d0;
+    padding: 6rpx 0 2rpx;
+  }
+
+  .repeat-warn {
+    margin-top: 10rpx;
+    padding: 10rpx 14rpx;
+    background: #fdf6e7;
+    border-radius: 10rpx;
+    font-size: 22rpx;
+    color: #0F6E85;
+    line-height: 1.5;
+  }

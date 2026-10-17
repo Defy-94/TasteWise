@@ -86,6 +86,25 @@ export interface Category {
     token?: string;          // 登录令牌，由后端签发，用于后续接口鉴权
   }
   
+  /** 「跟上次一样 / 我的常点」确认卡里的单个菜品 */
+  export interface RepeatOrderDish extends RecommendDish {
+    quantity: number;
+    times?: number;        // 「常点」时表示累计点过几份
+  }
+
+  /** 「跟上次一样 / 我的常点」确认卡 */
+  export interface RepeatOrderCard {
+    source: 'last' | 'regular';
+    label: string;
+    order_no: string;
+    ordered_at?: string;
+    dishes: RepeatOrderDish[];
+    total: number;
+    total_text: string;
+    count: number;
+    skipped?: number;      // 因下架未进入预览的菜品数
+  }
+
   /** AI对话消息 */
   export interface ChatMessage {
     role: 'user' | 'assistant' | 'system';
@@ -134,4 +153,5 @@ export interface RecommendDish {
     reply: string;
     recommend_dishes: RecommendDish[];
     has_recommend: boolean;
+    repeat_order?: RepeatOrderCard | null;
   }

@@ -135,13 +135,13 @@ class DeepSeek
      * @param array  $history     历史对话 [['role'=>'user','content'=>'...'], ...]
      * @return array AI 回复
      */
-    public function chat($userMessage, $history = [])
+    public function chat($userMessage, $history = [], $userContext = '')
     {
         // 动态获取菜单
         $menuText = $this->getDynamicMenu();
         
         // 构建系统提示词（注入动态菜单）
-        $systemPrompt = $this->buildPrompt($menuText);
+        $systemPrompt = $this->buildPrompt($menuText, $userContext);
         
         $messages = [
             ['role' => 'system', 'content' => $systemPrompt],
@@ -175,11 +175,11 @@ class DeepSeek
      * @param callable|null $onDelta function(string $delta): void
      * @return array ['text'=>完整回复] 或 ['error'=>错误说明]
      */
-    public function chatStream($userMessage, $history = [], $onDelta = null)
+    public function chatStream($userMessage, $history = [], $onDelta = null, $userContext = '')
     {
         // 与非流式完全一致的提示词构建：动态菜单 + 同一套身份/行为约束
         $menuText     = $this->getDynamicMenu();
-        $systemPrompt = $this->buildPrompt($menuText);
+        $systemPrompt = $this->buildPrompt($menuText, $userContext);
 
         $messages = [
             ['role' => 'system', 'content' => $systemPrompt],
@@ -421,7 +421,7 @@ class DeepSeek
      * @param string $menuText 动态菜单文本
      * @return string 系统提示词
      */
-    private function buildPrompt($menuText)
+    private function buildPrompt($menuText, $userContext = '')
     {
         $prompt = '你是「智味」餐厅的AI点餐助手，你的名字叫「小味」。' . "\n\n";
         
@@ -441,6 +441,12 @@ class DeepSeek
         $prompt .= '5. 如果用户说帮我加入购物车、帮我下单等操作请求，必须回复：抱歉，我无法直接操作购物车，请您点击下方菜品卡片上的加入按钮完成操作' . "\n";
         $prompt .= '6. 如果用户提到一个菜单中没有的菜品，必须回复：抱歉，我们菜单上没有这道菜。您可以看看我们现有的菜品，或者告诉我您想吃什么口味，我帮您推荐' . "\n\n";
         
+        // 顾客的点餐历史（可选）：让「小味」知道上次点了什么、常点什么，
+        // 回答「跟上次一样」时能顺着说，而不是再问一遍想吃什么
+        if ($userContext !== '') {
+            $prompt .= $userContext . "\n\n";
+        }
+
         $prompt .= '## 以下是完整的动态菜单（只能推荐这些菜品）' . "\n";
         $prompt .= $menuText . "\n\n";
         

@@ -7,13 +7,14 @@
 import { BASE_URL, getToken } from './api';
 import { createUtf8StreamDecoder } from './utf8';
 import { createSseParser } from './sseParser';
-import { ChatMessage, RecommendDish } from './types';
+import { ChatMessage, RecommendDish, RepeatOrderCard } from './types';
 
 /** done 事件携带的完整结果 */
 export interface StreamDonePayload {
   reply: string;
   recommend_dishes: RecommendDish[];
   has_recommend: boolean;
+  repeat_order?: RepeatOrderCard | null;
 }
 
 export interface StreamCallbacks {
@@ -130,6 +131,7 @@ export function streamChat(
           reply: String(event.reply || ''),
           recommend_dishes: event.recommend_dishes || [],
           has_recommend: !!event.has_recommend,
+          repeat_order: event.repeat_order || null,
         });
       }
       return;

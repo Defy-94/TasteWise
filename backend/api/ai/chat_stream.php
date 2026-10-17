@@ -20,6 +20,10 @@ if (empty($message)) {
     Response::error('参数错误：message必填');
 }
 
+// 当前用户（可能未登录：AI 对话本身免登录，登录了才有历史可用）
+$user = Auth::currentUser();
+$userId = ($user && !empty($user['uid'])) ? (int) $user['uid'] : 0;
+
 // 限流：必须在开始输出 SSE 之前，否则没法再返回 429 JSON
 try {
     AiRateLimit::enforce();
@@ -67,9 +71,12 @@ flush();
 try {
     $deepseek = new DeepSeek();
 
+    // 顾客点餐历史（可选）：登录了才有，让「跟上次一样」这类提问能被理解
+    $userContext = $userId > 0 ? UserOrderHistory::promptContext($userId) : '';
+
     $result = $deepseek->chatStream($message, $history, function ($delta) {
         sse_send(['type' => 'delta', 'text' => $delta]);
-    });
+    }, $userContext);
 
     if (isset($result['error'])) {
         sse_send(['type' => 'error', 'msg' => 'AI服务异常：' . $result['error']]);
@@ -91,10 +98,30 @@ try {
     // ==================================================================
     $recommendDishes = AiCards::fromReply($reply, $message, $deepseek);
 
+    $histIntent  = OrderHistoryCards::detectIntent($message);
+    $repeatOrder = null;
+
+    if ($userId > 0 && $histIntent !== '') {
+        if ($histIntent === 'regular') {
+            // 我的常点不是固定搭配：取点单次数前 4 道，用推荐卡片让顾客自己挑
+            $cards = OrderHistoryCards::regularCards($userId);
+            if (!empty($cards)) {
+                $recommendDishes = $cards;
+            }
+        } else {
+            // 跟上次一样：整单预览 + 一键下单，此时不再叠加推荐卡片
+            $repeatOrder = OrderHistoryCards::build($userId, 'last');
+            if ($repeatOrder !== null) {
+                $recommendDishes = [];
+            }
+        }
+    }
+
     sse_send([
         'type'             => 'done',
         'reply'            => $reply,
         'recommend_dishes' => $recommendDishes,
+        'repeat_order'     => $repeatOrder,
         'has_recommend'    => !empty($recommendDishes),
     ]);
 

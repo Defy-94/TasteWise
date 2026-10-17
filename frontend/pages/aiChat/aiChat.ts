@@ -4,7 +4,7 @@
  * 两者共用同一套 AI 额度与限流（core/AiRateLimit.php）
  */
 import { post } from '../../utils/api';
-import { ChatMessageExtended, ChatMessage, AIChatResult, RecommendDish } from '../../utils/types';
+import { ChatMessageExtended, ChatMessage, AIChatResult, RecommendDish, RepeatOrderCard } from '../../utils/types';
 import { refreshCartBadge } from '../../utils/cartBadge';
 import { streamChat, supportsChunked, StreamTask } from '../../utils/sse';
 
@@ -23,6 +23,8 @@ const GOODBYE_WORDS = ['再见', '拜拜', '谢谢', '多谢', '感谢', 'bye', 
 
 // 快捷提问（仅在对话刚开始时显示，点一下即发送）
 const QUICK_QUESTIONS = [
+  '给我来一份跟上次一样的',
+  '我的常点',
   '推荐几道辣菜',
   '有什么清淡的菜',
   '帮我搭配一荤一素',
@@ -249,7 +251,7 @@ Page({
           if (finished) return;
           finished = true;
           cleanup();
-          this.appendReply(payload.reply || streamed, payload.recommend_dishes || []);
+          this.appendReply(payload.reply || streamed, payload.recommend_dishes || [], payload.repeat_order || null);
           resolve();
         },
 
@@ -270,15 +272,16 @@ Page({
       history: history,
     });
 
-    this.appendReply(result.reply, result.recommend_dishes || []);
+    this.appendReply(result.reply, result.recommend_dishes || [], result.repeat_order || null);
   },
 
   /** 把 AI 回复作为一条正式消息追加进去，并结束「正在输入」状态 */
-  appendReply(reply: string, dishes: RecommendDish[]) {
+  appendReply(reply: string, dishes: RecommendDish[], repeatOrder: RepeatOrderCard | null = null) {
     const aiMsg: ChatMessageExtended = {
       role: 'assistant',
       content: reply,
       recommendDishes: dishes,
+      repeatOrder: repeatOrder || undefined,
     };
 
     const newMessages = [...this.data.messages, aiMsg];
@@ -367,6 +370,67 @@ Page({
     } catch (err) {
       console.error('加入购物车失败：', err);
     }
+  },
+
+
+  /**
+   * 一键把「跟上次一样 / 我的常点」整单加入购物车
+   *
+   * 逐条调用加购接口（后端没有批量接口），数量按历史里的份数。
+   * 失败不中断：继续加剩下的，最后如实告诉用户加了几道，
+   * 否则用户会以为整单都成功了。
+   */
+  async onRepeatOrderAdd(e: any) {
+    const mi = Number(e.currentTarget.dataset.mi);
+    const msg = this.data.messages[mi];
+    const card = msg && msg.repeatOrder;
+    if (!card || !card.dishes || card.dishes.length === 0) return;
+
+    wx.showLoading({ title: '正在加购...', mask: true });
+
+    let ok = 0;
+    let fail = 0;
+    for (const dish of card.dishes) {
+      try {
+        await post('/api/cart/add.php', {
+          dish_id: dish.id,
+          quantity: dish.quantity || 1,
+        });
+        ok++;
+      } catch (err) {
+        fail++;
+        console.error('加购失败：', dish.name, err);
+      }
+    }
+
+    wx.hideLoading();
+
+    if (ok > 0) {
+      wx.showToast({
+        title: fail > 0 ? `已加 ${ok} 道，${fail} 道失败` : '已加入购物车',
+        icon: fail > 0 ? 'none' : 'success',
+      });
+      refreshCartBadge();
+      this.holdStageState('happy', 2000);
+      // 加完就把卡片收起来，避免重复点击
+      this.dismissRepeatOrder(mi);
+    } else {
+      wx.showToast({ title: '加购失败，请稍后重试', icon: 'none' });
+    }
+  },
+
+  /** 忽略这张确认卡（不加购） */
+  onRepeatOrderDismiss(e: any) {
+    const mi = Number(e.currentTarget.dataset.mi);
+    this.dismissRepeatOrder(mi);
+  },
+
+  /** 把某条消息里的确认卡移除 */
+  dismissRepeatOrder(mi: number) {
+    const list = this.data.messages.slice();
+    if (!list[mi]) return;
+    list[mi] = { ...list[mi], repeatOrder: undefined };
+    this.setData({ messages: list });
   },
 
   /** 输入框变化 */
