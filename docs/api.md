@@ -99,6 +99,7 @@ Authorization: Bearer <令牌>
 | 15 | POST | `/api/user/update.php` | 修改个人信息 | 🔒 需令牌 |
 | 16 | POST | `/api/ai/chat.php` | AI 智能问答（含推荐菜品提取） | 免登录 |
 | 17 | POST | `/api/ai/chat_stream.php` | **AI 智能问答 · 流式版（SSE）** | 免登录 |
+| 18 | POST | `/api/order/history.php` | 查询点餐历史（跟上次一样 / 我的常点） | 🔒 需令牌 |
 
 ---
 
@@ -410,9 +411,15 @@ Authorization: Bearer <令牌>
 {
   "reply": "为您推荐麻婆豆腐，麻辣鲜香很下饭~",
   "recommend_dishes": [ { "id": 2, "name": "麻婆豆腐", "ai_reason": "麻辣鲜香" } ],
-  "has_recommend": true
+  "has_recommend": true,
+  "repeat_order": null
 }
 ```
+- **`repeat_order` 字段**：用户说「跟上次一样」「照旧」这类话且本人有已完成订单时，返回整单卡片数据
+  （`source` / `label` / `order_no` / `ordered_at` / `dishes` / `total_text` / `count` / `skipped`），
+  前端据此显示「确认点餐」卡片；其余情况为 `null`。构建逻辑见 `core/OrderHistoryCards.php`。
+- **`recommend_dishes` 的另一类来源**：用户说「我的常点」时，返回按累计份数取前 4 的常点菜品，
+  `ai_reason` 为「点过 N 次」。
 - **说明**：先让 AI 正常回答，然后**从 AI 的回复文本里识别它提到的菜品**，把这些菜品作为可点击卡片返回
   （`ai_reason` 取菜品名后面的那句话，**以下一个菜名或句末标点为界**）。这样做的好处：
   1. **不会漏**：用户说「我有点渴」「西瓜汁」这类不含关键词的消息，只要 AI 回复里提到了菜品名，就有对应卡片；
@@ -438,7 +445,7 @@ Authorization: Bearer <令牌>
 ```
 data: {"type":"delta","text":"宫保"}        ← 增量文本，一次回复会来很多条
 data: {"type":"delta","text":"鸡丁"}
-data: {"type":"done","reply":"宫保鸡丁…","recommend_dishes":[…],"has_recommend":true}
+data: {"type":"done","reply":"宫保鸡丁…","recommend_dishes":[…],"has_recommend":true,"repeat_order":null}
 data: [DONE]                                ← 结束标记（与 OpenAI 风格一致）
 ```
 
@@ -446,7 +453,7 @@ data: [DONE]                                ← 结束标记（与 OpenAI 风格
   | type | 含义 | 字段 |
   | --- | --- | --- |
   | `delta` | 一段增量文本 | `text` |
-  | `done` | 全部结束 | `reply`（完整回复）、`recommend_dishes`、`has_recommend` |
+  | `done` | 全部结束 | `reply`（完整回复）、`recommend_dishes`、`has_recommend`、`repeat_order` |
   | `error` | 出错（此后不会再有内容） | `msg` |
 - **为什么推荐卡片只放在 `done` 里**：卡片是从**完整回复**里识别菜名得到的
   （见 `core/AiReply.php`），增量阶段拿不到全文，所以只让 `delta` 负责"显示得快"。
@@ -457,6 +464,34 @@ data: [DONE]                                ← 结束标记（与 OpenAI 风格
   唯一的例外是**限流**与**参数校验**——它们发生在切换成 SSE 之前，仍返回普通 JSON（见下节）。
 - **对应前端**：`frontend/utils/sse.ts`（`wx.request` + `enableChunked` + `onChunkReceived`）。
   基础库 < 2.20.2 时前端会自动回退到非流式的 `ai/chat.php`。
+
+### 18. 查询点餐历史（跟上次一样 / 我的常点）🔒
+
+- **地址**：`POST /api/order/history.php`
+- **入参**：`{"intent": "last"}`　`intent` 取 `last`（上次的订单）或 `regular`（常点的菜），缺省为 `last`
+- **鉴权**：点餐历史属于个人数据，必须登录（`Auth::requireLogin()`），只查当前令牌对应的用户
+- **返回 data**：
+```json
+{
+  "card": {
+    "source": "last",
+    "label": "上次的订单",
+    "order_no": "TWS20261017001",
+    "ordered_at": "2026-10-17 12:30:00",
+    "dishes": [ { "id": 2, "name": "麻婆豆腐", "price": 18, "quantity": 1 } ],
+    "total": 18,
+    "total_text": "18.00",
+    "count": 1,
+    "skipped": 0
+  },
+  "reply": "你上次点的是 麻婆豆腐。要照这个再来一份吗？"
+}
+```
+- **`card` 为 `null`**：没有已完成订单（`status = 2`），或上次订单里的菜已全部下架/售完。
+- **统计口径**：只统计**已完成**订单；下架或售完的菜不计入，其数量在 `skipped` 中给出。
+- **`intent = regular`**：本接口返回 `card: null`，仅提供 `reply` 文案；「常点」的菜品卡片由
+  `ai/chat.php` / `ai/chat_stream.php` 以推荐卡片形式返回（每道单独加购，`ai_reason` 显示「点过 N 次」）。
+- **对应前端**：`frontend/pages/aiChat/`（快捷提问「给我来一份跟上次一样的」「我的常点」）。
 
 ---
 
